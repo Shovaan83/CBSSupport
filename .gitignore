@@ -1,0 +1,44 @@
+# Build results
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+*.app
+*.vs/
+*.user
+*.suo
+
+# ASP.NET
+appsettings.Development.json
+appsettings.Local.json
+
+# Rider
+.idea/
+
+# Visual Studio
+.vscode/
+.vs/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# User secrets
+secrets.json
+
+# MAUI specific
+platforms/
+**/Resources/Raw/*.*
+*.apk
+*.aab
+
+# Logs
+*.log
+
+# npm packages (if used)
+node_modules/
+
+# .NET
+project.lock.json
+project.fragment.lock.json
