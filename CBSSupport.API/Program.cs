@@ -1,7 +1,15 @@
+using CBSSupport.Shared.Services;
+using CBSSupport.API.Hubs;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddSignalR();
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+builder.Services.AddSingleton<IChatService>(provider => new ChatService(connectionString));
 
 var app = builder.Build();
 
@@ -22,5 +30,7 @@ app.UseAuthorization();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
+
+app.MapHub<ChatHub>("/chathub");
 
 app.Run();

@@ -2,22 +2,32 @@
 
 public partial class MainPage : ContentPage
 {
-	int count = 0;
+    public MainPage()
+    {
+        InitializeComponent();
+        SetWebViewSource();
+    }
 
-	public MainPage()
-	{
-		InitializeComponent();
-	}
+    private void SetWebViewSource()
+    {
+        string chatUrl;
 
-	private void OnCounterClicked(object? sender, EventArgs e)
-	{
-		count++;
+        // IMPORTANT: Find the correct port from CBSSupport.API/Properties/launchSettings.json
+        // and replace '7123' with YOUR port number.
+        const string port = "7243 || 5075";
 
-		if (count == 1)
-			CounterBtn.Text = $"Clicked {count} time";
-		else
-			CounterBtn.Text = $"Clicked {count} times";
+#if ANDROID
+        chatUrl = $"http://10.0.2.2:{port}/Chat";
+#else
+        chatUrl = $"http://localhost:{port}/Chat";
+#endif
 
-		SemanticScreenReader.Announce(CounterBtn.Text);
-	}
+        ChatWebView.Source = new UrlWebViewSource { Url = chatUrl };
+    }
+
+    private void OnToggleChatClicked(object sender, EventArgs e)
+    {
+        ChatWebView.IsVisible = !ChatWebView.IsVisible;
+        ToggleChatButton.Text = ChatWebView.IsVisible ? "Hide Chat" : "Show Chat";
+    }
 }

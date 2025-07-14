@@ -1,0 +1,100 @@
+﻿@page
+@model CBSSupport.API.Pages.ChatModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
+</head>
+<body>
+
+    <div class="dashboard-container">
+
+        <!-- ===== SECTION 1: CONVERSATION LIST (15%) ===== -->
+        <div id="conversation-list-panel" class="dashboard-panel">
+            <div class="panel-header">Conversations</div>
+            <div class="panel-body" id="conversation-list-container">
+                <!-- Item 1: Support Chat -->
+                <a href="#" class="conversation-item active" data-type="support" data-username="Fintech Support" data-initials="S">
+                    <div class="avatar-initials avatar-bg-green me-3">S</div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">CBS Support</div>
+                        <small class="text-muted">Agent: Shovan</small>
+                    </div>
+                    <div class="icon ms-2" title="Support Chat"><i class="fas fa-headset"></i></div>
+                </a>
+                <!-- Item 2: Colleague Chat -->
+                <a href="#" class="conversation-item" data-type="colleague" data-username="Ram Shah" data-initials="R">
+                    <div class="avatar-initials avatar-bg-blue me-3">R</div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">Ram Shah</div>
+                        <small class="text-muted">Can you check on ticket?</small>
+                    </div>
+                    <div class="icon ms-2" title="Internal Chat"><i class="fas fa-user-friends"></i></div>
+                </a>
+            </div>
+        </div>
+
+        <!-- ===== SECTION 2: CHAT AREA (35%) ===== -->
+        <div id="chat-panel" class="dashboard-panel">
+            <div class="panel-header" id="chat-header">
+                <div id="chat-header-avatar" class="avatar-initials avatar-bg-green">S</div>
+                <div id="chat-header-info">
+                    <div class="fw-bold" id="chat-partner-name">CBS Support</div>
+                    <small class="text-muted" id="chat-partner-status">Agent: Shovan</small>
+                </div>
+            </div>
+            <div id="chat-panel-body" class="panel-body">
+                <!-- Messages injected here -->
+            </div>
+            <div class="chat-footer">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Type a message..." id="message-input">
+                    <button class="btn btn-primary" type="button" id="send-button"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== SECTION 3: MY HISTORY (50%) ===== -->
+        <div id="history-column">
+            <!-- Top Section: My Support Tickets -->
+            <div class="history-panel">
+                <div class="panel-header">My Support Tickets</div>
+                <div class="history-table-container panel-body">
+                    <table class="table table-hover table-sm small">
+                        <thead><tr><th>ID</th><th>Subject</th><th>Date</th><th>Status</th></tr></thead>
+                        <tbody id="my-support-history-table">
+                            <!-- Data for logged-in user, never changes -->
+                            <tr><td>#84321</td><td>Login Issue</td><td>2024-10-21</td><td><span class="badge bg-success">Resolved</span></td></tr>
+                            <tr><td>#84199</td><td>Invoice Question</td><td>2024-10-19</td><td><span class="badge bg-success">Resolved</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Bottom Section: My Inquiries -->
+            <div class="history-panel">
+                <div class="panel-header">My Inquiries</div>
+                <div class="history-table-container panel-body">
+                    <table class="table table-hover table-sm small">
+                        <thead><tr><th>ID</th><th>Topic</th><th>Date</th><th>Outcome</th></tr></thead>
+                        <tbody id="my-inquiry-history-table">
+                            <!-- Data for logged-in user, never changes -->
+                            <tr><td>#INQ-345</td><td>Pricing for Enterprise Plan</td><td>2024-09-05</td><td><span class="badge bg-info">Info Sent</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/chat.js" asp-append-version="true"></script>
+</body>
+</html>
