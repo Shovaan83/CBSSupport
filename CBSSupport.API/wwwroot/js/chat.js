@@ -57,7 +57,7 @@
             addMessage('Hi there! This is Shovan from support. I can certainly help you with that.', 'received');
         } else { // 'colleague'
             addMessage('Hey Ram, do you have the Q3 report ready?', 'sent');
-            addMessage('Yep, just finishing it up. I\'ll send it over in about 10 minutes.', 'received');
+            addMessage('Yep, just finishing it up. I\'ll send it over in about 10 minutes.', 'receivedgit ');
         }
     }
 
