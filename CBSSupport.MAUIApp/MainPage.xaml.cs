@@ -16,6 +16,8 @@ public partial class MainPage : ContentPage
         // and replace '7123' with YOUR port number.
         const string port = "7243 || 5075";
 
+        const string newPath = "/Support/Index";
+
 #if ANDROID
         chatUrl = $"http://10.0.2.2:{port}/Chat";
 #else

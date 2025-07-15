@@ -45,7 +45,7 @@
         headerAvatarEl.className = avatarInList.className; // Copies all classes, including color
 
         if (type === 'support') {
-            partnerStatusEl.textContent = `Online - Agent: Shovan`;
+            partnerStatusEl.textContent = `Online - Agent: Sarah`;
         } else { // 'colleague'
             partnerStatusEl.textContent = `Online`;
         }
@@ -54,10 +54,10 @@
         chatBody.innerHTML = '';
         if (type === 'support') {
             addMessage('Hello, I have a question about my last invoice.', 'sent');
-            addMessage('Hi there! This is Shovan from support. I can certainly help you with that.', 'received');
+            addMessage('Hi there! This is Sarah from support. I can certainly help you with that.', 'received');
         } else { // 'colleague'
-            addMessage('Hey Ram, do you have the Q3 report ready?', 'sent');
-            addMessage('Yep, just finishing it up. I\'ll send it over in about 10 minutes.', 'receivedgit ');
+            addMessage('Hey John, do you have the Q3 report ready?', 'sent');
+            addMessage('Yep, just finishing it up. I\'ll send it over in about 10 minutes.', 'received');
         }
     }
 
