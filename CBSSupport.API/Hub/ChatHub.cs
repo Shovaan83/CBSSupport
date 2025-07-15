@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using CBSSupport.Shared.Services; // Your service interface
 using CBSSupport.Shared.Models;   // Your model
+using System;
 using System.Threading.Tasks;
 
-namespace CBSSupport.API.Hubs
+namespace CBSSupport.API.Hubs // Ensure this namespace matches your project structure
 {
     public class ChatHub : Hub
     {
@@ -14,31 +15,46 @@ namespace CBSSupport.API.Hubs
             _chatService = chatService;
         }
 
-        // Called from JS when the client connects
+        // --- METHOD TO HANDLE SENDING AND RECEIVING MESSAGES ---
+        // This method is called by the client-side JavaScript.
+        public async Task SendPublicMessage(string senderName, string message)
+        {
+            // In a real application, you would get the user's name from an authenticated context.
+            // e.g., var senderName = Context.User.Identity.Name;
+
+            // Generate avatar initials from the sender's name
+            string initials = !string.IsNullOrEmpty(senderName) ? senderName.Substring(0, 1).ToUpper() : "?";
+
+            // Broadcast the received message to ALL connected clients.
+            // The method name "ReceiveMessage" must exactly match the client-side listener.
+            await Clients.All.SendAsync("ReceiveMessage", senderName, message, DateTime.UtcNow, initials);
+
+            // In a production system, you would also save the message to a database here.
+        }
+
+        // --- Existing methods below are unchanged ---
+
         public async Task GetMyConversations()
         {
-            // TODO: Get the real user ID after implementing authentication
+            // This is a placeholder for your existing logic
             long mockClientAuthUserId = 1;
-
             var tickets = await _chatService.GetInstructionTicketsForUserAsync(mockClientAuthUserId);
-            // Send the list only to the caller
             await Clients.Caller.SendAsync("ReceiveConversationList", tickets);
         }
 
-        // Called from JS when user clicks "Start New Chat"
         public async Task CreateTicket(string subject)
         {
-            // TODO: Get real user/client IDs
+            // This is a placeholder for your existing logic
             long mockClientAuthUserId = 1;
             int mockInsertUser = 1;
 
             var newTicket = new ChatMessage
             {
                 DateTime = DateTime.UtcNow,
-                InstCategoryId = 1, // 'Client Chat'
-                InstTypeId = 1, // 'Support Chat'
+                InstCategoryId = 1,
+                InstTypeId = 1,
                 Instruction = subject,
-                Status = true, // Open
+                Status = true,
                 ClientAuthUserId = mockClientAuthUserId,
                 InsertUser = mockInsertUser,
                 InstChannel = "WebApp"
@@ -46,8 +62,6 @@ namespace CBSSupport.API.Hubs
 
             long newId = await _chatService.CreateInstructionTicketAsync(newTicket);
             newTicket.Id = newId;
-
-            // Send the newly created ticket back to the caller so they can open it
             await Clients.Caller.SendAsync("NewTicketCreated", newTicket);
         }
     }
