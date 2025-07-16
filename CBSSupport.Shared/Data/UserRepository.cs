@@ -15,9 +15,9 @@ namespace CBSSupport.Shared.Data
             DefaultTypeMap.MatchNamesWithUnderscores = true;
         }
 
-        public async Task<AdminUser> GetByUsernameAsync(string username)
+        public async Task<AdminUser?> GetByUsernameAsync(string username)
         {
-            var sql = "SELECT * FROM admin.users WHERE username = @Username";
+            var sql = "SELECT * FROM admin.users WHERE user_name = @Username";
             using (var connection = new NpgsqlConnection(_connectionString))
             {
                 return await connection.QuerySingleOrDefaultAsync<AdminUser>(sql, new { Username = username });
