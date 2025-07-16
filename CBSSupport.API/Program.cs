@@ -1,5 +1,6 @@
 using CBSSupport.API.Hubs;
 using CBSSupport.Shared.Data;
+using CBSSupport.Shared.Helpers;
 using CBSSupport.Shared.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -29,6 +30,12 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    var jwtSecret = builder.Configuration["Jwt:Secret"];
+    if (string.IsNullOrEmpty(jwtSecret))
+    {
+        throw new InvalidOperationException("JWT Secret is not configured in appsettings.json.");
+    }
+
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,

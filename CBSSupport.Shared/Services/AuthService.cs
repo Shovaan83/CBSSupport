@@ -1,6 +1,6 @@
-﻿using BCrypt.Net;
-using CBSSupport.Shared.Data;
+﻿using CBSSupport.Shared.Data;
 using CBSSupport.Shared.Models;
+using CBSSupport.Shared.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -21,7 +21,7 @@ namespace CBSSupport.Shared.Services
             _configuration = configuration;
         }
 
-        public async Task<string> LoginAsync(LoginRequest loginRequest)
+        public async Task<string?> LoginAsync(LoginRequest loginRequest)
         {
             // 1. Get the user from the database
             var user = await _userRepository.GetByUsernameAsync(loginRequest.Username);
@@ -32,7 +32,7 @@ namespace CBSSupport.Shared.Services
 
             // 2. Verify the hashed password
             // NEVER compare plain text passwords.
-            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(loginRequest.Password, user.PasswordHash);
+            bool isPasswordValid = PasswordHelper.VerifyPassword(loginRequest.Password, user.PasswordHash, user.PasswordSalt);
             if (!isPasswordValid)
             {
                 return null; // Invalid password
@@ -44,7 +44,13 @@ namespace CBSSupport.Shared.Services
 
         private string GenerateJwtToken(AdminUser user)
         {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Secret"]));
+            var jwtSecret = _configuration["Jwt:Secret"];
+            if (string.IsNullOrEmpty(jwtSecret))
+            {
+                throw new InvalidOperationException("JWT Secret is not configured in appsettings.json.");
+            }
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
