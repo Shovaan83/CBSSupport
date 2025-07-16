@@ -1,0 +1,72 @@
+﻿body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-image: url('../images/login-bg.jpg'); /* Make sure to add a background image */
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+.login-container {
+    display: flex;
+    max-width: 900px;
+    width: 100%;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.login-branding {
+    flex: 1;
+    background-color: #1a2533;
+    color: #fff;
+    padding: 3rem;
+    background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('../images/branding-bg.jpg');
+    background-size: cover;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.login-form {
+    flex: 1;
+    padding: 3rem;
+}
+
+    .login-form .logo {
+        width: 150px;
+        margin-bottom: 1rem;
+    }
+
+    .login-form .info-box {
+        border: 1px solid #dee2e6;
+        padding: 0.75rem;
+        font-size: 0.8rem;
+        margin-bottom: 2rem;
+    }
+
+    .login-form h2 {
+        font-weight: 700;
+        margin-bottom: 2rem;
+    }
+
+.form-control {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+.btn-login {
+    background-color: #9ccc65; /* A pleasant green */
+    border: none;
+    font-weight: bold;
+    padding: 0.75rem;
+    transition: background-color 0.2s;
+}
+
+    .btn-login:hover {
+        background-color: #8bc34a;
+    }

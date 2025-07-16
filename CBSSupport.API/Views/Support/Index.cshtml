@@ -1,0 +1,37 @@
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <!-- Renders the User List panel -->
+        <partial name="_UserList" />
+
+        <!-- Renders the Chat panel -->
+        <partial name="_ChatPanel" />
+
+        <div id="history-column">
+            <!-- Renders the Support History panel -->
+            <partial name="_SupportHistory" />
+
+            <!-- Renders the Inquiry History panel -->
+            <partial name="_InquiryHistory" />
+        </div>
+    </div>
+
+    @* Place modals here if you have them *@
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/chat.js" asp-append-version="true"></script>
+</body>
+</html>
