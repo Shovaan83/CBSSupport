@@ -2,6 +2,8 @@
 @model CBSSupport.API.Pages.ChatModel
 @{
     Layout = null;
+    // This code requires the corresponding Chat.cshtml.cs to have the
+    // [Authorize] attribute and the `CurrentUserName` property.
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -10,49 +12,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Client Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
 </head>
 <body>
 
     <div class="dashboard-container">
-
-        <!-- ===== SECTION 1: CONVERSATION LIST (15%) ===== -->
+        <!-- ===== SECTION 1: CONVERSATION LIST (Your Accordion Layout + Friend's Role Switcher) ===== -->
         <div id="conversation-list-panel" class="dashboard-panel">
-            <div class="panel-header">Conversations</div>
-            <div class="panel-body" id="conversation-list-container">
-                <!-- Item 1: Support Chat -->
-                <a href="#" class="conversation-item active" data-type="support" data-username="Fintech Support" data-initials="S">
-                    <div class="avatar-initials avatar-bg-green me-3">S</div>
-                    <div class="flex-grow-1">
-                        <div class="fw-bold">CBS Support</div>
-                        <small class="text-muted">Agent: Shovan</small>
+            <div class="panel-header d-flex justify-content-between align-items-center">
+                <span>Conversations</span>
+                <select id="role-switcher" class="form-select form-select-sm" style="width: auto;"></select>
+            </div>
+
+            <div class="accordion" id="conversationGroupsAccordion">
+                <!-- GROUP 1: Group Chats (Dynamically handled by JS) -->
+                <div class="accordion-item" id="group-chat-accordion-item">
+                    <h2 class="accordion-header" id="headingGroups">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGroups" aria-expanded="true" aria-controls="collapseGroups">
+                            Group
+                        </button>
+                    </h2>
+                    <div id="collapseGroups" class="accordion-collapse collapse show" aria-labelledby="headingGroups">
+                        <div class="accordion-body p-0">
+                            <div class="list-group list-group-flush" id="group-list">
+                                <!-- Group chats will be added here by JS -->
+                                <a href="#" class="list-group-item conversation-item" data-type="group" data-id="public" data-name="Public Group Chat">
+                                    <div class="avatar-initials avatar-bg-purple me-3">P</div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold">Public Group Chat</div>
+                                        <small class="text-muted">Company-wide channel</small>
+                                    </div>
+                                    <div class="icon ms-2"><i class="fas fa-users"></i></div>
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="icon ms-2" title="Support Chat"><i class="fas fa-headset"></i></div>
-                </a>
-                <!-- Item 2: Colleague Chat -->
-                <a href="#" class="conversation-item" data-type="colleague" data-username="Ram Shah" data-initials="R">
-                    <div class="avatar-initials avatar-bg-blue me-3">R</div>
-                    <div class="flex-grow-1">
-                        <div class="fw-bold">Ram Shah</div>
-                        <small class="text-muted">Can you check on ticket?</small>
+                </div>
+
+                <!-- GROUP 2: Team Members (For Admins) -->
+                <div class="accordion-item" id="team-chat-accordion-item">
+                    <h2 class="accordion-header" id="headingTeam">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTeam" aria-expanded="false" aria-controls="collapseTeam">
+                            Team Members
+                        </button>
+                    </h2>
+                    <div id="collapseTeam" class="accordion-collapse collapse" aria-labelledby="headingTeam">
+                        <div class="accordion-body p-0">
+                            <div class="list-group list-group-flush" id="team-list">
+                                <!-- Team member list will be dynamically populated here by chat.js -->
+                            </div>
+                        </div>
                     </div>
-                    <div class="icon ms-2" title="Internal Chat"><i class="fas fa-user-friends"></i></div>
-                </a>
+                </div>
+
+                <!-- GROUP 3: Support (For Admins) -->
+                <div class="accordion-item" id="support-chat-accordion-item">
+                    <h2 class="accordion-header" id="headingSupport">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSupport" aria-expanded="false" aria-controls="collapseSupport">
+                            Support
+                        </button>
+                    </h2>
+                    <div id="collapseSupport" class="accordion-collapse collapse" aria-labelledby="headingSupport">
+                        <div class="accordion-body p-0">
+                            <div class="list-group list-group-flush" id="support-list">
+                                <!-- Customer support chats will be dynamically populated here by chat.js -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- ===== SECTION 2: CHAT AREA (35%) ===== -->
+
+        <!-- ===== SECTION 2: CHAT PANEL (Friend's Dynamic Version) ===== -->
         <div id="chat-panel" class="dashboard-panel">
             <div class="panel-header" id="chat-header">
-                <div id="chat-header-avatar" class="avatar-initials avatar-bg-green">S</div>
-                <div id="chat-header-info">
-                    <div class="fw-bold" id="chat-partner-name">CBS Support</div>
-                    <small class="text-muted" id="chat-partner-status">Agent: Shovan</small>
-                </div>
+                <!-- Chat header will be dynamically updated by chat.js -->
             </div>
             <div id="chat-panel-body" class="panel-body">
-                <!-- Messages injected here -->
+                <!-- Chat messages will be dynamically inserted here by chat.js -->
             </div>
             <div class="chat-footer">
                 <div class="input-group">
@@ -62,31 +102,38 @@
             </div>
         </div>
 
-        <!-- ===== SECTION 3: MY HISTORY (50%) ===== -->
+        <!-- ===== SECTION 3: MY HISTORY (Combined Logic) ===== -->
         <div id="history-column">
-            <!-- Top Section: My Support Tickets -->
             <div class="history-panel">
-                <div class="panel-header">My Support Tickets</div>
+                <div class="panel-header d-flex justify-content-between align-items-center">
+                    <span>My Support Tickets</span>
+                    <button id="newSupportTicketBtn" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newSupportTicketModal">
+                        New Support Request
+                    </button>
+                </div>
                 <div class="history-table-container panel-body">
-                    <table class="table table-hover table-sm small">
-                        <thead><tr><th>ID</th><th>Subject</th><th>Date</th><th>Status</th></tr></thead>
-                        <tbody id="my-support-history-table">
-                            <!-- Data for logged-in user, never changes -->
-                            <tr><td>#84321</td><td>Login Issue</td><td>2024-10-21</td><td><span class="badge bg-success">Resolved</span></td></tr>
-                            <tr><td>#84199</td><td>Invoice Question</td><td>2024-10-19</td><td><span class="badge bg-success">Resolved</span></td></tr>
-                        </tbody>
+                    <table id="supportTicketsDataTable" class="table table-hover table-sm small" style="width:100%">
+                        <thead>
+                            <tr><th>ID</th><th>Subject</th><th>Date</th><th>Created By</th><th>Resolved By</th><th>Status</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
-            <!-- Bottom Section: My Inquiries -->
             <div class="history-panel">
-                <div class="panel-header">My Inquiries</div>
+                <div class="panel-header d-flex justify-content-between align-items-center">
+                    <span>My Inquiries</span>
+                    <button id="newInquiryBtn" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newInquiryModal">
+                        New Inquiry
+                    </button>
+                </div>
                 <div class="history-table-container panel-body">
-                    <table class="table table-hover table-sm small">
-                        <thead><tr><th>ID</th><th>Topic</th><th>Date</th><th>Outcome</th></tr></thead>
-                        <tbody id="my-inquiry-history-table">
-                            <!-- Data for logged-in user, never changes -->
-                            <tr><td>#INQ-345</td><td>Pricing for Enterprise Plan</td><td>2024-09-05</td><td><span class="badge bg-info">Info Sent</span></td></tr>
+                    <table id="inquiriesDataTable" class="table table-hover table-sm small" style="width:100%">
+                        <thead>
+                            <tr><th>ID</th><th>Topic</th><th>Inquired By</th><th>Date</th><th>Outcome</th></tr>
+                        </thead>
+                        <tbody>
+                            <!-- Your dynamic JS will populate this -->
                         </tbody>
                     </table>
                 </div>
@@ -94,7 +141,120 @@
         </div>
     </div>
 
+    <!-- ===== MODALS (Your versions are good) ===== -->
+    <div class="modal fade" id="newSupportTicketModal" tabindex="-1" aria-labelledby="newSupportTicketModalLabel" aria-hidden="true"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="newSupportTicketModalLabel">New Support Request</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><form id="supportTicketForm"><div class="row"><div class="col-md-6 mb-3"><label for="fullName" class="form-label">Full Name</label><input type="text" class="form-control" id="fullName" placeholder="Enter your full name" required></div><div class="col-md-6 mb-3"><label for="requestDate" class="form-label">Date *</label><input type="date" class="form-control" id="requestDate" required></div></div><div class="mb-3"><label for="accountNumber" class="form-label">Account Number</label><input type="text" class="form-control" id="accountNumber" placeholder="e.g., ACC-102345"></div><div class="mb-3"><label for="ticketSubject" class="form-label">Subject *</label><input type="text" class="form-control" id="ticketSubject" placeholder="e.g., Unable to process payment" required></div><div class="mb-3"><label for="ticketDescription" class="form-label">Description *</label><textarea class="form-control" id="ticketDescription" rows="5" placeholder="Please describe the issue in detail." required></textarea></div><p class="text-danger small">* Required fields.</p></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" form="supportTicketForm" class="btn btn-primary">Submit Request</button></div></div></div></div>
+    <div class="modal fade" id="viewTicketDetailsModal" tabindex="-1" aria-labelledby="viewTicketDetailsModalLabel" aria-hidden="true"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="viewTicketDetailsModalLabel">Ticket Details</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><dl class="row"><dt class="col-sm-3">Ticket ID</dt><dd class="col-sm-9"><span id="details-id"></span></dd><dt class="col-sm-3">Status</dt><dd class="col-sm-9"><span id="details-status"></span></dd><dt class="col-sm-3">Subject</dt><dd class="col-sm-9"><span id="details-subject"></span></dd><dt class="col-sm-3">Date Submitted</dt><dd class="col-sm-9"><span id="details-date"></span></dd><dt class="col-sm-3">Created By</dt><dd class="col-sm-9"><span id="details-createdBy"></span></dd><dt class="col-sm-3">Account Number</dt><dd class="col-sm-9"><span id="details-account"></span></dd><dt class="col-sm-3">Resolved By</dt><dd class="col-sm-9"><span id="details-resolvedBy"></span></dd><dt class="col-sm-3">Description</dt><dd class="col-sm-9"><p id="details-description" style="white-space: pre-wrap;"></p></dd></dl></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div></div></div></div>
+    <div class="modal fade" id="newInquiryModal" tabindex="-1" aria-labelledby="newInquiryModalLabel" aria-hidden="true"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="newInquiryModalLabel">Compose Inquiry</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><form id="inquiryForm"><div class="mb-3"><label for="inquiryTo" class="form-label">To: *</label><input type="email" class="form-control" id="inquiryTo" value="support@fintech.com" disabled readonly></div><div class="mb-3"><label for="inquirySubject" class="form-label">Subject: *</label><input type="text" class="form-control" id="inquirySubject" placeholder="Enter a brief subject for your inquiry" required></div><div class="mb-3"><label for="inquiryMessage" class="form-label">Inquiry Details: *</label><div class="text-editor-toolbar border border-bottom-0 rounded-top bg-light p-2"><span class="me-2">Normal</span><button type="button" class="btn btn-light btn-sm"><b>B</b></button><button type="button" class="btn btn-light btn-sm"><i>I</i></button><button type="button" class="btn btn-light btn-sm"><u>U</u></button></div><textarea class="form-control" id="inquiryMessage" rows="8" placeholder="Please describe your inquiry in detail." required></textarea></div><p class="text-danger small">* All fields are required.</p></form></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button><button type="submit" form="inquiryForm" class="btn btn-primary">Send Inquiry</button></div></div></div></div>
+
+    <!-- ===== SCRIPTS ===== -->
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+
+   
     <script src="~/js/chat.js" asp-append-version="true"></script>
+
+    
+    <script>
+        $(document).ready(function () {
+            
+            const ticketsLocalStorageKey = 'supportTickets';
+            const supportTicketForm = document.getElementById('supportTicketForm');
+            const newTicketModal = new bootstrap.Modal(document.getElementById('newSupportTicketModal'));
+            const viewTicketModal = new bootstrap.Modal(document.getElementById('viewTicketDetailsModal'));
+
+            const getTickets = () => JSON.parse(localStorage.getItem(ticketsLocalStorageKey)) || [];
+
+            const ticketsTable = $('#supportTicketsDataTable').DataTable({
+                data: getTickets(),
+                columns: [
+                    { data: 'id', render: data => `#${data}` },
+                    { data: 'subject' },
+                    { data: 'submissionTimestamp' },
+                    { data: 'createdBy' },
+                    { data: 'resolvedBy' },
+                    {
+                        data: 'status',
+                        render: (data) => `<span class="badge ${data === 'Resolved' ? 'bg-success' : 'bg-warning text-dark'}">${data}</span>`
+                    },
+                    {
+                        data: 'id',
+                        render: (data) => `<button class="btn btn-sm btn-info view-details-btn" data-ticket-id="${data}">View</button>`,
+                        orderable: false,
+                        searchable: false
+                    }
+                ],
+                pageLength: 5, lengthChange: true, lengthMenu: [[5, 10, 25, -1], [5, 10, 25, "All"]],
+                searching: true, order: [[2, 'desc']],
+                language: { search: "", searchPlaceholder: "Search tickets...", emptyTable: "No support tickets found.", lengthMenu: "_MENU_" },
+                dom: '<"row mb-3"<"col-sm-12 col-md-auto"l><"col-sm-12 col-md-auto ms-md-auto"f>>rtip'
+            });
+
+            $(supportTicketForm).on('submit', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const newTicket = {
+                    id: String(Date.now()).slice(-6),
+                    subject: $('#ticketSubject').val(),
+                    submissionTimestamp: now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    createdBy: $('#fullName').val() || 'System',
+                    resolvedBy: 'Pending',
+                    status: 'Pending',
+                    accountNumber: $('#accountNumber').val() || 'N/A',
+                    description: $('#ticketDescription').val()
+                };
+                const allTickets = getTickets();
+                allTickets.unshift(newTicket);
+                localStorage.setItem(ticketsLocalStorageKey, JSON.stringify(allTickets));
+                ticketsTable.row.add(newTicket).draw();
+                this.reset();
+                newTicketModal.hide();
+            });
+
+            $('#supportTicketsDataTable tbody').on('click', '.view-details-btn', function() {
+                const ticketId = $(this).data('ticket-id').toString();
+                const ticket = getTickets().find(t => t.id === ticketId);
+                if (ticket) {
+                    $('#details-id').text(`#${ticket.id}`);
+                    $('#details-status').html(`<span class="badge ${ticket.status === 'Resolved' ? 'bg-success' : 'bg-warning text-dark'}">${ticket.status}</span>`);
+                    $('#details-subject').text(ticket.subject);
+                    $('#details-date').text(ticket.submissionTimestamp);
+                    $('#details-createdBy').text(ticket.createdBy);
+                    $('#details-account').text(ticket.accountNumber);
+                    $('#details-resolvedBy').text(ticket.resolvedBy);
+                    $('#details-description').text(ticket.description);
+                    viewTicketModal.show();
+                }
+            });
+
+            
+            const inquiriesTable = $('#inquiriesDataTable').DataTable({
+                pageLength: 5, lengthChange: true, lengthMenu: [[5, 10, 25, -1], [5, 10, 25, "All"]],
+                searching: true, language: { search: "", searchPlaceholder: "Search inquiries..." },
+                order: [[3, "desc"]]
+            });
+
+            $('#inquiryForm').on('submit', function (event) {
+                event.preventDefault();
+                const subject = $('#inquirySubject').val();
+                if (!subject.trim()) {
+                    alert('Please enter a subject.');
+                    return;
+                }
+                const inquiredBy = @Json.Serialize(Model.CurrentUserName); // This uses the authenticated user's name
+                const newId = '#INQ-' + Math.floor(Math.random() * 900 + 100);
+                const outcome = '<span class="badge bg-warning text-dark">Submitted</span>';
+                const now = new Date();
+                const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+                inquiriesTable.row.add([newId, subject, inquiredBy, formattedDate, outcome]).draw(false);
+
+                $('#inquiryForm')[0].reset();
+                bootstrap.Modal.getInstance($('#newInquiryModal')).hide();
+            });
+        });
+    </script>
 </body>
 </html>
