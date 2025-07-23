@@ -53,7 +53,7 @@ body {
 
 .branding-subtitle {
     font-size: 1rem;
-    color: #5a4f66; 
+    color: #5a4f66;
     max-width: 300px;
 }
 
@@ -73,9 +73,10 @@ body {
         color: #111827;
     }
 
-/* ===== REFINED FLUID ROLE SELECTOR ===== */
+/* ===== FINAL, CORRECTED ROLE SELECTOR STYLES ===== */
 .role-selector {
-    display: flex; /* Use flex instead of grid */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     position: relative;
     background-color: #f3f4f6;
     border-radius: 0.5rem;
@@ -83,20 +84,32 @@ body {
     margin-bottom: 1.5rem;
 }
 
-.role-selector-option {
-    flex: 1; /* Each option takes 50% width */
-    text-align: center;
-    padding: 0.5rem;
-    cursor: pointer;
-    font-weight: 500;
-    color: #374151;
-    z-index: 10; /* Ensure text is above the slider */
-    transition: color 0.3s ease-in-out;
-}
-
-    .role-selector-option.active {
-        color: #fff; /* Active text is white */
+    .role-selector .form-check {
+        /* The container for the input/label needs to sit on top of the slider */
+        z-index: 10;
     }
+
+    .role-selector .form-check-label {
+        /* Style the label to look like the button */
+        padding: 0.5rem;
+        width: 100%;
+        text-align: center;
+        cursor: pointer;
+        font-weight: 500;
+        color: #374151;
+        transition: color 0.3s ease-in-out;
+        border-radius: 0.375rem;
+    }
+
+    .role-selector .form-check-input {
+        /* Completely hide the original radio button dot */
+        display: none;
+    }
+
+        .role-selector .form-check-input:checked + .form-check-label {
+            /* When the hidden radio is checked, change its sibling label's text color */
+            color: #fff;
+        }
 
 .role-selector-slider {
     position: absolute;
@@ -108,36 +121,25 @@ body {
     border-radius: 0.375rem;
     box-shadow: 0 2px 10px rgba(0,0,0,0.08);
     transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    z-index: 5; /* Slider is behind the text */
+    z-index: 5; /* Slider is behind the form-check containers */
 }
 
     .role-selector-slider.client {
         transform: translateX(100%);
     }
 
+
 /* Form Fields & Disabled State */
 .form-control {
     background-color: #f9fafb;
     border: 1px solid #d1d5db;
     padding: 0.8rem 1rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-    .form-control:focus {
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
-        background-color: #fff;
-    }
-
-.form-group {
-    transition: opacity 0.3s ease-in-out, filter 0.3s ease-in-out;
+.form-group.disabled {
+    opacity: 0.5;
+    pointer-events: none;
 }
-
-    .form-group.disabled {
-        opacity: 0.5;
-        filter: grayscale(80%);
-        pointer-events: none;
-    }
 
 /* Login Button */
 .btn-login {
@@ -145,34 +147,39 @@ body {
     border: none;
     font-weight: 600;
     padding: 0.8rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.2);
 }
 
-    .btn-login:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 7px 20px rgba(13, 110, 253, 0.3);
-    }
+/* Validation Error Message */
+.alert-danger[role="alert"] {
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.375rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* ===== FINAL, CORRECTED "REMEMBER ME" CHECKBOX STYLES ===== */
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* Adds space between checkbox and label */
+}
+
+.form-check-input {
+    /* Slightly larger and better aligned checkbox */
+    width: 1.15em;
+    height: 1.15em;
+    margin-top: 0; /* Resets default margin */
+}
+
+.form-check-label {
+    cursor: pointer; /* Makes the text look clickable */
+    padding-top: 2px; /* Fine-tune vertical alignment */
+}
+
 
 /* --- ANIMATIONS --- */
-@keyframes shake {
-    10%, 90% {
-        transform: translate3d(-1px, 0, 0);
-    }
-
-    20%, 80% {
-        transform: translate3d(2px, 0, 0);
-    }
-
-    30%, 50%, 70% {
-        transform: translate3d(-4px, 0, 0);
-    }
-
-    40%, 60% {
-        transform: translate3d(4px, 0, 0);
-    }
-}
-
 @keyframes float {
     0% {
         transform: translateY(0px);

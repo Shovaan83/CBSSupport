@@ -3,13 +3,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CBSSupport.Shared.Models
 {
-    [Dapper.Contrib.Extensions.Table("admin.users")] 
+    [Dapper.Contrib.Extensions.Table("admin.users")]
     public class AdminUser
     {
-        [Key] 
+        [Key]
         public int Id { get; set; }
 
-        [Column("user_name")] 
+        [Column("user_name")]
         public string Username { get; set; } = string.Empty;
 
         [Column("password_salt")]
@@ -18,10 +18,13 @@ namespace CBSSupport.Shared.Models
         [Column("password_hash")]
         public string PasswordHash { get; set; } = string.Empty;
 
-        [Column("role_id")] 
+        [Column("role_id")]
         public int RoleId { get; set; }
 
-        [Write(false)] 
+        [Column("full_name")]
+        public string FullName { get; set; } = string.Empty;
+
+        [Write(false)] // This property is not in the database, we can fill it manually later
         public string Role { get; set; } = string.Empty;
     }
 }
