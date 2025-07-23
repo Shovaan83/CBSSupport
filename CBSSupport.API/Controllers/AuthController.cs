@@ -1,9 +1,9 @@
 ﻿using CBSSupport.Shared.Models;
 using CBSSupport.Shared.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+
 namespace CBSSupport.API.Controllers
 {
     [Route("api/[controller]")]
@@ -11,6 +11,7 @@ namespace CBSSupport.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+
         public AuthController(IAuthService authService)
         {
             _authService = authService;
@@ -18,20 +19,22 @@ namespace CBSSupport.API.Controllers
 
         [HttpPost("login")]
         [AllowAnonymous]
-        public async Task<IActionResult> Login([FromBody] CBSSupport.Shared.Models.LoginRequest loginRequest)
+        public async Task<IActionResult> Login([FromBody] LoginRequest loginRequest)
         {
             if (loginRequest == null)
             {
-                return BadRequest("Invalid client request");
+                return BadRequest("Invalid client request.");
             }
 
-            var token = await _authService.LoginAsync(loginRequest);
+            // The service will return a token string on success, or null on failure
+            var token = await _authService.LoginAndGenerateTokenAsync(loginRequest);
+
             if (token == null)
             {
                 return Unauthorized("Invalid username or password.");
             }
 
-            return Ok(new LoginResponse { Token = token });
+            return Ok(new { Token = token });
         }
     }
 }

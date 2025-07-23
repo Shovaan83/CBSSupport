@@ -1,54 +1,38 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using CBSSupport.Shared.Services; // Your service interface
-using CBSSupport.Shared.Models;   // Your model
+using System;
 using System.Threading.Tasks;
 
 namespace CBSSupport.API.Hubs
 {
     public class ChatHub : Hub
     {
-        private readonly IChatService _chatService;
-
-        public ChatHub(IChatService chatService)
+        // A "room" is just a SignalR group.
+        public async Task JoinConversationRoom(string conversationId)
         {
-            _chatService = chatService;
+            // The group name is unique to the conversation.
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"conversation-{conversationId}");
+
+            // Optional: notify others in the group that a user has joined.
+            var user = "System"; 
+            var message = $"{user} has joined the chat.";
+            await Clients.Group($"conversation-{conversationId}").SendAsync("ReceiveMessage", user, message, DateTime.UtcNow);
         }
 
-        // Called from JS when the client connects
-        public async Task GetMyConversations()
+        // When a client sends a message.
+        public async Task SendMessage(string conversationId, string user, string message)
         {
-            // TODO: Get the real user ID after implementing authentication
-            long mockClientAuthUserId = 1;
-
-            var tickets = await _chatService.GetInstructionTicketsForUserAsync(mockClientAuthUserId);
-            // Send the list only to the caller
-            await Clients.Caller.SendAsync("ReceiveConversationList", tickets);
+            await Clients.OthersInGroup($"conversation-{conversationId}").SendAsync("ReceiveMessage", conversationId, user, message, DateTime.UtcNow);
         }
 
-        // Called from JS when user clicks "Start New Chat"
-        public async Task CreateTicket(string subject)
+        public async Task UserIsTyping(string conversationId, string user)
         {
-            // TODO: Get real user/client IDs
-            long mockClientAuthUserId = 1;
-            int mockInsertUser = 1;
+            // Send to everyone ELSE in the group.
+            await Clients.OthersInGroup($"conversation-{conversationId}").SendAsync("DisplayTypingIndicator", user);
+        }
 
-            var newTicket = new ChatMessage
-            {
-                DateTime = DateTime.UtcNow,
-                InstCategoryId = 1, // 'Client Chat'
-                InstTypeId = 1, // 'Support Chat'
-                Instruction = subject,
-                Status = true, // Open
-                ClientAuthUserId = mockClientAuthUserId,
-                InsertUser = mockInsertUser,
-                InstChannel = "WebApp"
-            };
-
-            long newId = await _chatService.CreateInstructionTicketAsync(newTicket);
-            newTicket.Id = newId;
-
-            // Send the newly created ticket back to the caller so they can open it
-            await Clients.Caller.SendAsync("NewTicketCreated", newTicket);
+        public async Task UserStoppedTyping(string conversationId)
+        {
+            await Clients.OthersInGroup($"conversation-{conversationId}").SendAsync("HideTypingIndicator");
         }
     }
 }

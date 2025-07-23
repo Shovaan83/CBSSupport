@@ -1,39 +1,72 @@
-﻿document.addEventListener("DOMContentLoaded", function () {
+﻿"use strict";
+document.addEventListener("DOMContentLoaded", function () {
     const signInForm = document.getElementById('signInForm');
-    const errorMessageDiv = document.getElementById('error-message');
+    const errorToastEl = document.getElementById('errorToast');
+    const errorToast = bootstrap.Toast.getOrCreateInstance(errorToastEl);
+    const errorToastBody = document.getElementById('errorToastBody');
+    const adminRoleRadio = document.getElementById('adminRole');
+    const clientRoleRadio = document.getElementById('clientRole');
+    const branchCodeGroup = document.getElementById('branch-code-group');
+    const branchCodeInput = document.getElementById('branchCode');
+    const roleSelectorSlider = document.querySelector('.role-selector-slider');
+    let selectedRole = 'admin';
+
+    function handleRoleChange() {
+        if (clientRoleRadio.checked) {
+            roleSelectorSlider.classList.add('client');
+            branchCodeGroup.classList.remove('disabled');
+            branchCodeInput.required = true;
+            branchCodeInput.tabIndex = 0;
+        } else {
+            roleSelectorSlider.classList.remove('client');
+            branchCodeGroup.classList.add('disabled');
+            branchCodeInput.required = false;
+            branchCodeInput.tabIndex = -1;
+            branchCodeInput.value = '';
+        }
+    }
+    adminRoleRadio.addEventListener('change', handleRoleChange);
+    clientRoleRadio.addEventListener('change', handleRoleChange);
+    handleRoleChange();
 
     signInForm.addEventListener('submit', async function (e) {
         e.preventDefault();
-        errorMessageDiv.classList.add('d-none'); // Hide error on new submit
-
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+        const loginData = {
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value
+        };
+        if (selectedRole === 'client') {
+            loginData.branchCode = branchCodeInput.value;
+        }
 
         try {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, password })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(loginData)
             });
 
             if (response.ok) {
                 const data = await response.json();
-                // Success! Store the token and redirect.
-                localStorage.setItem('jwt_token', data.token);
-                window.location.href = '/Support'; // Redirect to the support dashboard
-            } else {
-                // Handle login failure
-                const errorData = await response.text();
-                errorMessageDiv.textContent = errorData || "Invalid username or password.";
-                errorMessageDiv.classList.remove('d-none');
-            }
+                console.log("Login successful, token:", data.token);
+                // In the future, you would save this token.
+                // localStorage.setItem('jwt_token', data.token);
 
+                const submitButton = signInForm.querySelector('button[type="submit"]');
+                submitButton.innerHTML = '<i class="fas fa-check"></i> Success!';
+                submitButton.classList.remove('btn-primary');
+                submitButton.classList.add('btn-success');
+
+                setTimeout(() => { window.location.href = '/Support'; }, 1000);
+            } else {
+                const errorData = await response.text();
+                errorToastBody.textContent = errorData || "Invalid credentials.";
+                errorToast.show();
+            }
         } catch (error) {
             console.error('Login error:', error);
-            errorMessageDiv.textContent = 'An error occurred. Please try again later.';
-            errorMessageDiv.classList.remove('d-none');
+            errorToastBody.textContent = 'A network error occurred.';
+            errorToast.show();
         }
     });
 });

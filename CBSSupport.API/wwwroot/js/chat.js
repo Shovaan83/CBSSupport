@@ -1,79 +1,116 @@
-﻿document.addEventListener("DOMContentLoaded", function () {
+﻿// Use a strict block to catch common coding errors
+"use strict";
+
+// --- DIAGNOSTIC LOG 1: Check if the script file is loaded and parsed ---
+console.log("chat.js script has been loaded and is starting.");
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    // --- DIAGNOSTIC LOG 2: Check if the DOMContentLoaded event fired ---
+    console.log("DOMContentLoaded event has fired. The HTML page should be ready.");
 
     // --- Element References ---
-    const conversationListContainer = document.getElementById('conversation-list-container');
-    const chatBody = document.getElementById('chat-panel-body');
+    const userListContainer = document.getElementById('user-list-container');
+    const messagesList = document.getElementById('messagesList');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
 
-    // --- Initial Load ---
-    const initialActiveItem = conversationListContainer.querySelector('.conversation-item.active');
-    if (initialActiveItem) {
-        updateChatPanel(initialActiveItem);
+    // --- DIAGNOSTIC LOG 3: Check if the elements were found ---
+    console.log("Searching for key elements:");
+    console.log(" - Found userListContainer:", userListContainer);
+    console.log(" - Found messagesList:", messagesList);
+    console.log(" - Found messageInput:", messageInput);
+    console.log(" - Found sendButton:", sendButton);
+
+    // --- CRITICAL CHECK: Stop if any element is missing ---
+    if (!userListContainer || !messagesList || !messageInput || !sendButton) {
+        console.error("CRITICAL ERROR: One or more essential HTML elements were not found. The script cannot continue. Please check the IDs in your Support.cshtml file.");
+        return; // Stop execution to prevent further errors
     }
 
-    // --- Event Handling ---
-    conversationListContainer.addEventListener('click', function (e) {
-        const targetItem = e.target.closest('.conversation-item');
-        if (!targetItem) return;
+    // If we get here, all elements were found. The rest of the script can run.
+    console.log("All elements found successfully. Initializing SignalR and event listeners...");
 
-        e.preventDefault();
+    let currentConversationId = null;
+    let myUsername = "Client";
 
-        conversationListContainer.querySelectorAll('.conversation-item').forEach(item => item.classList.remove('active'));
-        targetItem.classList.add('active');
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/chathub")
+        .withAutomaticReconnect()
+        .build();
 
-        updateChatPanel(targetItem);
+    connection.on("ReceiveMessage", (conversationId, user, message, timestamp) => {
+        if (conversationId === currentConversationId && user !== myUsername) {
+            addMessageToChat(user, message, timestamp, false);
+        }
     });
 
-    /**
-     * Updates the middle chat panel based on the selected conversation.
-     * @param {HTMLElement} selectedItem - The conversation item that was clicked.
-     */
-    function updateChatPanel(selectedItem) {
-        const type = selectedItem.dataset.type;
-        const username = selectedItem.dataset.username;
-        const initials = selectedItem.dataset.initials;
-
-        // --- Update Chat Header ---
-        const partnerNameEl = document.getElementById('chat-partner-name');
-        const partnerStatusEl = document.getElementById('chat-partner-status');
-        const headerAvatarEl = document.getElementById('chat-header-avatar');
-
-        partnerNameEl.textContent = username;
-        headerAvatarEl.textContent = initials; // Set the letter inside the div
-
-        // Update avatar background color to match the list
-        const avatarInList = selectedItem.querySelector('.avatar-initials');
-        headerAvatarEl.className = avatarInList.className; // Copies all classes, including color
-
-        if (type === 'support') {
-            partnerStatusEl.textContent = `Online - Agent: Sarah`;
-        } else { // 'colleague'
-            partnerStatusEl.textContent = `Online`;
+    function addMessageToChat(user, message, timestamp, isSentByMe) {
+        const messageContainer = document.createElement('div');
+        messageContainer.classList.add('d-flex', 'flex-row', isSentByMe ? 'justify-content-end' : 'justify-content-start');
+        const time = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const myAvatarUrl = "https://i.pravatar.cc/150?img=10";
+        const theirAvatarUrl = "https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava1-bg.webp";
+        const sanitizedMessage = message.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">");
+        let messageHtml = '';
+        if (isSentByMe) {
+            messageHtml = `<div><p class="small p-2 me-3 mb-1 text-white rounded-3 bg-primary">${sanitizedMessage}</p><p class="small me-3 mb-3 rounded-3 text-muted">${time}</p></div><img src="${myAvatarUrl}" alt="my avatar" style="width: 45px; height: 100%;" class="rounded-circle">`;
+        } else {
+            messageHtml = `<img src="${theirAvatarUrl}" alt="their avatar" style="width: 45px; height: 100%;"><p class="small p-2 ms-3 mb-1 rounded-3 bg-body-tertiary">${sanitizedMessage}</p><p class="small ms-3 mb-3 rounded-3 text-muted float-end">${time}</p></div>`;
         }
+        messageContainer.innerHTML = messageHtml;
+        messagesList.appendChild(messageContainer);
+        messagesList.scrollTop = messagesList.scrollHeight;
+    }
 
-        // --- Update Chat Body with Simulated Messages ---
-        chatBody.innerHTML = '';
-        if (type === 'support') {
-            addMessage('Hello, I have a question about my last invoice.', 'sent');
-            addMessage('Hi there! This is Sarah from support. I can certainly help you with that.', 'received');
-        } else { // 'colleague'
-            addMessage('Hey John, do you have the Q3 report ready?', 'sent');
-            addMessage('Yep, just finishing it up. I\'ll send it over in about 10 minutes.', 'received');
+    function sendMessage() {
+        const message = messageInput.value;
+        if (message && message.trim() && currentConversationId) {
+            connection.invoke("SendMessage", currentConversationId, myUsername, message).catch(err => console.error("SendMessage error: ", err.toString()));
+            addMessageToChat(myUsername, message, new Date(), true);
+            messageInput.value = "";
+            messageInput.focus();
         }
     }
 
-    /**
-     * Helper function to add message bubbles to the UI.
-     */
-    function addMessage(text, type) {
-        const row = document.createElement('div');
-        row.className = `message-row ${type}`;
-
-        const bubble = document.createElement('div');
-        bubble.className = 'message-bubble';
-        bubble.textContent = text;
-
-        row.appendChild(bubble);
-        chatBody.appendChild(row);
-        chatBody.scrollTop = chatBody.scrollHeight;
+    async function switchConversation(selectedItem) {
+        userListContainer.querySelectorAll('li.p-2').forEach(item => item.style.backgroundColor = '');
+        selectedItem.style.backgroundColor = '#f5f5f5';
+        currentConversationId = selectedItem.dataset.conversationId;
+        messagesList.innerHTML = '';
+        try {
+            await connection.invoke("JoinConversationRoom", currentConversationId);
+            console.log(`Joined room: conversation-${currentConversationId}`);
+            addMessageToChat('System', `You are now viewing conversation ${currentConversationId}.`, new Date(), false);
+        } catch (e) { console.error(`Failed to join room: ${e}`); }
     }
+
+    userListContainer.addEventListener('click', function (e) {
+        const targetItem = e.target.closest('li.p-2');
+        if (targetItem) {
+            switchConversation(targetItem);
+        }
+    });
+
+    sendButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            sendMessage();
+        }
+    });
+
+    async function startSignalR() {
+        try {
+            await connection.start();
+            console.log("SignalR Connected.");
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+        } catch (err) {
+            console.error("SignalR Connection Failed: ", err);
+            setTimeout(startSignalR, 5000);
+        }
+    }
+
+    startSignalR();
 });
