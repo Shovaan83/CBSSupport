@@ -15,7 +15,7 @@
             // 1. Manage the 'active' state for visual feedback
             userListItems.forEach(i => i.classList.remove('active'));
             this.classList.add('active');
-
+             
             // 2. Get username from the clicked item's data attribute
             const selectedUsername = this.dataset.username;
 
