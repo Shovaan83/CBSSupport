@@ -5,6 +5,6 @@ namespace CBSSupport.Shared.Services
 {
     public interface IAuthService
     {
-        Task<string?> LoginAndGenerateTokenAsync(LoginRequest loginRequest); 
+        Task<AdminUser?> ValidateUserAsync(string username, string password);
     }
 }

@@ -1,5 +1,17 @@
 ﻿@{
     Layout = null;
+
+    if (Context.User.Identity?.IsAuthenticated != true)
+    {
+        <div class="alert alert-danger">Not Authenticated!</div>
+    }
+    else
+    {
+        <div class="alert alert-success">
+            Autenticated as: @Context.User.Identity.Name
+            Claims: @string.Join(", ", Context.User.Claims.Select(c => $"{c.Type}: {c.Value}"))
+        </div>
+    }
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -9,68 +21,61 @@
     <title>Support Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <!-- Make sure this points to the correct combined CSS file -->
     <link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
 </head>
 <body>
+    <!--Nav Bar-->
+    <header class="app-header">
+        <div class="header-left">
+            <img src="~/images/infobrain-logo.jpg" alt="Balance Logo" class="header-logo" />
+            <button class="btn btn-icon"><i class="fas fa-bars"></i></button>
+            <div class="header-brand-text">INFOBRAIN TECHNOLOGIES PVT LTD (HEAD OFFICE.)</div>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <div>Transaction Running Date: @DateTime.Now</div>
+                <div>Logged Branch: 01 (HEAD OFFICE.) | Hello, @ViewBag.UserFullName</div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-icon" id="fullscreen-btn" title="Toggle Fullscreen"><i class="fas fa-expand"></i></button>
+                <button class="btn btn-icon position-relative" data-bs-toggle="modal" data-bs-target="#notificationsModal" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                </button>
+                <button class="btn btn-icon" data-bs-toggle="modal" data-bs-target="#userModal" title="User Actions">
+                    <i class="fas fa-users"></i>
+                </button>
+            </div>
+        </div>
+    </header>
 
-    <div class="dashboard-container">
+    <main class="main-content-grid">
 
-        <!-- ===== GRID COLUMN 1 & 2: THE MDB CHAT COMPONENT ===== -->
-        <div id="chat-component-container" class="dashboard-panel">
-            <div class="card" id="chat-component-card">
-                <div class="card-body">
-                    <div class="row g-0 h-100">
-
-                        <!-- Left Side: User List -->
-                        <div class="col-md-5 user-list-section">
-                            <div class="input-group rounded mb-3">
-                                <input type="search" class="form-control rounded" placeholder="Search..." />
-                                <span class="input-group-text border-0"><i class="fas fa-search"></i></span>
-                            </div>
-                            <div id="user-list-container">
-                                <ul class="list-unstyled mb-0">
-                                    <li class="p-2 border-bottom" data-conversation-id="conv-1">
-                                        <a href="#!" class="d-flex justify-content-between text-decoration-none text-dark">
-                                            <div class="d-flex flex-row">
-                                                <div class="position-relative">
-                                                    <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava1-bg.webp" alt="avatar" class="d-flex align-self-center me-3" width="60">
-                                                    <span class="badge bg-success badge-dot"></span>
-                                                </div>
-                                                <div class="pt-1">
-                                                    <p class="fw-bold mb-0">Marie Horwitz</p>
-                                                    <p class="small text-muted">Hello, Are you there?</p>
-                                                </div>
-                                            </div>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <!-- Right Side: Chat Panel -->
-                        <div class="col-md-7 chat-panel-section">
-                            <div id="messagesList" class="pt-3 pe-3">
-                                <div class="d-flex justify-content-center align-items-center h-100"><p class="text-muted">Select a conversation.</p></div>
-                            </div>
-                            <div class="text-muted d-flex justify-content-start align-items-center pe-3 pt-3 mt-auto border-top">
-                                <img src="https://i.pravatar.cc/150?img=10" alt="avatar" class="rounded-circle me-3" style="width: 40px; height: 40px;">
-                                <input type="text" class="form-control" id="message-input" placeholder="Type message" disabled>
-                                <button class="btn btn-link ms-3" id="send-button" disabled><i class="fas fa-paper-plane"></i></button>
-                            </div>
-                        </div>
-
+        <!-- Column 1: Conversation List -->
+        <div class="content-panel conversation-list">
+            <div class="conversation-list-header">
+                <input type="search" class="form-control" placeholder="Search...">
+            </div>
+            <div class="conversation-list-body">
+                <div class="conversation-item active">
+                    <img src="https://i.pravatar.cc/150?img=1" class="rounded-circle conversation-avatar">
+                    <div>
+                        <div class="fw-bold">Marie Horwitz</div>
+                        <div class="small text-muted">Hello, Are you there?</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ===== GRID COLUMN 3: THE HISTORY PANELS ===== -->
-        <div id="history-column">
-            <!-- Top History Panel -->
+        <!-- Column 2: Chat Panel -->
+        <div class="content-panel chat-panel" id="chat-panel-container">
+            <p>Select a conversation.</p>
+        </div>
+
+        <!-- Column 3: History Panels -->
+        <div class="history-column">
             <div class="history-panel">
                 <div class="panel-header">My Support Tickets</div>
-                <div class="history-table-container panel-body">
+                <div class="history-table-container">
                     <table class="table table-hover table-sm small">
                         <thead><tr><th>ID</th><th>Subject</th><th>Date</th><th>Status</th></tr></thead>
                         <tbody>
@@ -80,10 +85,9 @@
                     </table>
                 </div>
             </div>
-            <!-- Bottom History Panel -->
             <div class="history-panel">
                 <div class="panel-header">My Inquiries</div>
-                <div class="history-table-container panel-body">
+                <div class="history-table-container">
                     <table class="table table-hover table-sm small">
                         <thead><tr><th>ID</th><th>Topic</th><th>Date</th><th>Outcome</th></tr></thead>
                         <tbody>
@@ -94,7 +98,56 @@
             </div>
         </div>
 
+    </main>
+
+    <!-- Notification Modal-->
+    <div class="modal fade" id="notificationsModal" tabindex="-1" aria-labelledby="notificationsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="notificationsModalLabel">Notifications</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Placeholder Content -->
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">New message from John</h6>
+                                <small>3 mins ago</small>
+                            </div>
+                            <p class="mb-1">Hey, can you look at ticket #84512?</p>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">System Maintenance</h6>
+                                <small class="text-muted">Yesterday</small>
+                            </div>
+                            <p class="mb-1">Scheduled maintenance will occur tonight at 11 PM.</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- User/Logout Modal -->
+    <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="userModalLabel">User Actions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-grid">
+                        <a class="btn btn-danger" href="/Login/Logout">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/signalr/dist/browser/signalr.min.js"></script>

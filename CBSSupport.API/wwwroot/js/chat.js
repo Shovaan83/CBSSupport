@@ -1,12 +1,41 @@
-﻿// Use a strict block to catch common coding errors
-"use strict";
+﻿"use strict";
 
-// --- DIAGNOSTIC LOG 1: Check if the script file is loaded and parsed ---
 console.log("chat.js script has been loaded and is starting.");
 
 document.addEventListener("DOMContentLoaded", function () {
 
-    // --- DIAGNOSTIC LOG 2: Check if the DOMContentLoaded event fired ---
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+    if (fullscreenBtn) {
+        const fullscreenIcon = fullscreenBtn.querySelector('i');
+
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                fullscreenIcon.classList.remove('fa-expand');
+                fullscreenIcon.classList.add('fa-compress');
+                fullscreenBtn.title = "Exit Fullscreen";
+            } else {
+                fullscreenIcon.classList.remove('fa-compress');
+                fullscreenIcon.classList.add('fa-expand');
+                fullscreenBtn.title = "Enter Fullscreen";
+            }
+        });
+    }
+
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen()
+                .catch(err => {
+                    console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
     console.log("DOMContentLoaded event has fired. The HTML page should be ready.");
 
     // --- Element References ---
@@ -15,20 +44,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const messageInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-button');
 
-    // --- DIAGNOSTIC LOG 3: Check if the elements were found ---
     console.log("Searching for key elements:");
     console.log(" - Found userListContainer:", userListContainer);
     console.log(" - Found messagesList:", messagesList);
     console.log(" - Found messageInput:", messageInput);
     console.log(" - Found sendButton:", sendButton);
 
-    // --- CRITICAL CHECK: Stop if any element is missing ---
     if (!userListContainer || !messagesList || !messageInput || !sendButton) {
         console.error("CRITICAL ERROR: One or more essential HTML elements were not found. The script cannot continue. Please check the IDs in your Support.cshtml file.");
-        return; // Stop execution to prevent further errors
+        return; // Stops the execution to prevent further errors
     }
 
-    // If we get here, all elements were found. The rest of the script can run.
     console.log("All elements found successfully. Initializing SignalR and event listeners...");
 
     let currentConversationId = null;

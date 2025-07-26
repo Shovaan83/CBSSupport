@@ -12,6 +12,10 @@
     <PackageReference Include="Npgsql" Version="9.0.3" />
   </ItemGroup>
 
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
   <ItemGroup>
     <Folder Include="wwwroot\images\" />
   </ItemGroup>

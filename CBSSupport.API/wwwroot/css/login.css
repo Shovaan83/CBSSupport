@@ -1,5 +1,4 @@
-﻿/* --- GLOBAL & FONT --- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 body {
     margin: 0;
@@ -73,7 +72,6 @@ body {
         color: #111827;
     }
 
-/* ===== FINAL, CORRECTED ROLE SELECTOR STYLES ===== */
 .role-selector {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -85,12 +83,10 @@ body {
 }
 
     .role-selector .form-check {
-        /* The container for the input/label needs to sit on top of the slider */
         z-index: 10;
     }
 
     .role-selector .form-check-label {
-        /* Style the label to look like the button */
         padding: 0.5rem;
         width: 100%;
         text-align: center;
@@ -102,12 +98,10 @@ body {
     }
 
     .role-selector .form-check-input {
-        /* Completely hide the original radio button dot */
         display: none;
     }
 
         .role-selector .form-check-input:checked + .form-check-label {
-            /* When the hidden radio is checked, change its sibling label's text color */
             color: #fff;
         }
 
@@ -121,7 +115,7 @@ body {
     border-radius: 0.375rem;
     box-shadow: 0 2px 10px rgba(0,0,0,0.08);
     transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    z-index: 5; /* Slider is behind the form-check containers */
+    z-index: 5;
 }
 
     .role-selector-slider.client {
@@ -159,23 +153,21 @@ body {
     font-weight: 500;
 }
 
-/* ===== FINAL, CORRECTED "REMEMBER ME" CHECKBOX STYLES ===== */
 .form-check {
     display: flex;
     align-items: center;
-    gap: 0.5rem; /* Adds space between checkbox and label */
+    gap: 0.5rem; 
 }
 
 .form-check-input {
-    /* Slightly larger and better aligned checkbox */
     width: 1.15em;
     height: 1.15em;
-    margin-top: 0; /* Resets default margin */
+    margin-top: 0; 
 }
 
 .form-check-label {
-    cursor: pointer; /* Makes the text look clickable */
-    padding-top: 2px; /* Fine-tune vertical alignment */
+    cursor: pointer; 
+    padding-top: 2px; 
 }
 
 

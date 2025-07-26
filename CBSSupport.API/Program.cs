@@ -1,63 +1,54 @@
 using CBSSupport.API.Hubs;
 using CBSSupport.Shared.Data;
 using CBSSupport.Shared.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Service Registration ---
+// --- 1. Basic Service Registration ---
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
-builder.Services.AddSingleton<IChatService>(provider => new ChatService(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddSingleton<IUserRepository>(provider => new UserRepository(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
+
+// --- 2. Get Connection String ---
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+}
+
+// --- 3. Register your custom services ---
+builder.Services.AddSingleton<IChatService>(provider => new ChatService(connectionString));
+builder.Services.AddSingleton<IUserRepository>(provider => new UserRepository(connectionString));
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// --- JWT Authentication ---
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    var jwtSecret = builder.Configuration["Jwt:Secret"];
-    if (string.IsNullOrEmpty(jwtSecret))
+// --- 4. CONFIGURE COOKIE AUTHENTICATION ---
+// This replaces the entire JWT section.
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
     {
-        throw new InvalidOperationException("JWT Secret is not configured.");
-    }
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
-    };
-
-    // --- THIS IS THE SECTION TO ADD FOR SIGNALR AUTHENTICATION ---
-    options.Events = new JwtBearerEvents
-    {
-        OnMessageReceived = context =>
-        {
-            var accessToken = context.Request.Query["access_token"];
-            var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) && (path.StartsWithSegments("/chathub")))
-            {
-                context.Token = accessToken;
-            }
-            return Task.CompletedTask;
-        }
-    };
-});
+        options.Cookie.Name = "CBSSupport.AuthCookie";
+        options.LoginPath = "/Login/Index"; 
+        options.LogoutPath = "/Login/Logout";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+        options.SlidingExpiration = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+    });
 
 
 var app = builder.Build();
 
-// --- HTTP Request Pipeline ---
+// --- Configure the HTTP request pipeline ---
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -68,15 +59,16 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-app.UseAuthentication();
-app.UseAuthorization();
+// IMPORTANT: Middleware order is critical
+app.UseAuthentication(); // First, establish who the user is from the cookie
+app.UseAuthorization();  // Then, check if they are authorized for the resource
+app.UseSession();
 
-// --- Endpoint Mapping ---
+// --- Map Endpoints ---
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Login}/{action=Index}/{id?}");
+    pattern: "{controller=Login}/{action=Index}/{id?}"); 
 
-// ===== THIS IS THE CORRECTED LINE =====
 app.MapHub<ChatHub>("/chathub");
 
 app.Run();
