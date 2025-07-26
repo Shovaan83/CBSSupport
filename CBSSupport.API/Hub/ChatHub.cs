@@ -15,30 +15,43 @@ namespace CBSSupport.API.Hubs
             _chatService = chatService;
         }
 
-        // --- METHOD FOR PUBLIC GROUP CHAT ---
-        public async Task SendPublicMessage(string senderName, string message)
+        public async Task SendPublicMessage(string senderName, string message, string fileUrl = null, string fileName = null, string fileType = null)
         {
+            long messageId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             string initials = !string.IsNullOrEmpty(senderName) ? senderName.Substring(0, 1).ToUpper() : "?";
-            // Broadcast to ALL connected clients
-            await Clients.All.SendAsync("ReceivePublicMessage", senderName, message, DateTime.UtcNow, initials);
+            await Clients.All.SendAsync("ReceivePublicMessage", messageId, senderName, message, DateTime.UtcNow, initials, fileUrl, fileName, fileType);
         }
 
-        // --- NEW: METHOD FOR JOINING A PRIVATE CHAT GROUP ---
+        public async Task MarkAsSeen(long messageId, string userName)
+        {
+            await Clients.All.SendAsync("MessageSeen", messageId, userName, DateTime.UtcNow);
+        }
+
         public async Task JoinPrivateChat(string groupName)
         {
-            // Adds the current user's connection to a specific group (e.g., "Admin_RamShah")
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
-        // --- NEW: METHOD FOR SENDING A PRIVATE MESSAGE ---
-        public async Task SendPrivateMessage(string groupName, string senderName, string message)
+        // MODIFICATION: Updated to support message IDs and file attachments, just like the public method.
+        public async Task SendPrivateMessage(string groupName, string senderName, string message, string fileUrl = null, string fileName = null, string fileType = null)
         {
+            long messageId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             string initials = !string.IsNullOrEmpty(senderName) ? senderName.Substring(0, 1).ToUpper() : "?";
-            // Broadcast a message ONLY to clients in the specified group
-            await Clients.Group(groupName).SendAsync("ReceivePrivateMessage", groupName, senderName, message, DateTime.UtcNow, initials);
+
+            // Broadcast a message with all the new data ONLY to clients in the specified group.
+            await Clients.Group(groupName).SendAsync("ReceivePrivateMessage", messageId, groupName, senderName, message, DateTime.UtcNow, initials, fileUrl, fileName, fileType);
         }
 
-        // --- Existing ticket methods remain unchanged ---
+        public async Task UserIsTyping(string groupName, string userName)
+        {
+            await Clients.Group(groupName).SendAsync("ReceiveTypingNotification", groupName, userName, true);
+        }
+
+        public async Task UserStoppedTyping(string groupName, string userName)
+        {
+            await Clients.Group(groupName).SendAsync("ReceiveTypingNotification", groupName, userName, false);
+        }
+
         public async Task GetMyConversations()
         {
             long mockClientAuthUserId = 1;

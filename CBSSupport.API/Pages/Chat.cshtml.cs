@@ -14,8 +14,6 @@ namespace CBSSupport.API.Pages
 
         public void OnGet()
         {
-            // This method is called when the page is first requested.
-            // You can add logic here if needed.
         }
     }
 }
