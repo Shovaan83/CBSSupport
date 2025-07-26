@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using CBSSupport.Shared.Services;
+using CBSSupport.Shared.Models;
 using System;
 using System.Threading.Tasks;
 
@@ -6,33 +8,65 @@ namespace CBSSupport.API.Hubs
 {
     public class ChatHub : Hub
     {
-        // A "room" is just a SignalR group.
-        public async Task JoinConversationRoom(string conversationId)
-        {
-            // The group name is unique to the conversation.
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"conversation-{conversationId}");
+        private readonly IChatService _chatService;
 
-            // Optional: notify others in the group that a user has joined.
-            var user = "System"; 
-            var message = $"{user} has joined the chat.";
-            await Clients.Group($"conversation-{conversationId}").SendAsync("ReceiveMessage", user, message, DateTime.UtcNow);
+        public ChatHub(IChatService chatService)
+        {
+            _chatService = chatService;
         }
 
-        // When a client sends a message.
-        public async Task SendMessage(string conversationId, string user, string message)
+        public async Task SendPublicMessage(string senderName, string message, string fileUrl = null, string fileName = null, string fileType = null)
         {
-            await Clients.OthersInGroup($"conversation-{conversationId}").SendAsync("ReceiveMessage", conversationId, user, message, DateTime.UtcNow);
+            long messageId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            string initials = !string.IsNullOrEmpty(senderName) ? senderName.Substring(0, 1).ToUpper() : "?";
+            await Clients.All.SendAsync("ReceivePublicMessage", messageId, senderName, message, DateTime.UtcNow, initials, fileUrl, fileName, fileType);
         }
 
-        public async Task UserIsTyping(string conversationId, string user)
+        public async Task MarkAsSeen(long messageId, string userName)
         {
-            // Send to everyone ELSE in the group.
-            await Clients.OthersInGroup($"conversation-{conversationId}").SendAsync("DisplayTypingIndicator", user);
+            await Clients.All.SendAsync("MessageSeen", messageId, userName, DateTime.UtcNow);
         }
 
-        public async Task UserStoppedTyping(string conversationId)
+        public async Task JoinPrivateChat(string groupName)
         {
-            await Clients.OthersInGroup($"conversation-{conversationId}").SendAsync("HideTypingIndicator");
+            await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+        }
+
+        // MODIFICATION: Updated to support message IDs and file attachments, just like the public method.
+        public async Task SendPrivateMessage(string groupName, string senderName, string message, string fileUrl = null, string fileName = null, string fileType = null)
+        {
+            long messageId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            string initials = !string.IsNullOrEmpty(senderName) ? senderName.Substring(0, 1).ToUpper() : "?";
+
+            // Broadcast a message with all the new data ONLY to clients in the specified group.
+            await Clients.Group(groupName).SendAsync("ReceivePrivateMessage", messageId, groupName, senderName, message, DateTime.UtcNow, initials, fileUrl, fileName, fileType);
+        }
+
+        public async Task UserIsTyping(string groupName, string userName)
+        {
+            await Clients.Group(groupName).SendAsync("ReceiveTypingNotification", groupName, userName, true);
+        }
+
+        public async Task UserStoppedTyping(string groupName, string userName)
+        {
+            await Clients.Group(groupName).SendAsync("ReceiveTypingNotification", groupName, userName, false);
+        }
+
+        public async Task GetMyConversations()
+        {
+            long mockClientAuthUserId = 1;
+            var tickets = await _chatService.GetInstructionTicketsForUserAsync(mockClientAuthUserId);
+            await Clients.Caller.SendAsync("ReceiveConversationList", tickets);
+        }
+
+        public async Task CreateTicket(string subject)
+        {
+            long mockClientAuthUserId = 1;
+            int mockInsertUser = 1;
+            var newTicket = new ChatMessage { /* ... */ };
+            long newId = await _chatService.CreateInstructionTicketAsync(newTicket);
+            newTicket.Id = newId;
+            await Clients.Caller.SendAsync("NewTicketCreated", newTicket);
         }
     }
 }
