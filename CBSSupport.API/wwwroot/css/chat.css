@@ -441,3 +441,22 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     margin-top: 5px;
     cursor: pointer;
 }
+/* ... (existing styles) ... */
+
+/* MODIFICATION: Styles for Priority Badges */
+.badge-priority-urgent {
+    background-color: #dc3545; /* Red */
+    color: white;
+}
+
+.badge-priority-high {
+    background-color: #fd7e14; /* Orange */
+    color: white;
+}
+
+.badge-priority-low {
+    background-color: #0d6efd; /* Blue */
+    color: white;
+}
+
+/* ... (other existing styles) ... */

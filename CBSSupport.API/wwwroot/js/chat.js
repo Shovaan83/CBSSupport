@@ -2,14 +2,18 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- STATE, MOCK DATA, DOM REFS (Unchanged) ---
+    // --- STATE AND CONFIGURATION ---
     const supportAgentIdentity = "CBS Support";
     let currentUserIdentity = supportAgentIdentity;
     let currentChatContext = {};
     let typingTimeout = null;
+
+    // --- MOCK DATA ---
     const teamMembers = [{ name: "CBS Support", initials: "S", avatarClass: "avatar-bg-green" }, { name: "Admin User", initials: "A", avatarClass: "avatar-bg-purple" }];
     const customerList = [{ name: "Alzeena Limbu", initials: "A", avatarClass: "avatar-bg-purple" }, { name: "Soniya Basnet", initials: "S", avatarClass: "avatar-bg-red" }, { name: "Ram Shah", initials: "R", avatarClass: "avatar-bg-blue" }, { name: "Namsang Limbu", initials: "N", avatarClass: "avatar-bg-red" }];
     const inquiryList = [{ id: "#INQ-345", topic: "Pricing for Enterprise Plan", inquiredBy: "Ram Shah", date: "2024-09-05 10:42 AM", outcome: "Info Sent" }, { id: "#INQ-340", topic: "API Access Question", inquiredBy: "Admin User", date: "2024-08-22 03:15 PM", outcome: "Info Sent" }];
+
+    // --- DOM ELEMENT REFERENCES ---
     const roleSwitcher = document.getElementById("role-switcher"),
         conversationListContainer = document.getElementById("conversation-list-container"),
         messageInput = document.getElementById("message-input"),
@@ -20,9 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
         attachmentButton = document.getElementById("attachment-button"),
         fileInput = document.getElementById("file-input");
 
+    // --- SIGNALR CONNECTION ---
     const connection = new signalR.HubConnectionBuilder().withUrl("/chathub").withAutomaticReconnect().build();
 
-    // --- HELPER, FILE UPLOAD, HISTORY, OBSERVER, UI RENDERING functions (Unchanged) ---
+    // --- HELPER FUNCTIONS ---
     const formatTimestamp = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const formatDateForSeparator = (dStr) => { const d = new Date(dStr); const t = new Date(); const y = new Date(t); y.setDate(y.getDate() - 1); if (d.toDateString() === t.toDateString()) return 'Today'; if (d.toDateString() === y.toDateString()) return 'Yesterday'; return d.toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' }); };
     const getUserRole = (userName) => teamMembers.some(m => m.name === userName) ? "Team Member" : "Customer";
@@ -30,6 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const scrollToBottom = () => chatPanelBody.scrollTop = chatPanelBody.scrollHeight;
     const generateGroupName = (u1, u2) => [u1, u2].sort().join('_');
     const getAvatarDetails = (userName) => teamMembers.find(u => u.name === userName) || customerList.find(u => u.name === userName) || { initials: userName.substring(0, 1).toUpperCase(), avatarClass: "avatar-bg-blue" };
+
+    // --- FILE UPLOAD LOGIC ---
     async function uploadFile(file) {
         const maxFileSize = 10 * 1024 * 1024;
         if (file.size > maxFileSize) { alert(`Error: File size cannot exceed ${maxFileSize / 1024 / 1024} MB.`); return; }
@@ -42,12 +49,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/FileUpload/UploadFile', { method: 'POST', body: formData });
             if (!response.ok) { const errorText = await response.text(); throw new Error(errorText || 'File upload failed.'); }
             const result = await response.json();
-            // MODIFICATION: Pass file data to sendMessage logic instead of invoking directly.
             const textMessage = messageInput.value.trim();
             const method = currentChatContext.type === 'group' ? "SendPublicMessage" : "SendPrivateMessage";
-            const args = currentChatContext.type === 'group'
-                ? [currentUserIdentity, textMessage, result.url, result.name, result.type]
-                : [currentChatContext.id, currentUserIdentity, textMessage, result.url, result.name, result.type];
+            const args = currentChatContext.type === 'group' ? [currentUserIdentity, textMessage, result.url, result.name, result.type] : [currentChatContext.id, currentUserIdentity, textMessage, result.url, result.name, result.type];
             await connection.invoke(method, ...args);
             messageInput.value = '';
         } catch (error) {
@@ -60,6 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
             updateSendButtonState();
         }
     }
+
+    // --- CHAT HISTORY & STATE ---
     const getChatHistory = (id) => JSON.parse(localStorage.getItem(id)) || [];
     function updateMessageInHistory(chatId, messageId, updateFn) {
         const history = getChatHistory(chatId);
@@ -76,6 +82,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }, { threshold: 0.8 });
+
+    // --- UI RENDERING ---
     let lastMessageDate = null;
     function displayMessage(messageData, isHistory) {
         const messageDate = new Date(messageData.timestamp).toDateString();
@@ -118,37 +126,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     async function switchChatContext(contextData) { currentChatContext = contextData; document.querySelectorAll('.conversation-item.active').forEach(el => el.classList.remove('active')); const activeItem = document.querySelector(`.conversation-item[data-id='${contextData.id}']`); if (activeItem) activeItem.classList.add('active'); const partnerName = contextData.name || "Public Group Chat"; const partnerAvatar = getAvatarDetails(partnerName); const chatType = contextData.type === 'group' ? 'Group Chat' : 'Private Chat'; chatHeader.innerHTML = `<div class="avatar-initials ${partnerAvatar.avatarClass}">${partnerAvatar.initials}</div><div><div class="fw-bold">${partnerName}</div><small class="text-muted">${chatType}</small></div>`; chatPanelBody.innerHTML = ''; lastMessageDate = null; getChatHistory(currentChatContext.id).forEach(msg => displayMessage(msg, true)); scrollToBottom(); if (contextData.type === 'private') { await connection.invoke("JoinPrivateChat", contextData.id); } }
-
-    // --- CORE LOGIC ---
-    // MODIFICATION: Consolidated logic for sending public and private messages.
     async function sendMessage() {
         const message = messageInput.value.trim();
         const file = fileInput.files[0];
-
         if (!message && !file) return;
-
-        if (file) {
-            await uploadFile(file); // uploadFile will call the correct SignalR method
-        } else {
-            try {
-                // Determine the correct method and arguments based on chat context
-                const method = currentChatContext.type === 'group' ? "SendPublicMessage" : "SendPrivateMessage";
-                const args = currentChatContext.type === 'group'
-                    ? [currentUserIdentity, message, null, null, null]
-                    : [currentChatContext.id, currentUserIdentity, message, null, null, null];
-
-                await connection.invoke(method, ...args);
-                messageInput.value = "";
-                updateSendButtonState();
-            } catch (err) {
-                console.error("Error sending message:", err);
-            }
-        }
+        if (file) { await uploadFile(file); } else { try { const method = currentChatContext.type === 'group' ? "SendPublicMessage" : "SendPrivateMessage"; const args = currentChatContext.type === 'group' ? [currentUserIdentity, message, null, null, null] : [currentChatContext.id, currentUserIdentity, message, null, null, null]; await connection.invoke(method, ...args); messageInput.value = ""; updateSendButtonState(); } catch (err) { console.error("Error sending message:", err); } }
     }
-
     function setViewForRole(role) { currentUserIdentity = role; renderSidebar(role, teamMembers.some(u => u.name === role)); const firstItem = conversationListContainer.querySelector('.conversation-item'); if (firstItem) { switchChatContext(firstItem.dataset); } }
-
-    // --- INITIALIZATION ---
     roleSwitcher.innerHTML = [...teamMembers, ...customerList].map(u => `<option value="${u.name}">Role: ${u.name}</option>`).join('');
     roleSwitcher.addEventListener('change', (e) => setViewForRole(e.target.value));
     conversationListContainer.addEventListener('click', (e) => { const item = e.target.closest('.conversation-item'); if (item) { e.preventDefault(); switchChatContext(item.dataset); } });
@@ -156,48 +140,12 @@ document.addEventListener('DOMContentLoaded', () => {
     messageInput.addEventListener("keyup", (e) => { updateSendButtonState(); if (e.key === "Enter") sendMessage(); });
     attachmentButton.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => updateSendButtonState());
-
-    // --- SIGNALR EVENT HANDLERS ---
-    connection.on("ReceivePublicMessage", (messageId, sender, msg, time, initials, fileUrl, fileName, fileType) => {
-        const data = { id: messageId, sender, message: msg, timestamp: time, initials, fileUrl, fileName, fileType, seenBy: [] };
-        if (sender === currentUserIdentity) { data.seenBy.push({ name: currentUserIdentity, time: time }); }
-        const history = getChatHistory('public');
-        history.push(data);
-        localStorage.setItem('public', JSON.stringify(history));
-        if (currentChatContext.id === 'public') { displayMessage(data, false); }
-    });
-
-    // MODIFICATION: New handler for private messages that mirrors the public one.
-    connection.on("ReceivePrivateMessage", (messageId, groupName, sender, msg, time, initials, fileUrl, fileName, fileType) => {
-        const data = { id: messageId, sender, message: msg, timestamp: time, initials, fileUrl, fileName, fileType, seenBy: [] };
-        if (sender === currentUserIdentity) { data.seenBy.push({ name: currentUserIdentity, time: time }); }
-        const history = getChatHistory(groupName);
-        history.push(data);
-        localStorage.setItem(groupName, JSON.stringify(history));
-        if (currentChatContext.id === groupName) {
-            displayMessage(data, false);
-        }
-    });
-
-    connection.on("MessageSeen", (messageId, userName, seenTime) => {
-        // This needs to check both public and private history now
-        updateMessageInHistory(currentChatContext.id, messageId, (message) => { if (!message.seenBy.some(u => u.name === userName)) { message.seenBy.push({ name: userName, time: seenTime }); } });
-        const messageEl = document.getElementById(`msg-${messageId}`);
-        if (messageEl && messageEl.closest('#chat-panel-body')) {
-            const receiptEl = messageEl.querySelector('.read-receipt');
-            if (receiptEl) {
-                const message = getChatHistory(currentChatContext.id).find(m => m.id === messageId);
-                const tooltip = bootstrap.Tooltip.getInstance(receiptEl);
-                const newTitle = `Seen by: ${message.seenBy.map(u => u.name).join(', ')}`;
-                receiptEl.className = 'read-receipt receipt-seen fas fa-check-double';
-                if (tooltip) { tooltip.setContent({ '.tooltip-inner': newTitle }); } else { receiptEl.setAttribute('title', newTitle); new bootstrap.Tooltip(receiptEl, { boundary: document.body }); }
-            }
-        }
-    });
-
+    connection.on("ReceivePublicMessage", (messageId, sender, msg, time, initials, fileUrl, fileName, fileType) => { const data = { id: messageId, sender, message: msg, timestamp: time, initials, fileUrl, fileName, fileType, seenBy: [] }; if (sender === currentUserIdentity) { data.seenBy.push({ name: currentUserIdentity, time: time }); } const history = getChatHistory('public'); history.push(data); localStorage.setItem('public', JSON.stringify(history)); if (currentChatContext.id === 'public') { displayMessage(data, false); } });
+    connection.on("ReceivePrivateMessage", (messageId, groupName, sender, msg, time, initials, fileUrl, fileName, fileType) => { const data = { id: messageId, sender, message: msg, timestamp: time, initials, fileUrl, fileName, fileType, seenBy: [] }; if (sender === currentUserIdentity) { data.seenBy.push({ name: currentUserIdentity, time: time }); } const history = getChatHistory(groupName); history.push(data); localStorage.setItem(groupName, JSON.stringify(history)); if (currentChatContext.id === groupName) { displayMessage(data, false); } });
+    connection.on("MessageSeen", (messageId, userName, seenTime) => { updateMessageInHistory(currentChatContext.id, messageId, (message) => { if (!message.seenBy.some(u => u.name === userName)) { message.seenBy.push({ name: userName, time: seenTime }); } }); const messageEl = document.getElementById(`msg-${messageId}`); if (messageEl && messageEl.closest('#chat-panel-body')) { const receiptEl = messageEl.querySelector('.read-receipt'); if (receiptEl) { const message = getChatHistory(currentChatContext.id).find(m => m.id === messageId); const tooltip = bootstrap.Tooltip.getInstance(receiptEl); const newTitle = `Seen by: ${message.seenBy.map(u => u.name).join(', ')}`; receiptEl.className = 'read-receipt receipt-seen fas fa-check-double'; if (tooltip) { tooltip.setContent({ '.tooltip-inner': newTitle }); } else { receiptEl.setAttribute('title', newTitle); new bootstrap.Tooltip(receiptEl, { boundary: document.body }); } } } });
     connection.start().then(() => { console.log("SignalR Connected."); setViewForRole(supportAgentIdentity); updateSendButtonState(); }).catch(err => console.error("SignalR Connection Error: ", err));
 
-    // --- TICKET & INQUIRY SYSTEM LOGIC (Unchanged) ---
+    // --- TICKET & INQUIRY SYSTEM LOGIC ---
     const supportSubjects = [{ text: "TRAINING" }, { text: "MIGRATION" }, { text: "SETUPS" }, { text: "CORRECTION" }, { text: "BUGS FIX" }, { text: "NEW FEATURES" }, { text: "FEATURE ENCHANCEMENT" }, { text: "BACKEND WORKAROUND" }];
     const subjectDropdown = $('#ticketSubject'), editSubjectDropdown = $('#edit-ticketSubject');
     subjectDropdown.append('<option value="" disabled selected>Select a subject...</option>');
@@ -206,12 +154,163 @@ document.addEventListener('DOMContentLoaded', () => {
     const ticketsLocalStorageKey = 'supportTickets', supportTicketForm = document.getElementById('supportTicketForm'), editTicketForm = document.getElementById('editTicketForm'), newTicketModal = new bootstrap.Modal(document.getElementById('newSupportTicketModal')), viewTicketModal = new bootstrap.Modal(document.getElementById('viewTicketDetailsModal'));
     const getTickets = () => JSON.parse(localStorage.getItem(ticketsLocalStorageKey)) || [], getFilteredTickets = () => getTickets().filter(t => t.status && t.status !== 'Open');
     const generateStatusBadge = s => { let b = 'bg-secondary', i = 'fa-question-circle'; if (s === 'Resolved') { b = 'bg-success'; i = 'fa-check-circle'; } else if (s === 'Pending') { b = 'bg-warning text-dark'; i = 'fa-hourglass-half'; } return `<span class="badge ${b}"><i class="fas ${i} me-1"></i>${s}</span>`; };
-    const ticketsTable = $('#supportTicketsDataTable').DataTable({ data: getFilteredTickets(), columns: [{ data: 'id', render: d => `#${d}` }, { data: 'subject' }, { data: 'submissionTimestamp', defaultContent: 'N/A' }, { data: 'createdBy' }, { data: 'resolvedBy' }, { data: 'status', render: generateStatusBadge }, { data: 'id', render: d => `<button class="btn btn-sm btn-info view-details-btn" data-ticket-id="${d}">View Details</button>`, orderable: false, searchable: false }], pageLength: 5, lengthChange: true, lengthMenu: [[5, 10, 20, -1], ['Show 5', 'Show 10', 'Show 20', 'Show All']], searching: true, order: [[2, 'desc']], language: { search: "", searchPlaceholder: "Search tickets...", emptyTable: "No support tickets found. Click 'New Support Ticket' to create one.", lengthMenu: "_MENU_" }, dom: '<"row mb-3"<"col-sm-12 col-md-auto"l><"col-sm-12 col-md-auto ms-md-auto"f>>rtip' });
+    const generatePriorityBadge = p => { let b = 'badge-priority-low', i = 'fa-arrow-down'; if (p === 'Urgent') { b = 'badge-priority-urgent'; i = 'fa-exclamation-circle'; } else if (p === 'High') { b = 'badge-priority-high'; i = 'fa-arrow-up'; } return `<span class="badge ${b}"><i class="fas ${i} me-1"></i>${p}</span>`; };
+
+    const ticketsTable = $('#supportTicketsDataTable').DataTable({
+        data: getFilteredTickets(),
+        columns: [
+            { data: 'id', render: d => `#${d}` },
+            { data: 'subject', defaultContent: 'N/A' },
+            {
+                data: 'submissionTimestamp',
+                defaultContent: 'N/A',
+                render: function (data, type, row) {
+                    if (!data) return 'N/A';
+                    if (type === 'display') {
+                        return new Date(data).toLocaleString([], {
+                            year: 'numeric', month: 'numeric', day: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
+                        });
+                    }
+                    return data;
+                }
+            },
+            { data: 'createdBy', defaultContent: 'N/A' },
+            { data: 'resolvedBy', defaultContent: 'N/A' },
+            { data: 'status', render: generateStatusBadge, defaultContent: '' },
+            { data: 'priority', render: generatePriorityBadge, defaultContent: 'Low' },
+            {
+                data: 'id',
+                orderable: false,
+                searchable: false,
+                render: function (data, type, row) {
+                    let chatButton = '';
+                    const isAdmin = teamMembers.some(u => u.name === currentUserIdentity);
+                    if (isAdmin && row.createdBy && row.createdBy !== currentUserIdentity) {
+                        chatButton = `<button class="btn btn-sm btn-success start-chat-btn ms-1" data-ticket-id="${row.id}" aria-label="Chat with ${row.createdBy}"><i class="fas fa-comments"></i></button>`;
+                    }
+                    return `<button class="btn btn-sm btn-info view-details-btn" data-ticket-id="${data}">View Details</button>${chatButton}`;
+                }
+            }
+        ],
+        pageLength: 5, lengthChange: true, lengthMenu: [[5, 10, 20, -1], ['Show 5', 'Show 10', 'Show 20', 'Show All']], searching: true,
+        order: [[2, 'desc']],
+        language: { search: "", searchPlaceholder: "Search tickets...", emptyTable: "No support tickets found.", lengthMenu: "_MENU_" },
+        dom: '<"row mb-3"<"col-sm-12 col-md-auto"l><"col-sm-12 col-md-auto ms-md-auto"f>>rtip'
+    });
+
     $('#supportTicketsDataTable_filter input, #inquiriesDataTable_filter input').before('<i class="fas fa-search search-icon"></i>');
-    $(supportTicketForm).on('submit', function (e) { e.preventDefault(); if (!this.checkValidity()) { e.stopPropagation(); $(this).addClass('was-validated'); return; } const now = new Date(); const newTicket = { id: String(Date.now()).slice(-6), subject: $('#ticketSubject').val(), submissionTimestamp: now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), createdBy: $('#fullName').val() || 'System', resolvedBy: 'Pending', accountNumber: $('#accountNumber').val() || 'N/A', description: $('#ticketDescription').val(), remarks: $('#ticketRemarks').val() || 'N/A', status: 'Pending' }; const allTickets = getTickets(); allTickets.unshift(newTicket); localStorage.setItem(ticketsLocalStorageKey, JSON.stringify(allTickets)); ticketsTable.clear().rows.add(getFilteredTickets()).draw(); this.reset(); $(this).removeClass('was-validated'); newTicketModal.hide(); });
+
+    $(supportTicketForm).on('submit', function (e) {
+        e.preventDefault();
+        if (!this.checkValidity()) { e.stopPropagation(); $(this).addClass('was-validated'); return; }
+        try {
+            const now = new Date();
+            const newTicket = {
+                id: String(Date.now()).slice(-6),
+                subject: $('#ticketSubject').val(),
+                submissionTimestamp: now.toISOString(),
+                createdBy: $('#fullName').val() || 'System',
+                resolvedBy: 'Pending',
+                description: $('#ticketDescription').val(),
+                remarks: $('#ticketRemarks').val() || 'N/A',
+                status: 'Pending',
+                priority: $('#ticketPriority').val(),
+                expiryDate: new Date($('#ticketExpiryDate').val()).toLocaleString()
+            };
+            const allTickets = getTickets();
+            allTickets.unshift(newTicket);
+            localStorage.setItem(ticketsLocalStorageKey, JSON.stringify(allTickets));
+            ticketsTable.clear().rows.add(getFilteredTickets()).draw();
+            this.reset();
+            $(this).removeClass('was-validated');
+            newTicketModal.hide();
+            alert('Support ticket submitted successfully!');
+        } catch (error) {
+            console.error("Error submitting ticket:", error);
+            alert('An error occurred while submitting the ticket. Please check the console for details.');
+        }
+    });
+
     const setViewModalMode = m => { if (m === 'edit') { $('#ticket-details-view').hide(); $('#editTicketForm').show(); $('#editTicketBtn, #closeModalBtn').hide(); $('#saveChangesBtn, #cancelEditBtn').show(); } else { $('#ticket-details-view').show(); $('#editTicketForm').hide(); $('#editTicketBtn, #closeModalBtn').show(); $('#saveChangesBtn, #cancelEditBtn').hide(); $('#editTicketForm').removeClass('was-validated'); } };
-    $('#supportTicketsDataTable tbody').on('click', '.view-details-btn', function () { const ticketId = $(this).data('ticket-id').toString(), ticket = getTickets().find(t => t.id === ticketId); if (ticket) { $('#details-id').text(`#${ticket.id}`); $('#details-status').html(generateStatusBadge(ticket.status)); $('#details-subject').text(ticket.subject); $('#details-date').text(ticket.submissionTimestamp); $('#details-createdBy').text(ticket.createdBy); $('#details-account').text(ticket.accountNumber); $('#details-resolvedBy').text(ticket.resolvedBy); $('#details-description').text(ticket.description); $('#details-remarks').text(ticket.remarks || 'N/A'); $('#edit-ticketId').val(ticket.id); $('#edit-fullName').val(ticket.createdBy); $('#edit-accountNumber').val(ticket.accountNumber); $('#edit-ticketSubject').val(ticket.subject); $('#edit-ticketDescription').val(ticket.description); $('#edit-ticketRemarks').val(ticket.remarks); setViewModalMode('view'); viewTicketModal.show(); } });
+
+    $('#supportTicketsDataTable tbody').on('click', '.view-details-btn', function () {
+        const ticketId = $(this).data('ticket-id').toString(), ticket = getTickets().find(t => t.id === ticketId);
+        if (ticket) {
+            $('#details-id').text(`#${ticket.id}`);
+            $('#details-status').html(generateStatusBadge(ticket.status || 'Pending'));
+            $('#details-priority').html(generatePriorityBadge(ticket.priority || 'Low'));
+            $('#details-subject').text(ticket.subject || 'N/A');
+            $('#details-date').text(ticket.submissionTimestamp ? new Date(ticket.submissionTimestamp).toLocaleString() : 'N/A');
+            $('#details-expiryDate').text(ticket.expiryDate || 'N/A');
+            $('#details-createdBy').text(ticket.createdBy || 'N/A');
+            $('#details-resolvedBy').text(ticket.resolvedBy || 'N/A');
+            $('#details-description').text(ticket.description || 'N/A');
+            $('#details-remarks').text(ticket.remarks || 'N/A');
+            $('#edit-ticketId').val(ticket.id);
+            $('#edit-fullName').val(ticket.createdBy || '');
+            $('#edit-ticketSubject').val(ticket.subject || '');
+            $('#edit-ticketPriority').val(ticket.priority || 'Low');
+            const expiryForInput = ticket.expiryDate ? new Date(ticket.expiryDate).toISOString().slice(0, 16) : '';
+            $('#edit-ticketExpiryDate').val(expiryForInput);
+            $('#edit-ticketDescription').val(ticket.description || '');
+            $('#edit-ticketRemarks').val(ticket.remarks || '');
+            setViewModalMode('view');
+            viewTicketModal.show();
+        }
+    });
+
+    $('#supportTicketsDataTable tbody').on('click', '.start-chat-btn', function () {
+        const ticketId = $(this).data('ticket-id').toString();
+        const ticket = getTickets().find(t => t.id === ticketId);
+        if (ticket && ticket.createdBy) {
+            const ticketCreatorName = ticket.createdBy;
+            const matchedCustomer = customerList.find(c => ticketCreatorName.includes(c.name));
+
+            if (matchedCustomer) {
+                const customerChatName = matchedCustomer.name;
+                const conversationItem = document.querySelector(`.conversation-item[data-name="${customerChatName}"]`);
+
+                if (conversationItem) {
+                    const collapsedParent = conversationItem.closest('.accordion-collapse.collapse:not(.show)');
+                    if (collapsedParent) {
+                        new bootstrap.Collapse(collapsedParent).show();
+                    }
+                    conversationItem.click();
+                } else {
+                    alert(`Could not find the conversation UI element for "${customerChatName}".`);
+                }
+            } else {
+                alert(`A chat with a user matching "${ticketCreatorName}" is not available in your conversation list.`);
+            }
+        }
+    });
+
     $('#editTicketBtn').on('click', () => setViewModalMode('edit'));
     $('#cancelEditBtn').on('click', () => setViewModalMode('view'));
-    $(editTicketForm).on('submit', function (e) { e.preventDefault(); if (!this.checkValidity()) { e.stopPropagation(); $(this).addClass('was-validated'); return; } const ticketId = $('#edit-ticketId').val(), allTickets = getTickets(), ticketIndex = allTickets.findIndex(t => t.id === ticketId); if (ticketIndex > -1) { const now = new Date(), updatedTimestamp = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); allTickets[ticketIndex].createdBy = $('#edit-fullName').val(); allTickets[ticketIndex].accountNumber = $('#edit-accountNumber').val(); allTickets[ticketIndex].subject = $('#edit-ticketSubject').val(); allTickets[ticketIndex].description = $('#edit-ticketDescription').val(); allTickets[ticketIndex].remarks = $('#edit-ticketRemarks').val() || 'N/A'; allTickets[ticketIndex].submissionTimestamp = updatedTimestamp; localStorage.setItem(ticketsLocalStorageKey, JSON.stringify(allTickets)); ticketsTable.clear().rows.add(getFilteredTickets()).draw(); $('#details-date').text(allTickets[ticketIndex].submissionTimestamp); $('#details-subject').text(allTickets[ticketIndex].subject); $('#details-createdBy').text(allTickets[ticketIndex].createdBy); $('#details-account').text(allTickets[ticketIndex].accountNumber); $('#details-description').text(allTickets[ticketIndex].description); $('#details-remarks').text(allTickets[ticketIndex].remarks); } setViewModalMode('view'); });
+
+    $(editTicketForm).on('submit', function (e) {
+        e.preventDefault();
+        if (!this.checkValidity()) { e.stopPropagation(); $(this).addClass('was-validated'); return; }
+        const ticketId = $('#edit-ticketId').val(), allTickets = getTickets(), ticketIndex = allTickets.findIndex(t => t.id === ticketId);
+        if (ticketIndex > -1) {
+            allTickets[ticketIndex].createdBy = $('#edit-fullName').val();
+            allTickets[ticketIndex].subject = $('#edit-ticketSubject').val();
+            allTickets[ticketIndex].submissionTimestamp = new Date().toISOString();
+            allTickets[ticketIndex].description = $('#edit-ticketDescription').val();
+            allTickets[ticketIndex].remarks = $('#edit-ticketRemarks').val() || 'N/A';
+            allTickets[ticketIndex].priority = $('#edit-ticketPriority').val();
+            allTickets[ticketIndex].expiryDate = new Date($('#edit-ticketExpiryDate').val()).toLocaleString();
+            localStorage.setItem(ticketsLocalStorageKey, JSON.stringify(allTickets));
+            ticketsTable.clear().rows.add(getFilteredTickets()).draw();
+            $('#details-subject').text(allTickets[ticketIndex].subject);
+            $('#details-createdBy').text(allTickets[ticketIndex].createdBy);
+            $('#details-date').text(new Date(allTickets[ticketIndex].submissionTimestamp).toLocaleString());
+            $('#details-description').text(allTickets[ticketIndex].description);
+            $('#details-remarks').text(allTickets[ticketIndex].remarks);
+            $('#details-priority').html(generatePriorityBadge(allTickets[ticketIndex].priority));
+            $('#details-expiryDate').text(allTickets[ticketIndex].expiryDate);
+        }
+        setViewModalMode('view');
+    });
 });
