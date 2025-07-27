@@ -1,0 +1,121 @@
+﻿/* --- GLOBAL ADMIN LAYOUT --- */
+:root {
+    --admin-sidebar-bg: #2c3e50; /* Dark blue-grey */
+    --admin-content-bg: #f4f7fa; /* Light grey */
+    --admin-accent: #3498db; /* Bright blue */
+    --admin-text-light: #ecf0f1;
+    --admin-border-color: #e1e8ed;
+    --pending-bg: #f1c40f;
+    --resolved-bg: #2ecc71;
+    --high-priority-bg: #e74c3c;
+    --normal-priority-bg: #2ecc71;
+    --low-priority-bg: #3498db;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--admin-content-bg);
+    overflow: hidden;
+    font-size: 14px;
+}
+
+.admin-container {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    height: 100vh;
+}
+
+/* --- LEFT SIDEBAR --- */
+.admin-sidebar {
+    background-color: var(--admin-sidebar-bg);
+    color: var(--admin-text-light);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+}
+
+.sidebar-header {
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 1rem 0.5rem;
+    border-bottom: 1px solid #3b4d61;
+    margin-bottom: 1rem;
+}
+
+    .sidebar-header .fa-shield-alt {
+        margin-right: 10px;
+    }
+
+.sidebar-nav { list-style: none; padding: 0; margin: 0; }
+.sidebar-nav a { display: flex; align-items: center; padding: 0.85rem 1rem; color: var(--admin-text-light); text-decoration: none; border-radius: 6px; transition: background-color 0.2s ease; font-weight: 500; cursor: pointer; }
+.sidebar-nav a:hover { background-color: #3b4d61; }
+.sidebar-nav a.active { background-color: var(--admin-accent); color: #fff; }
+.sidebar-nav a .fa-fw { margin-right: 12px; }
+
+/* --- MAIN CONTENT AREA --- */
+.admin-content { display: flex; flex-direction: column; overflow: hidden; }
+.admin-page { display: none; height: 100%; flex-direction: column; }
+.admin-page.active { display: flex; }
+
+.page-header {
+    padding: 1.5rem;
+    background-color: #fff;
+    border-bottom: 1px solid var(--admin-border-color);
+    flex-shrink: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.page-header h1 { font-size: 1.75rem; margin: 0; }
+
+.page-content { flex-grow: 1; overflow: hidden; padding: 1.5rem; }
+
+/* --- TICKET MANAGEMENT PAGE LAYOUT --- */
+.ticket-management-layout {
+    display: grid;
+    grid-template-columns: 60% 40%;
+    gap: 1.5rem;
+    height: 100%;
+    overflow: hidden;
+}
+
+.ticket-list-panel, .ticket-detail-panel {
+    background-color: #fff;
+    border-radius: 8px;
+    border: 1px solid var(--admin-border-color);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-body { padding: 1rem; overflow-y: auto; }
+.dataTables_wrapper .row:first-child { display: none; } /* Hide default show/search */
+
+/* --- TICKET DETAIL PANEL --- */
+.ticket-detail-header { padding: 1rem; border-bottom: 1px solid var(--admin-border-color); font-size: 1.25rem; font-weight: 600; }
+.ticket-properties { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--admin-border-color); }
+.ticket-properties .form-group label { font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem; color: #6c757d; }
+.ticket-properties .form-control[disabled] { background-color: #f4f7fa; }
+
+.ticket-conversation { flex-grow: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; background-color: #f4f7fa; }
+.ticket-reply { padding: 1rem; border-top: 1px solid var(--admin-border-color); }
+
+/* --- CONVERSATION & BADGE STYLES --- */
+.message-row { display: flex; gap: 10px; max-width: 90%; }
+.message-content { display: flex; flex-direction: column; }
+.message-bubble { padding: 10px 15px; border-radius: 18px; }
+.message-text { margin: 0; white-space: pre-wrap; word-wrap: break-word; }
+.message-timestamp { font-size: 0.75rem; color: #6c757d; margin-top: 5px; }
+.message-row.received .message-bubble { background-color: #e9e9eb; color: #000; border-top-left-radius: 4px; }
+.message-row.sent .message-bubble { background-color: var(--admin-accent); color: #fff; border-top-right-radius: 4px; }
+.note-bubble { border: 1px dashed #fd7e14; background-color: #fff3e0; }
+
+.badge { font-weight: 600; padding: 0.4em 0.8em; }
+.badge.bg-pending { background-color: var(--pending-bg) !important; color: #000; }
+.badge.bg-resolved { background-color: var(--resolved-bg) !important; color: #fff; }
+.badge.bg-low { background-color: var(--low-priority-bg) !important; color: #fff; }
+.badge.bg-normal { background-color: var(--normal-priority-bg) !important; color: #fff; }
+.badge.bg-high { background-color: var(--high-priority-bg) !important; color: #fff; }
+
+.table-hover > tbody > tr.table-active { background-color: #e9f2ff; }
