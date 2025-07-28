@@ -5,29 +5,28 @@
     --light-grey: #f4f5f7;
     --border-color: #dfe1e6;
     --text-dark: #172b4d;
-    --text-light: #5e6c84;
+    --text-light: #505f79;
+    --read-receipt-color: #4fc3f7; /* Blue for 'Seen' */
 }
 
 body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background-color: var(--light-grey);
-    overflow: hidden; 
+    overflow: hidden;
 }
 
 .dashboard-container {
     display: grid;
-    
-    grid-template-columns: 20fr 35fr 45fr;
-    
+    grid-template-columns: 15fr 45fr 40fr;
     grid-template-rows: 100vh;
     width: 100vw;
     height: 100vh;
     gap: 0;
 }
 
-/* --- BASE STYLES FOR ALL PANELS --- */
-.dashboard-panel, #history-column {
+/* --- BASE STYLES & ACCESSIBILITY --- */
+.dashboard-panel {
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -41,9 +40,6 @@ body {
     color: var(--text-dark);
     border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
 }
 
 .panel-body {
@@ -51,7 +47,14 @@ body {
     overflow-y: auto;
 }
 
-/* --- AVATAR & CONVERSATION LIST STYLES --- */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 82, 204, 0.2);
+    border-radius: 3px;
+}
+
+/* --- AVATAR STYLE --- */
 .avatar-initials {
     width: 42px;
     height: 42px;
@@ -63,6 +66,7 @@ body {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    cursor: pointer;
 }
 
 .avatar-bg-blue {
@@ -81,7 +85,8 @@ body {
     background-color: #de350b;
 }
 
-#conversation-list-panel .panel-body, #conversation-list-panel .accordion-body {
+/* --- COLUMN 1: CONVERSATION LIST --- */
+#conversation-list-panel .panel-body {
     padding: 0;
 }
 
@@ -91,13 +96,7 @@ body {
     padding: 0.75rem 1.25rem;
     cursor: pointer;
     border-bottom: 1px solid var(--border-color);
-    text-decoration: none;
-    color: inherit;
 }
-
-    .conversation-item:last-child {
-        border-bottom: none;
-    }
 
     .conversation-item:hover {
         background-color: var(--light-grey);
@@ -113,47 +112,19 @@ body {
         color: var(--text-light);
     }
 
-#conversation-list-panel .accordion-button {
-    background-color: #f0f2f5;
-    color: #444;
-    font-weight: 600;
-    font-size: .9rem;
-    padding: 12px 15px;
+/* --- COLUMN 2: CHAT --- */
+#chat-panel .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
-    #conversation-list-panel .accordion-button:focus {
-        box-shadow: none;
-    }
-
-    #conversation-list-panel .accordion-button.collapsed {
-        background-color: #f8f9fa;
-    }
-
-    #conversation-list-panel .accordion-button:not(.collapsed) {
-        background-color: #e9ecef;
-        box-shadow: inset 0 -1px 0 rgba(0,0,0,.125);
-    }
-
-    #conversation-list-panel .accordion-button::after {
-        filter: brightness(0) saturate(100%) invert(24%) sepia(0%) saturate(836%) hue-rotate(149deg) brightness(97%) contrast(93%);
-    }
-
-#conversation-list-panel .accordion-item {
-    border: none;
-    border-bottom: 1px solid var(--border-color);
-}
-
-    #conversation-list-panel .accordion-item:last-child {
-        border-bottom: none;
-    }
-
-/* --- CHAT PANEL & MESSAGES --- */
 #chat-panel-body {
     display: flex;
     flex-direction: column;
     gap: 1rem;
     overflow-y: auto;
-    padding: 1.5rem;
+    padding: 1rem 1.5rem;
     background-color: var(--light-grey);
 }
 
@@ -161,6 +132,7 @@ body {
     padding: 1rem;
     background-color: #fff;
     border-top: 1px solid var(--border-color);
+    position: relative;
 }
 
 .message-row {
@@ -172,10 +144,6 @@ body {
 .message-content {
     display: flex;
     flex-direction: column;
-}
-
-.message-header {
-    margin-bottom: 2px;
 }
 
 .message-sender {
@@ -191,13 +159,6 @@ body {
 .message-text {
     margin: 0;
     word-wrap: break-word;
-    line-height: 1.5;
-}
-
-.message-timestamp {
-    font-size: 0.75rem;
-    color: #6c757d;
-    margin-top: 5px;
 }
 
 .message-row.received {
@@ -206,7 +167,7 @@ body {
 
     .message-row.received .message-bubble {
         background-color: #e9e9eb;
-        color: var(--text-dark);
+        color: #000;
         border-top-left-radius: 4px;
     }
 
@@ -216,7 +177,7 @@ body {
 }
 
     .message-row.sent .message-bubble {
-        background-color: var(--primary-color);
+        background-color: #007bff;
         color: #fff;
         border-top-right-radius: 4px;
     }
@@ -229,61 +190,149 @@ body {
         display: none;
     }
 
+/* MODIFICATION: Input Bar styles (Requirement #4) */
+.chat-input-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
 
+#message-input {
+    padding: 0.75rem 1rem;
+    height: auto;
+}
+/* Taller input */
+.chat-input-actions {
+    display: flex;
+}
+
+.btn-icon {
+    color: var(--text-light);
+}
+
+/* MODIFICATION: Styles for Read Receipts & Date Separators */
+.date-separator {
+    text-align: center;
+    margin: 1.5rem 0 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-light);
+    position: relative;
+}
+
+    .date-separator::before, .date-separator::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        width: calc(50% - 60px);
+        height: 1px;
+        background-color: var(--border-color);
+    }
+
+    .date-separator::before {
+        left: 0;
+    }
+
+    .date-separator::after {
+        right: 0;
+    }
+
+.message-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 5px;
+}
+
+.message-timestamp {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.read-receipt {
+    font-size: 1em;
+}
+/* Base size */
+.receipt-sent {
+    color: #adb5bd;
+}
+/* Grey for sent */
+.receipt-delivered {
+    color: #adb5bd;
+}
+/* Grey for delivered */
+.receipt-seen {
+    color: var(--read-receipt-color);
+}
+/* Blue for seen */
+.message-row.sent .message-meta {
+    justify-content: flex-end;
+}
+
+.typing-indicator {
+    position: absolute;
+    top: -12px;
+    left: 1rem;
+    height: 20px;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    font-style: italic;
+    transition: opacity 0.3s ease;
+}
+
+/* --- COLUMN 3: HISTORY --- */
 #history-column {
     background-color: transparent;
+    border-right: none;
+    display: flex;
+    flex-direction: column;
     padding: 1.5rem;
     gap: 1.5rem;
+    overflow-y: auto;
 }
 
 .history-panel {
-    flex: 1;
     background-color: #fff;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
 }
 
 .history-table-container {
     flex-grow: 1;
-    overflow: auto;
-    padding: 1rem;
-    min-height: 0;
+    overflow-y: auto;
+    padding: 0.5rem;
 }
 
+.table th, .table td {
+    vertical-align: middle;
+    padding: 0.75rem;
+}
 
-@media (max-width: 1024px) {
-    body {
-        overflow: auto;
-    }
+/* --- DATATABLES & Other styles --- */
+.dataTables_filter {
+    position: relative;
+}
 
-    .dashboard-container {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto;
-        height: auto;
+    .dataTables_filter label {
         width: 100%;
     }
 
-    .dashboard-panel, #history-column {
-        height: auto;
-        min-height: 80vh;
-        border-right: none;
-        border-bottom: 2px solid var(--light-grey);
+    .dataTables_filter input {
+        width: 100% !important;
+        padding-left: 2.2rem !important;
     }
 
-    #history-column {
-        padding: 1rem;
+    .dataTables_filter .search-icon {
+        position: absolute;
+        top: 50%;
+        left: 0.8rem;
+        transform: translateY(-50%);
+        color: var(--text-light);
+        pointer-events: none;
     }
 
-    .history-panel {
-        min-height: 400px;
-        flex: none;
-    }
-}
-
-/* --- GENERAL UTILITIES --- */
 ::-webkit-scrollbar {
     width: 6px;
 }
@@ -296,3 +345,118 @@ body {
     background: #ccc;
     border-radius: 3px;
 }
+
+.accordion-item {
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.accordion-button {
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.accordion-body {
+    padding: 0;
+}
+
+.accordion .list-group-item {
+    border: none;
+    border-top: 1px solid var(--border-color);
+}
+
+/* --- MOBILE RESPONSIVENESS --- */
+@media (max-width: 992px) {
+    .dashboard-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        overflow-y: auto;
+        height: auto;
+    }
+
+    .dashboard-panel, #history-column {
+        height: auto;
+        max-height: 100vh;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    #history-column {
+        padding: 1rem;
+    }
+}
+/* ... (existing styles) ... */
+
+/* MODIFICATION: Styles for file attachments in chat bubbles (Requirement #3) */
+.message-attachment {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    max-width: 250px;
+}
+
+.message-row.sent .message-attachment {
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.attachment-icon {
+    font-size: 1.8rem;
+    color: var(--text-light);
+}
+
+.message-row.sent .attachment-icon {
+    color: #fff;
+}
+
+.attachment-info {
+    overflow: hidden;
+}
+
+.attachment-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+.attachment-link {
+    text-decoration: none;
+    color: var(--primary-color);
+}
+
+.message-row.sent .attachment-link {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.attachment-preview-image {
+    max-width: 250px;
+    max-height: 200px;
+    border-radius: 8px;
+    margin-top: 5px;
+    cursor: pointer;
+}
+/* ... (existing styles) ... */
+
+/* MODIFICATION: Styles for Priority Badges */
+.badge-priority-urgent {
+    background-color: #dc3545; /* Red */
+    color: white;
+}
+
+.badge-priority-high {
+    background-color: #fd7e14; /* Orange */
+    color: white;
+}
+
+.badge-priority-low {
+    background-color: #0d6efd; /* Blue */
+    color: white;
+}
+
+/* ... (other existing styles) ... */

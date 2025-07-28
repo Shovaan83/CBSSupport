@@ -1,0 +1,191 @@
+﻿:root {
+    --sidebar-bg: #2c3e50;
+    --sidebar-text: #ecf0f1;
+    --sidebar-text-hover: #ffffff;
+    --sidebar-active-bg: #34495e;
+    --main-bg: #f4f5f7;
+    --border-color: #dfe1e6;
+    --text-dark: #172b4d;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--main-bg);
+    overflow: hidden;
+}
+
+.admin-layout {
+    display: flex;
+    height: 100vh;
+}
+
+/* --- SIDEBAR --- */
+.sidebar {
+    width: 250px;
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.sidebar-header {
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid #4a627a;
+}
+
+.sidebar .nav-link {
+    color: var(--sidebar-text);
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+}
+
+    .sidebar .nav-link:hover {
+        background-color: var(--sidebar-active-bg);
+        color: var(--sidebar-text-hover);
+    }
+
+    .sidebar .nav-link.active {
+        background-color: var(--sidebar-active-bg);
+        font-weight: 600;
+        border-left: 4px solid #3498db;
+        padding-left: calc(1.5rem - 4px);
+    }
+
+/* --- MAIN CONTENT --- */
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.main-header {
+    background-color: #fff;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+    .main-header h3 {
+        margin: 0;
+        font-weight: 600;
+    }
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+    .user-profile img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+    }
+
+.content-body {
+    padding: 1.5rem;
+    flex-grow: 1;
+}
+
+.view-container {
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* --- DASHBOARD WIDGETS --- */
+.stat-card {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.5rem;
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-title {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+/* --- BADGES --- */
+.badge.bg-priority-low {
+    background-color: #0d6efd !important;
+}
+
+.badge.bg-priority-medium {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
+.badge.bg-priority-high {
+    background-color: #fd7e14 !important;
+}
+
+.badge.bg-priority-urgent {
+    background-color: #dc3545 !important;
+}
+
+.badge.bg-status-open {
+    background-color: #198754 !important;
+}
+
+.badge.bg-status-pending {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
+.badge.bg-status-resolved {
+    background-color: #0dcaf0 !important;
+}
+
+.badge.bg-status-closed {
+    background-color: #6c757d !important;
+}
