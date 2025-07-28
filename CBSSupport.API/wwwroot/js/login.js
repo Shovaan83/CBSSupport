@@ -1,39 +1,44 @@
-﻿document.addEventListener("DOMContentLoaded", function () {
-    const signInForm = document.getElementById('signInForm');
-    const errorMessageDiv = document.getElementById('error-message');
+﻿"use strict";
 
-    signInForm.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        errorMessageDiv.classList.add('d-none'); // Hide error on new submit
+document.addEventListener("DOMContentLoaded", function () {
+    const adminRadio = document.getElementById('adminRole');
+    const clientRadio = document.getElementById('clientRole');
+    const branchCodeGroup = document.getElementById('branch-code-group');
+    const roleTypeHidden = document.getElementById('roleTypeHidden')
+    const branchCodeInput = document.getElementById('branchCode');
+    const roleSelectorSlider = document.querySelector('.role-selector-slider');
+    const branchCodeHidden = document.getElementById('branchCodeHidden');
 
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-
-        try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, password })
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                // Success! Store the token and redirect.
-                localStorage.setItem('jwt_token', data.token);
-                window.location.href = '/Support'; // Redirect to the support dashboard
-            } else {
-                // Handle login failure
-                const errorData = await response.text();
-                errorMessageDiv.textContent = errorData || "Invalid username or password.";
-                errorMessageDiv.classList.remove('d-none');
-            }
-
-        } catch (error) {
-            console.error('Login error:', error);
-            errorMessageDiv.textContent = 'An error occurred. Please try again later.';
-            errorMessageDiv.classList.remove('d-none');
+    function updateRole() {
+        if (adminRadio.checked) {
+            roleTypeHidden.value = "admin";
+        } else if (clientRadio.checked) {
+            roleTypeHidden.value = "client";
         }
-    });
+    }
+
+    function updateBranchCode() {
+        branchCodeHidden.value = branchCodeInput.value;
+    }
+    function handleRoleChange() {
+        if (clientRadio.checked) {
+            roleSelectorSlider.classList.add('client');
+            branchCodeGroup.classList.remove('disabled');
+            branchCodeInput.required = true;
+            branchCodeInput.tabIndex = 0;
+        } else {
+            roleSelectorSlider.classList.remove('client');
+            branchCodeGroup.classList.add('disabled');
+            branchCodeInput.required = false;
+            branchCodeInput.tabIndex = -1;
+            branchCodeInput.value = '';
+        }
+    }
+
+    adminRadio.addEventListener('change', handleRoleChange);
+    clientRadio.addEventListener('change', handleRoleChange);
+    branchCodeInput.addEventListener('input', updateBranchCode);
+
+    updateRole();
+    handleRoleChange();
 });

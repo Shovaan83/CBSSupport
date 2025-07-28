@@ -1,74 +1,73 @@
 using CBSSupport.API.Hubs;
 using CBSSupport.Shared.Data;
-using CBSSupport.Shared.Helpers;
 using CBSSupport.Shared.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// --- 1. Basic Service Registration ---
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
 
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
+
+// --- 2. Get Connection String ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(connectionString))
 {
     throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 }
 
+// --- 3. Register your custom services ---
 builder.Services.AddSingleton<IChatService>(provider => new ChatService(connectionString));
 builder.Services.AddSingleton<IUserRepository>(provider => new UserRepository(connectionString));
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    var jwtSecret = builder.Configuration["Jwt:Secret"];
-    if (string.IsNullOrEmpty(jwtSecret))
+// --- 4. CONFIGURE COOKIE AUTHENTICATION ---
+// This replaces the entire JWT section.
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
     {
-        throw new InvalidOperationException("JWT Secret is not configured in appsettings.json.");
-    }
+        options.Cookie.Name = "CBSSupport.AuthCookie";
+        options.LoginPath = "/Login/Index"; 
+        options.LogoutPath = "/Login/Logout";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+        options.SlidingExpiration = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+    });
 
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]))
-    };
-});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// --- Configure the HTTP request pipeline ---
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
-
 app.UseRouting();
 
-app.UseAuthorization();
+// IMPORTANT: Middleware order is critical
+app.UseAuthentication(); // First, establish who the user is from the cookie
+app.UseAuthorization();  // Then, check if they are authorized for the resource
+app.UseSession();
 
+// --- Map Endpoints ---
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Login}/{action=Index}/{id?}");
+    pattern: "{controller=Login}/{action=Index}/{id?}"); 
 
 app.MapHub<ChatHub>("/chathub");
 
