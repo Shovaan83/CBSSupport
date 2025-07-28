@@ -24,7 +24,7 @@ namespace CBSSupport.Shared.Models
         [Column("full_name")]
         public string FullName { get; set; } = string.Empty;
 
-        [Write(false)] // This property is not in the database, we can fill it manually later
+        [Write(false)] 
         public string Role { get; set; } = string.Empty;
     }
 }
