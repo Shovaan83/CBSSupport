@@ -1,0 +1,138 @@
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Link BOTH stylesheets -->
+    <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
+</head>
+<body>
+
+    <div class="admin-container">
+        <!-- ===== ADMIN SIDEBAR (Unchanged) ===== -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header"><i class="fas fa-shield-alt"></i> Admin Panel</div>
+            <ul class="sidebar-nav">
+                <li><a class="nav-link" data-page="chats"><i class="fas fa-fw fa-comments"></i> Chats</a></li>
+                <li><a class="nav-link active" data-page="ticket-management"><i class="fas fa-fw fa-ticket-alt"></i> Ticket Management</a></li>
+                <li><a class="nav-link" data-page="enquiry-management"><i class="fas fa-fw fa-question-circle"></i> Enquiry Management</a></li>
+            </ul>
+        </aside>
+
+        <!-- ===== MAIN CONTENT AREA ===== -->
+        <main class="admin-content">
+
+            <div class="row">
+                <div class="col-md-3"><div class="stat-card"><div class="stat-icon bg-primary"><i class="fas fa-ticket-alt"></i></div><div class="stat-info"><span class="stat-title">Total Tickets</span><span class="stat-value" id="stat-total-tickets">0</span></div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div class="stat-icon bg-success"><i class="fas fa-plus-circle"></i></div><div class="stat-info"><span class="stat-title">New Tickets</span><span class="stat-value" id="stat-new-tickets">0</span></div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div class="stat-icon bg-info"><i class="fas fa-hourglass-half"></i></div><div class="stat-info"><span class="stat-title">Open Tickets</span><span class="stat-value" id="stat-open-tickets">0</span></div></div></div>
+                <div class="col-md-3"><div class="stat-card"><div class="stat-icon bg-danger"><i class="fas fa-check-circle"></i></div><div class="stat-info"><span class="stat-title">Closed Tickets</span><span class="stat-value" id="stat-closed-tickets">0</span></div></div></div>
+            </div>  
+
+            <!-- PAGE 1: CHATS (Unchanged) -->
+            <div id="chats-page" class="admin-page">
+                <div class="dashboard-container">
+                    <div id="conversation-list-panel" class="dashboard-panel">
+                        <div class="panel-header"><span>Live Conversations</span></div>
+                        <div class="panel-body" id="conversation-list-container"></div>
+                    </div>
+                    <div id="chat-panel" class="dashboard-panel">
+                        <div class="panel-header" id="chat-header"></div>
+                        <div id="chat-panel-body" class="panel-body"></div>
+                        <div class="chat-footer">
+                            <div class="chat-input-container">
+                                <input type="file" id="file-input" style="display: none;" />
+                                <div class="chat-input-actions"><button class="btn btn-icon" id="attachment-button" aria-label="Attach file"><i class="fas fa-paperclip"></i></button></div>
+                                <input type="text" class="form-control" placeholder="Type a message..." id="message-input">
+                                <button class="btn btn-primary" type="button" id="send-button" aria-label="Send Message"><i class="fas fa-paper-plane"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="history-column-chat" class="p-3"><h4>Customer Info</h4><p>Details about the selected user will appear here.</p></div>
+                </div>
+            </div>
+
+            <!-- PAGE 2: TICKET MANAGEMENT (MODIFIED) -->
+            <div id="ticket-management-page" class="admin-page active">
+                <div class="page-header">
+                    <h1>All Support Tickets</h1>
+                    <div class="d-flex gap-2">
+                        <select id="filter-status" class="form-select"><option value="">All Statuses</option></select>
+                        <select id="filter-priority" class="form-select"><option value="">All Priorities</option></select>
+                        <select id="filter-agent" class="form-select"><option value="">All Agents</option></select>
+                    </div>
+                </div>
+                <div class="page-content">
+                    <div class="ticket-management-layout">
+                        <!-- Left Panel: Ticket List -->
+                        <div class="ticket-list-panel">
+                            <div class="panel-body">
+                                <table id="ticketsTable" class="table table-hover" style="width:100%">
+                                    <thead><tr><th>ID</th><th>Subject</th><th>Created By</th><th>Assigned To</th><th>Status</th><th>Priority</th><th>Last Update</th></tr></thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Right Panel: Ticket Details -->
+                        <div class="ticket-detail-panel">
+                            <div id="ticket-detail-content" style="display: none;">
+                                <div class="ticket-detail-header">
+                                    <span id="detail-ticket-id">#...</span>
+                                    <span id="detail-ticket-subject"></span>
+                                </div>
+                                <div class="ticket-properties">
+                                    <div class="form-group"><label>Status</label><select id="detail-status" class="form-select"></select></div>
+                                    <div class="form-group"><label>Priority</label><select id="detail-priority" class="form-select"></select></div>
+                                    <div class="form-group"><label>Assignee</label><select id="detail-assignee" class="form-select"></select></div>
+                                    <div class="form-group"><label>Created By</label><input type="text" id="detail-createdby" class="form-control" disabled /></div>
+                                </div>
+                                <div class="ticket-conversation" id="ticket-conversation-view"></div>
+                                <div class="ticket-reply">
+                                    <ul class="nav nav-tabs" id="reply-tabs"><li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#reply-client-tab">Reply to Client</button></ul>
+                                    <div class="tab-content pt-2">
+                                        <div class="tab-pane fade show active" id="reply-client-tab"><textarea id="reply-textarea" class="form-control" rows="3" placeholder="Type your reply to the client..."></textarea><button id="send-reply-btn" class="btn btn-primary mt-2">Send Reply</button></div>
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="ticket-detail-placeholder" class="d-flex align-items-center justify-content-center h-100"><p class="text-muted">Select a ticket to view its details.</p></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE 3: ENQUIRY MANAGEMENT (Unchanged) -->
+            <div id="enquiry-management-page" class="admin-page">
+                <div class="page-header"><h1>Enquiry Management</h1></div>
+                <div class="page-content">
+                    <div class="history-panel h-100">
+                        <div class="history-table-container panel-body">
+                            <table id="inquiriesDataTable" class="table table-hover" style="width:100%">
+                                <thead><tr><th>ID</th><th>Topic</th><th>Inquired By</th><th>Date</th><th>Outcome</th></tr></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script src="~/js/admin.js" asp-append-version="true"></script>
+
+</body>
+</html>
