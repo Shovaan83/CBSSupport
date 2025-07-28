@@ -111,21 +111,43 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!hasSeen && messageData.sender !== currentUserIdentity) { seenObserver.observe(messageRow); }
         if (!isHistory) scrollToBottom();
     }
+
     function renderSidebar(role, isAdmin) {
         conversationListContainer.innerHTML = '';
         const createChatItem = (type, id, name, subtext, iconClass) => { const avatar = getAvatarDetails(name); return `<a href="#" class="list-group-item list-group-item-action conversation-item" data-type="${type}" data-id="${id}" data-name="${name}"><div class="d-flex w-100 align-items-center"><div class="avatar-initials ${avatar.avatarClass} me-3">${avatar.initials}</div><div class="flex-grow-1"><div class="fw-bold">${name}</div><small class="text-muted">${subtext}</small></div><div class="icon ms-2"><i class="fas ${iconClass}"></i></div></div></a>`; };
+
         conversationListContainer.innerHTML += createChatItem('group', 'public', 'Public Group Chat', 'Group Chat', 'fa-users');
+
         if (isAdmin) {
             let accordionHtml = '<div class="accordion" id="sidebarAccordion">';
-            if (role === supportAgentIdentity) { let customerItems = ''; customerList.forEach(user => { customerItems += createChatItem('private', generateGroupName(role, user.name), user.name, 'Private Chat', 'fa-user'); }); accordionHtml += `<div class="accordion-item"><h2 class="accordion-header" id="headingSupport"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSupport">Support</button></h2><div id="collapseSupport" class="accordion-collapse collapse"><div class="list-group list-group-flush">${customerItems}</div></div></div>`; }
-            let teamItems = ''; teamMembers.filter(u => u.name !== role).forEach(user => { teamItems += createChatItem('private', generateGroupName(role, user.name), user.name, 'Private Chat', 'fa-user'); }); accordionHtml += `<div class="accordion-item"><h2 class="accordion-header" id="headingTeams"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTeams">Teams</button></h2><div id="collapseTeams" class="accordion-collapse collapse"><div class="list-group list-group-flush">${teamItems}</div></div></div>`;
+            if (role === supportAgentIdentity) {
+                let customerItems = ''; customerList.forEach(user => { customerItems += createChatItem('private', generateGroupName(role, user.name), user.name, 'Private Chat', 'fa-user'); });
+                accordionHtml += `<div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSupport">Support</button></h2><div id="collapseSupport" class="accordion-collapse collapse"><div class="list-group list-group-flush">${customerItems}</div></div></div>`;
+            }
+            let teamItems = ''; teamMembers.filter(u => u.name !== role).forEach(user => { teamItems += createChatItem('private', generateGroupName(role, user.name), user.name, 'Private Chat', 'fa-user'); });
+            accordionHtml += `<div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTeams">Teams</button></h2><div id="collapseTeams" class="accordion-collapse collapse"><div class="list-group list-group-flush">${teamItems}</div></div></div>`;
+
+            // This is the new "Ticket Chat" section
+            accordionHtml += `
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingTicketChats">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTicketChats">Ticket Chats</button>
+                    </h2>
+                    <div id="collapseTicketChats" class="accordion-collapse collapse">
+                         <div class="list-group list-group-flush" id="pinned-tickets-container">
+                            <!-- Pinned ticket chats will be dynamically inserted here -->
+                         </div>
+                    </div>
+                </div>`;
+
             accordionHtml += '</div>';
             conversationListContainer.innerHTML += accordionHtml;
         } else {
-            conversationListContainer.innerHTML += createChatItem('private', generateGroupName(role, supportAgentIdentity), supportAgentIdentity, 'Private Chat', 'fa-headset');
+            conversationListContainer.innerHTML += createChatItem('private', generateGroupName(role, supportAgentIdentity), supportAgentIdentity, 'Private Chat', 'fa-user');
         }
     }
-    async function switchChatContext(contextData) { currentChatContext = contextData; document.querySelectorAll('.conversation-item.active').forEach(el => el.classList.remove('active')); const activeItem = document.querySelector(`.conversation-item[data-id='${contextData.id}']`); if (activeItem) activeItem.classList.add('active'); const partnerName = contextData.name || "Public Group Chat"; const partnerAvatar = getAvatarDetails(partnerName); const chatType = contextData.type === 'group' ? 'Group Chat' : 'Private Chat'; chatHeader.innerHTML = `<div class="avatar-initials ${partnerAvatar.avatarClass}">${partnerAvatar.initials}</div><div><div class="fw-bold">${partnerName}</div><small class="text-muted">${chatType}</small></div>`; chatPanelBody.innerHTML = ''; lastMessageDate = null; getChatHistory(currentChatContext.id).forEach(msg => displayMessage(msg, true)); scrollToBottom(); if (contextData.type === 'private') { await connection.invoke("JoinPrivateChat", contextData.id); } }
+
+    async function switchChatContext(contextData) { currentChatContext = contextData; document.querySelectorAll('.conversation-item.active, .pinned-ticket-item.active').forEach(el => el.classList.remove('active')); const activeItem = document.querySelector(`.conversation-item[data-id='${contextData.id}']`); if (activeItem) activeItem.classList.add('active'); const partnerName = contextData.name || "Public Group Chat"; const partnerAvatar = getAvatarDetails(partnerName); const chatType = contextData.type === 'group' ? 'Group Chat' : 'Private Chat'; chatHeader.innerHTML = `<div class="avatar-initials ${partnerAvatar.avatarClass}">${partnerAvatar.initials}</div><div><div class="fw-bold">${partnerName}</div><small class="text-muted">${chatType}</small></div>`; chatPanelBody.innerHTML = ''; lastMessageDate = null; getChatHistory(currentChatContext.id).forEach(msg => displayMessage(msg, true)); scrollToBottom(); if (contextData.type === 'private') { await connection.invoke("JoinPrivateChat", contextData.id); } }
     async function sendMessage() {
         const message = messageInput.value.trim();
         const file = fileInput.files[0];
@@ -133,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (file) { await uploadFile(file); } else { try { const method = currentChatContext.type === 'group' ? "SendPublicMessage" : "SendPrivateMessage"; const args = currentChatContext.type === 'group' ? [currentUserIdentity, message, null, null, null] : [currentChatContext.id, currentUserIdentity, message, null, null, null]; await connection.invoke(method, ...args); messageInput.value = ""; updateSendButtonState(); } catch (err) { console.error("Error sending message:", err); } }
     }
     function setViewForRole(role) { currentUserIdentity = role; renderSidebar(role, teamMembers.some(u => u.name === role)); const firstItem = conversationListContainer.querySelector('.conversation-item'); if (firstItem) { switchChatContext(firstItem.dataset); } }
+
     roleSwitcher.innerHTML = [...teamMembers, ...customerList].map(u => `<option value="${u.name}">Role: ${u.name}</option>`).join('');
     roleSwitcher.addEventListener('change', (e) => setViewForRole(e.target.value));
     conversationListContainer.addEventListener('click', (e) => { const item = e.target.closest('.conversation-item'); if (item) { e.preventDefault(); switchChatContext(item.dataset); } });
@@ -155,69 +178,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const getTickets = () => JSON.parse(localStorage.getItem(ticketsLocalStorageKey)) || [], getFilteredTickets = () => getTickets().filter(t => t.status && t.status !== 'Open');
     const generateStatusBadge = s => { let b = 'bg-secondary', i = 'fa-question-circle'; if (s === 'Resolved') { b = 'bg-success'; i = 'fa-check-circle'; } else if (s === 'Pending') { b = 'bg-warning text-dark'; i = 'fa-hourglass-half'; } return `<span class="badge ${b}"><i class="fas ${i} me-1"></i>${s}</span>`; };
     const generatePriorityBadge = p => { let b = 'badge-priority-low', i = 'fa-arrow-down'; if (p === 'Urgent') { b = 'badge-priority-urgent'; i = 'fa-exclamation-circle'; } else if (p === 'High') { b = 'badge-priority-high'; i = 'fa-arrow-up'; } return `<span class="badge ${b}"><i class="fas ${i} me-1"></i>${p}</span>`; };
-
     const ticketsTable = $('#supportTicketsDataTable').DataTable({
         data: getFilteredTickets(),
-        columns: [
-            { data: 'id', render: d => `#${d}` },
-            { data: 'subject', defaultContent: 'N/A' },
-            {
-                data: 'submissionTimestamp',
-                defaultContent: 'N/A',
-                render: function (data, type, row) {
-                    if (!data) return 'N/A';
-                    if (type === 'display') {
-                        return new Date(data).toLocaleString([], {
-                            year: 'numeric', month: 'numeric', day: 'numeric',
-                            hour: '2-digit', minute: '2-digit'
-                        });
-                    }
-                    return data;
-                }
-            },
-            { data: 'createdBy', defaultContent: 'N/A' },
-            { data: 'resolvedBy', defaultContent: 'N/A' },
-            { data: 'status', render: generateStatusBadge, defaultContent: '' },
-            { data: 'priority', render: generatePriorityBadge, defaultContent: 'Low' },
-            {
-                data: 'id',
-                orderable: false,
-                searchable: false,
-                render: function (data, type, row) {
-                    let chatButton = '';
-                    const isAdmin = teamMembers.some(u => u.name === currentUserIdentity);
-                    if (isAdmin && row.createdBy && row.createdBy !== currentUserIdentity) {
-                        chatButton = `<button class="btn btn-sm btn-success start-chat-btn ms-1" data-ticket-id="${row.id}" aria-label="Chat with ${row.createdBy}"><i class="fas fa-comments"></i></button>`;
-                    }
-                    return `<button class="btn btn-sm btn-info view-details-btn" data-ticket-id="${data}">View Details</button>${chatButton}`;
-                }
-            }
-        ],
+        columns: [{ data: 'id', render: d => `#${d}` }, { data: 'subject', defaultContent: 'N/A' }, { data: 'submissionTimestamp', defaultContent: 'N/A', render: function (data, type, row) { if (!data) return 'N/A'; if (type === 'display') { return new Date(data).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } return data; } }, { data: 'createdBy', defaultContent: 'N/A' }, { data: 'resolvedBy', defaultContent: 'N/A' }, { data: 'status', render: generateStatusBadge, defaultContent: '' }, { data: 'priority', render: generatePriorityBadge, defaultContent: 'Low' }, { data: 'id', orderable: false, searchable: false, render: function (data, type, row) { let chatButton = ''; const isAdmin = teamMembers.some(u => u.name === currentUserIdentity); if (isAdmin && row.createdBy && row.createdBy !== currentUserIdentity) { chatButton = `<button class="btn btn-sm btn-success start-chat-btn ms-1" data-ticket-id="${row.id}" aria-label="Chat with ${row.createdBy}"><i class="fas fa-comments"></i></button>`; } return `<button class="btn btn-sm btn-info view-details-btn" data-ticket-id="${data}">View Details</button>${chatButton}`; } }],
         pageLength: 5, lengthChange: true, lengthMenu: [[5, 10, 20, -1], ['Show 5', 'Show 10', 'Show 20', 'Show All']], searching: true,
         order: [[2, 'desc']],
         language: { search: "", searchPlaceholder: "Search tickets...", emptyTable: "No support tickets found.", lengthMenu: "_MENU_" },
         dom: '<"row mb-3"<"col-sm-12 col-md-auto"l><"col-sm-12 col-md-auto ms-md-auto"f>>rtip'
     });
-
     $('#supportTicketsDataTable_filter input, #inquiriesDataTable_filter input').before('<i class="fas fa-search search-icon"></i>');
-
     $(supportTicketForm).on('submit', function (e) {
         e.preventDefault();
         if (!this.checkValidity()) { e.stopPropagation(); $(this).addClass('was-validated'); return; }
         try {
             const now = new Date();
-            const newTicket = {
-                id: String(Date.now()).slice(-6),
-                subject: $('#ticketSubject').val(),
-                submissionTimestamp: now.toISOString(),
-                createdBy: $('#fullName').val() || 'System',
-                resolvedBy: 'Pending',
-                description: $('#ticketDescription').val(),
-                remarks: $('#ticketRemarks').val() || 'N/A',
-                status: 'Pending',
-                priority: $('#ticketPriority').val(),
-                expiryDate: new Date($('#ticketExpiryDate').val()).toLocaleString()
-            };
+            const newTicket = { id: String(Date.now()).slice(-6), subject: $('#ticketSubject').val(), submissionTimestamp: now.toISOString(), createdBy: $('#fullName').val() || 'System', resolvedBy: 'Pending', description: $('#ticketDescription').val(), remarks: $('#ticketRemarks').val() || 'N/A', status: 'Pending', priority: $('#ticketPriority').val(), expiryDate: new Date($('#ticketExpiryDate').val()).toLocaleString() };
             const allTickets = getTickets();
             allTickets.unshift(newTicket);
             localStorage.setItem(ticketsLocalStorageKey, JSON.stringify(allTickets));
@@ -231,9 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('An error occurred while submitting the ticket. Please check the console for details.');
         }
     });
-
     const setViewModalMode = m => { if (m === 'edit') { $('#ticket-details-view').hide(); $('#editTicketForm').show(); $('#editTicketBtn, #closeModalBtn').hide(); $('#saveChangesBtn, #cancelEditBtn').show(); } else { $('#ticket-details-view').show(); $('#editTicketForm').hide(); $('#editTicketBtn, #closeModalBtn').show(); $('#saveChangesBtn, #cancelEditBtn').hide(); $('#editTicketForm').removeClass('was-validated'); } };
-
     $('#supportTicketsDataTable tbody').on('click', '.view-details-btn', function () {
         const ticketId = $(this).data('ticket-id').toString(), ticket = getTickets().find(t => t.id === ticketId);
         if (ticket) {
@@ -259,36 +232,57 @@ document.addEventListener('DOMContentLoaded', () => {
             viewTicketModal.show();
         }
     });
-
     $('#supportTicketsDataTable tbody').on('click', '.start-chat-btn', function () {
         const ticketId = $(this).data('ticket-id').toString();
         const ticket = getTickets().find(t => t.id === ticketId);
         if (ticket && ticket.createdBy) {
             const ticketCreatorName = ticket.createdBy;
-            const matchedCustomer = customerList.find(c => ticketCreatorName.includes(c.name));
-
+            const matchedCustomer = customerList.find(c => ticketCreatorName.toLowerCase().includes(c.name.toLowerCase()));
             if (matchedCustomer) {
-                const customerChatName = matchedCustomer.name;
-                const conversationItem = document.querySelector(`.conversation-item[data-name="${customerChatName}"]`);
-
+                const pinnedTicketsContainer = document.getElementById('pinned-tickets-container');
+                const ticketChatId = `pinned-ticket-${ticket.id}`;
+                if (pinnedTicketsContainer && !document.getElementById(ticketChatId)) {
+                    const ticketTitle = ticket.subject.substring(0, 15) + (ticket.subject.length > 15 ? '...' : '');
+                    const pinnedItemHtml = `
+                        <a href="#" class="list-group-item list-group-item-action pinned-ticket-item" id="${ticketChatId}" data-customer-name="${matchedCustomer.name}">
+                            <div class="d-flex w-100 align-items-center justify-content-between">
+                                <div><i class="fas fa-ticket-alt me-2 text-success"></i><strong>#${ticket.id}</strong> ${ticketTitle}</div>
+                                <span class="unpin-ticket" title="Unpin Chat">×</span>
+                            </div>
+                        </a>`;
+                    pinnedTicketsContainer.insertAdjacentHTML('beforeend', pinnedItemHtml);
+                }
+                const conversationItem = document.querySelector(`.conversation-item[data-name="${matchedCustomer.name}"]`);
                 if (conversationItem) {
                     const collapsedParent = conversationItem.closest('.accordion-collapse.collapse:not(.show)');
-                    if (collapsedParent) {
-                        new bootstrap.Collapse(collapsedParent).show();
-                    }
+                    if (collapsedParent) { new bootstrap.Collapse(collapsedParent).show(); }
                     conversationItem.click();
                 } else {
-                    alert(`Could not find the conversation UI element for "${customerChatName}".`);
+                    alert(`Could not find the conversation UI element for "${matchedCustomer.name}".`);
                 }
             } else {
                 alert(`A chat with a user matching "${ticketCreatorName}" is not available in your conversation list.`);
             }
         }
     });
-
+    $(conversationListContainer).on('click', '.pinned-ticket-item', function (e) {
+        e.preventDefault();
+        const customerName = $(this).data('customer-name');
+        const conversationItem = document.querySelector(`.conversation-item[data-name="${customerName}"]`);
+        if (conversationItem) {
+            // First, remove active class from any other pinned item
+            document.querySelectorAll('.pinned-ticket-item.active').forEach(el => el.classList.remove('active'));
+            // Then add it to the clicked one
+            this.classList.add('active');
+            conversationItem.click();
+        }
+    });
+    $(conversationListContainer).on('click', '.unpin-ticket', function (e) {
+        e.stopPropagation();
+        $(this).closest('.pinned-ticket-item').remove();
+    });
     $('#editTicketBtn').on('click', () => setViewModalMode('edit'));
     $('#cancelEditBtn').on('click', () => setViewModalMode('view'));
-
     $(editTicketForm).on('submit', function (e) {
         e.preventDefault();
         if (!this.checkValidity()) { e.stopPropagation(); $(this).addClass('was-validated'); return; }

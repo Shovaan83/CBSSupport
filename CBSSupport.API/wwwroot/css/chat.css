@@ -161,15 +161,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     word-wrap: break-word;
 }
 
-.message-row.received {
-    align-self: flex-start;
+.message-row.received .message-bubble {
+    background-color: #e9e9eb;
+    color: #000;
+    border-top-left-radius: 4px;
 }
-
-    .message-row.received .message-bubble {
-        background-color: #e9e9eb;
-        color: #000;
-        border-top-left-radius: 4px;
-    }
 
 .message-row.sent {
     align-self: flex-end;
@@ -190,7 +186,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
         display: none;
     }
 
-/* MODIFICATION: Input Bar styles (Requirement #4) */
 .chat-input-container {
     display: flex;
     align-items: center;
@@ -201,7 +196,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     padding: 0.75rem 1rem;
     height: auto;
 }
-/* Taller input */
+
 .chat-input-actions {
     display: flex;
 }
@@ -210,7 +205,6 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     color: var(--text-light);
 }
 
-/* MODIFICATION: Styles for Read Receipts & Date Separators */
 .date-separator {
     text-align: center;
     margin: 1.5rem 0 1rem;
@@ -252,19 +246,19 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .read-receipt {
     font-size: 1em;
 }
-/* Base size */
+
 .receipt-sent {
     color: #adb5bd;
 }
-/* Grey for sent */
+
 .receipt-delivered {
     color: #adb5bd;
 }
-/* Grey for delivered */
+
 .receipt-seen {
     color: var(--read-receipt-color);
 }
-/* Blue for seen */
+
 .message-row.sent .message-meta {
     justify-content: flex-end;
 }
@@ -385,9 +379,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
         padding: 1rem;
     }
 }
-/* ... (existing styles) ... */
 
-/* MODIFICATION: Styles for file attachments in chat bubbles (Requirement #3) */
 .message-attachment {
     display: flex;
     align-items: center;
@@ -441,22 +433,41 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     margin-top: 5px;
     cursor: pointer;
 }
-/* ... (existing styles) ... */
 
-/* MODIFICATION: Styles for Priority Badges */
+/* --- PRIORITY BADGES --- */
 .badge-priority-urgent {
-    background-color: #dc3545; /* Red */
+    background-color: #dc3545;
     color: white;
 }
 
 .badge-priority-high {
-    background-color: #fd7e14; /* Orange */
+    background-color: #fd7e14;
     color: white;
 }
 
 .badge-priority-low {
-    background-color: #0d6efd; /* Blue */
+    background-color: #0d6efd;
     color: white;
 }
 
-/* ... (other existing styles) ... */
+/* --- NEW: PINNED TICKET CHAT STYLES --- */
+.pinned-ticket-item {
+    font-size: 0.9rem; /* Slightly smaller for distinction */
+}
+
+.unpin-ticket {
+    cursor: pointer;
+    color: #6c757d;
+    font-size: 1.2rem;
+    padding: 0 5px;
+    display: none; /* Hidden by default */
+    font-weight: bold;
+}
+
+.pinned-ticket-item:hover .unpin-ticket {
+    display: inline; /* Show on hover */
+}
+
+.unpin-ticket:hover {
+    color: #dc3545; /* Red on hover */
+}
