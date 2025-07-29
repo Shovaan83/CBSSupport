@@ -24,7 +24,16 @@ namespace CBSSupport.API.Hubs
 
         public async Task MarkAsSeen(long messageId, string userName)
         {
-            await Clients.All.SendAsync("MessageSeen", messageId, userName, DateTime.UtcNow);
+            try
+            {
+                var seenTime = DateTime.UtcNow;
+                // In a real app, you would persist this via _chatService
+                await Clients.All.SendAsync("MessageSeen", messageId, userName, seenTime);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"An error occurred in MarkAsSeen: {ex.Message}");
+            }
         }
 
         public async Task JoinPrivateChat(string groupName)
@@ -32,13 +41,10 @@ namespace CBSSupport.API.Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
-        // MODIFICATION: Updated to support message IDs and file attachments, just like the public method.
         public async Task SendPrivateMessage(string groupName, string senderName, string message, string fileUrl = null, string fileName = null, string fileType = null)
         {
             long messageId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             string initials = !string.IsNullOrEmpty(senderName) ? senderName.Substring(0, 1).ToUpper() : "?";
-
-            // Broadcast a message with all the new data ONLY to clients in the specified group.
             await Clients.Group(groupName).SendAsync("ReceivePrivateMessage", messageId, groupName, senderName, message, DateTime.UtcNow, initials, fileUrl, fileName, fileType);
         }
 
