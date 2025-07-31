@@ -27,7 +27,7 @@ namespace CBSSupport.API.Hubs
             try
             {
                 var seenTime = DateTime.UtcNow;
-                // In a real app, you would persist this via _chatService
+                
                 await Clients.All.SendAsync("MessageSeen", messageId, userName, seenTime);
             }
             catch (Exception ex)

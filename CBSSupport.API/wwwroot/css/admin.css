@@ -79,6 +79,7 @@ body {
     flex-direction: column;
     overflow: hidden;
     background-color: var(--admin-content-bg);
+    position: relative;
 }
 
 .admin-page {
@@ -232,19 +233,6 @@ body {
     color: #664d03;
 }
 
-/* --- CHATS PAGE STYLES --- */
-#chats-page {
-    padding: 0;
-    overflow: hidden;
-}
-
-    #chats-page.active .dashboard-container {
-        height: 100%;
-        width: 100%;
-        display: grid;
-        grid-template-columns: 30% 70%;
-    }
-
 /* --- TICKET & INQUIRY MANAGEMENT STYLES --- */
 .ticket-management-layout {
     display: grid;
@@ -278,100 +266,187 @@ body {
         color: #6c757d;
     }
 
-    .ticket-properties .form-control[disabled] {
-        background-color: #f4f7fa;
-        border: 1px solid #ced4da;
+/* ======================================================== */
+/* ===== NEW STYLES FOR REDESIGNED INQUIRY DETAIL PANEL ===== */
+/* ======================================================== */
+.inquiry-detail-header h5 {
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.form-label-sm {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.inquiry-detail-properties {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+    .inquiry-detail-properties .grid-span-2 {
+        grid-column: span 2;
     }
 
-.ticket-reply {
-    padding: 1rem;
-    border-top: 1px solid var(--admin-border-color);
+.inquiry-detail-footer {
     background-color: #f8f9fa;
+    border-radius: 6px;
 }
 
-/* MESSENGER-LIKE STYLES for Tickets & Inquiries */
-.ticket-conversation {
-    flex-grow: 1;
-    padding: 1rem;
-    overflow-y: auto;
+/* --- FLOATING CHAT STYLES --- */
+#floating-chat-container {
+    position: fixed;
+    bottom: 0;
+    right: 20px;
+    display: flex;
+    gap: 15px;
+    z-index: 1050;
+    align-items: flex-end;
+    pointer-events: none;
+}
+
+.floating-chat-box {
+    width: 340px;
+    background-color: #fff;
+    border: 1px solid var(--admin-border-color);
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    height: 420px;
+    transition: all 0.3s ease;
+    pointer-events: auto;
 }
 
-.message-row {
+    .floating-chat-box.collapsed {
+        height: 48px;
+        overflow: hidden;
+    }
+
+.chat-box-header {
+    background-color: var(--admin-sidebar-bg);
+    color: var(--admin-text-light);
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
     display: flex;
-    gap: 10px;
-    max-width: 80%;
-    align-items: flex-end;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
 }
 
-    .message-row.received {
+.chat-box-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+}
+
+.chat-box-actions button {
+    background: none;
+    border: none;
+    color: var(--admin-text-light);
+    font-size: 1rem;
+    padding: 0 5px;
+    opacity: 0.8;
+}
+
+    .chat-box-actions button:hover {
+        opacity: 1;
+    }
+
+.chat-box-body {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    background-color: #fdfdfd;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+    .chat-box-body .message-row {
+        display: flex;
+        margin-bottom: 1rem;
+        max-width: 90%;
+    }
+
+    .chat-box-body .message-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-box-body .message-bubble {
+        padding: 8px 12px;
+        border-radius: 18px;
+        font-size: 0.9rem;
+    }
+
+    .chat-box-body .message-text {
+        margin: 0;
+        word-wrap: break-word;
+    }
+
+    .chat-box-body .message-timestamp {
+        font-size: 0.7rem;
+        color: #999;
+        margin-top: 4px;
+    }
+
+    .chat-box-body .received {
         align-self: flex-start;
     }
 
-        .message-row.received .message-bubble {
-            background-color: #e9ecef;
-            color: #212529;
-            border-radius: 18px 18px 18px 4px;
+        .chat-box-body .received .message-bubble {
+            background-color: #e9e9eb;
+            border-top-left-radius: 4px;
         }
 
-        .message-row.received .message-timestamp {
-            text-align: left;
-        }
-
-    .message-row.sent {
-        align-self: flex-end;
+    .chat-box-body .sent {
+        margin-left: auto;
     }
 
-        .message-row.sent .message-bubble {
-            background-color: var(--admin-accent);
-            color: white;
-            border-radius: 18px 18px 4px 18px;
+        .chat-box-body .sent .message-content {
+            align-items: flex-end;
         }
 
-        .message-row.sent .message-timestamp {
+        .chat-box-body .sent .message-bubble {
+            background-color: var(--admin-accent);
+            color: #fff;
+            border-top-right-radius: 4px;
+        }
+
+        .chat-box-body .sent .message-timestamp {
             text-align: right;
         }
 
-.message-content {
+.chat-box-footer {
+    padding: 0.75rem;
+    border-top: 1px solid var(--admin-border-color);
     display: flex;
-    flex-direction: column;
-    width: 100%;
+    gap: 0.5rem;
+    background-color: #fff;
+    flex-shrink: 0;
 }
 
-.message-bubble {
-    padding: 10px 14px;
-    line-height: 1.4;
-    word-wrap: break-word;
-}
-
-    .message-bubble p {
-        margin: 0;
-        padding: 0;
+    .chat-box-footer textarea {
+        flex-grow: 1;
+        border-radius: 6px;
+        resize: none;
+        height: 40px;
+        font-size: 0.9rem;
     }
 
-.message-timestamp {
-    font-size: 0.75rem;
-    color: #868e96;
-    margin-top: 4px;
-    padding: 0 5px;
-}
+    .chat-box-footer .btn {
+        flex-shrink: 0;
+    }
 
-/* INQUIRY CHAT PANEL DEDICATED STYLES */
-#inquiry-chat-content {
-    display: none;
-    flex-direction: column;
-    height: 100%;
-    flex-grow: 1;
-}
-
-.panel-header#inquiry-chat-header {
-    background-color: #fff;
-    border-bottom: 1px solid var(--admin-border-color);
-}
-
-/* MISC STYLES */
+/* --- MISC STYLES --- */
 .table-hover > tbody > tr.table-active {
     background-color: #e0f3ff !important;
 }

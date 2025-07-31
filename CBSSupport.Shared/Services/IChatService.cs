@@ -6,13 +6,13 @@ namespace CBSSupport.Shared.Services
 {
     public interface IChatService
     {
-        // Existing methods (assuming they are for chat messages/conversations)
+        
         Task<IEnumerable<ChatMessage>> GetInstructionTicketsForUserAsync(long userId);
         Task<long> CreateInstructionTicketAsync(ChatMessage ticket);
 
-        // --- NEW METHODS FOR ADMIN PANEL ---
+        
 
-        // Create a new support ticket (this will replace the local storage logic)
+        
         Task<SupportTicket> CreateSupportTicketAsync(SupportTicket ticket);
 
         // Get all tickets for the admin data table

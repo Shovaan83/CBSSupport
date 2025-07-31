@@ -32,7 +32,7 @@
         <!-- ===== MAIN CONTENT AREA ===== -->
         <main class="admin-content">
 
-            <!-- PAGE 1: DASHBOARD -->
+            <!-- PAGE 1: DASHBOARD (Unchanged) -->
             <div id="dashboard-page" class="admin-page active">
                 <div class="page-header">
                     <h1>Support Overview</h1>
@@ -57,51 +57,31 @@
                 </div>
             </div>
 
-            <!-- PAGE 2: CHATS -->
+            <!-- PAGE 2: CHATS (Unchanged) -->
             <div id="chats-page" class="admin-page">
                 <div class="dashboard-container">
-                    <div id="conversation-list-panel" class="dashboard-panel"><div class="panel-header"><span>Live Conversations</span></div><div class="panel-body" id="conversation-list-container"></div></div>
+                    <div id="conversation-list-panel" class="dashboard-panel">
+                        <div class="panel-header"><span>Live Conversations</span></div>
+                        <div class="panel-search">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="conversation-search" placeholder="Search conversations...">
+                        </div>
+                        <div class="panel-body" id="conversation-list-container"></div>
+                    </div>
                     <div id="chat-panel" class="dashboard-panel"><div class="panel-header" id="chat-header"></div><div id="chat-panel-body" class="panel-body"></div><div class="chat-footer"><div class="chat-input-container"><input type="file" id="file-input" style="display: none;" /><div class="chat-input-actions"><button class="btn btn-icon" id="attachment-button" aria-label="Attach file"><i class="fas fa-paperclip"></i></button></div><input type="text" class="form-control" placeholder="Type a message..." id="message-input"><button class="btn btn-primary" type="button" id="send-button" aria-label="Send Message"><i class="fas fa-paper-plane"></i></button></div></div></div>
                 </div>
             </div>
 
-            <!-- PAGE 3: TICKET MANAGEMENT -->
+            <!-- PAGE 3: TICKET MANAGEMENT (Unchanged) -->
             <div id="ticket-management-page" class="admin-page">
-                <div class="page-header">
-                    <h1>All Support Tickets</h1>
-                    <div class="d-flex gap-2">
-                        <select id="filter-status" class="form-select"><option value="">All Statuses</option></select>
-                        <select id="filter-priority" class="form-select"><option value="">All Priorities</option></select>
-                        <select id="filter-agent" class="form-select"><option value="">All Agents</option></select>
-                    </div>
-                </div>
-                <div class="page-content">
-                    <div class="ticket-management-layout">
-                        <div class="ticket-list-panel"><div class="panel-body"><table id="ticketsTable" class="table table-hover" style="width:100%"><thead><tr><th>ID</th><th>Subject</th><th>Created By</th><th>Assigned To</th><th>Status</th><th>Priority</th><th>Last Update</th></tr></thead><tbody></tbody></table></div></div>
-                        <div class="ticket-detail-panel">
-                            <div id="ticket-detail-content" style="display: none;">
-                                <div class="ticket-detail-header"><span id="detail-ticket-id">#...</span><span id="detail-ticket-subject"></span></div><div class="ticket-properties"><div class="form-group"><label>Status</label><select id="detail-status" class="form-select"></select></div><div class="form-group"><label>Priority</label><select id="detail-priority" class="form-select"></select></div><div class="form-group"><label>Assignee</label><select id="detail-assignee" class="form-select"></select></div><div class="form-group"><label>Created By</label><input type="text" id="detail-createdby" class="form-control" disabled /></div></div><div class="ticket-conversation" id="ticket-conversation-view"></div>
-                                <div class="ticket-reply">
-                                    <ul class="nav nav-tabs" id="reply-tabs">
-                                        <li class="nav-item"><button class="nav-link active">Reply to Client</button></li>
-                                    </ul>
-                                    <div class="tab-content pt-2">
-                                        <div class="tab-pane fade show active"><textarea id="reply-textarea" class="form-control" rows="3" placeholder="Type your reply to the client..."></textarea><button id="send-reply-btn" class="btn btn-primary mt-2">Send Reply</button></div>
-                                    </div>
-                                </div>
-                            </div><div id="ticket-detail-placeholder" class="d-flex align-items-center justify-content-center h-100"><p class="text-muted">Select a ticket to view its details.</p></div>
-                        </div>
-                    </div>
-                </div>
+                <div class="page-header"><h1>All Support Tickets</h1><div class="d-flex gap-2"><select id="ticket-status-filter" class="form-select" style="width: auto;"><option value="">All Statuses</option><option value="Pending">Pending</option><option value="On Hold">On Hold</option><option value="Resolved">Resolved</option></select><select id="filter-priority" class="form-select"><option value="">All Priorities</option></select><select id="filter-agent" class="form-select"><option value="">All Agents</option></select></div></div><div class="page-content"><div class="ticket-management-layout"><div class="ticket-list-panel"><div class="panel-body"><table id="ticketsTable" class="table table-hover" style="width:100%"><thead><tr><th>ID</th><th>Subject</th><th>Created By</th><th>Assigned To</th><th>Status</th><th>Priority</th><th>Action</th></tr></thead><tbody></tbody></table></div></div><div class="ticket-detail-panel"><div id="ticket-detail-content" style="display: none;"><div class="ticket-detail-header"><span id="detail-ticket-id">#...</span><div id="detail-ticket-subject-container"></div></div><div class="ticket-properties"><div class="form-group"><label>Status</label><div id="detail-ticket-status-badge" class="mt-1"></div></div><div class="form-group"><label>Priority</label><select id="detail-priority" class="form-select"></select></div><div class="form-group"><label>Assignee</label><select id="detail-assignee" class="form-select"></select></div><div class="form-group"><label>Created By</label><input type="text" id="detail-createdby" class="form-control" disabled /></div></div><div class="p-4 text-center text-muted d-flex flex-column align-items-center justify-content-center h-100"><i class="fas fa-comments fa-2x mb-2"></i><p>Ticket conversations open in floating chat windows.</p><p class="small">Click the "Chat" button on a ticket to start.</p></div></div><div id="ticket-detail-placeholder" class="d-flex align-items-center justify-content-center h-100"><p class="text-muted">Select a ticket to view its details.</p></div></div></div></div>
             </div>
 
-            
-           <!-- PAGE 4: INQUIRY MANAGEMENT -->
-            <!-- PAGE 4: INQUIRY MANAGEMENT -->
+
+            <!-- PAGE 4: INQUIRY MANAGEMENT (Your Upgraded Version) -->
             <div id="inquiry-management-page" class="admin-page">
                 <div class="page-header">
                     <h1>Inquiry Management</h1>
-                    <!-- NEW: Status Filter Dropdown -->
                     <div class="d-flex gap-2">
                         <select id="inquiry-status-filter" class="form-select" style="width: auto;">
                             <option value="">All Inquiries</option>
@@ -111,9 +91,7 @@
                     </div>
                 </div>
                 <div class="page-content">
-                    <!-- Re-using the ticket management layout for consistency -->
                     <div class="ticket-management-layout">
-                        <!-- Left Panel: Single List of Inquiries -->
                         <div class="ticket-list-panel">
                             <div class="panel-body">
                                 <table id="inquiriesDataTable" class="table table-hover" style="width:100%">
@@ -122,7 +100,7 @@
                                             <th>ID</th>
                                             <th>Topic</th>
                                             <th>Inquired By</th>
-                                            <th>Date</th>
+                                            <th>Assigned To</th>
                                             <th>Outcome</th>
                                             <th>Action</th>
                                         </tr>
@@ -131,26 +109,72 @@
                                 </table>
                             </div>
                         </div>
-                        <!-- Right Panel: Dedicated Chat Panel -->
                         <div class="ticket-detail-panel">
-                            <div class="panel-header" id="inquiry-chat-header">Inquiry Chats</div>
-                            <div id="inquiry-chat-content" style="display: none;">
-                                <div class="ticket-conversation" id="inquiry-chat-conversation">
-                                    <!-- Chat messages will be dynamically inserted here -->
+                            
+                            <div id="inquiry-detail-content" style="display: none;" class="p-3 d-flex flex-column h-100">
+                                <!-- Inquiry Header: Topic & ID -->
+                                <div class="inquiry-detail-header pb-3">
+                                    <span id="detail-inquiry-id" class="text-muted small fw-bold">#...</span>
+                                    <h5 id="detail-inquiry-topic-container" class="m-0"></h5>
                                 </div>
-                                <div class="ticket-reply">
-                                    <textarea id="inquiry-reply-textarea" class="form-control" rows="4" placeholder="Type your reply..."></textarea>
-                                    <button id="send-inquiry-reply-btn" class="btn btn-primary mt-2 w-100">Send Reply</button>
+                                <hr class="mt-0 mb-3">
+
+                                <!-- Inquiry Properties: Grid for clean alignment -->
+                                <div class="inquiry-detail-properties">
+                                    <div>
+                                        <label class="form-label-sm">Outcome</label>
+                                        <div id="detail-inquiry-outcome-badge"></div>
+                                    </div>
+                                    <div>
+                                        <label class="form-label-sm">Inquired By</label>
+                                        <div id="detail-inquiry-createdby" class="fw-bold"></div>
+                                    </div>
+                                    <div class="grid-span-2">
+                                        <label for="detail-inquiry-assignee" class="form-label-sm">Assignee</label>
+                                        <select id="detail-inquiry-assignee" class="form-select"></select>
+                                    </div>
+                                </div>
+
+                                <!-- Helper Text Footer -->
+                                <div class="inquiry-detail-footer mt-auto text-center text-muted p-3">
+                                    <i class="fas fa-comments fa-2x mb-2"></i>
+                                    <p class="mb-0 small">Conversations for this inquiry will open in a floating chat window.</p>
                                 </div>
                             </div>
-                            <div id="inquiry-chat-placeholder" class="d-flex align-items-center justify-content-center h-100">
-                                <p class="text-muted">Select an inquiry to view the conversation.</p>
+
+                            <div id="inquiry-detail-placeholder" class="d-flex align-items-center justify-content-center h-100">
+                                <p class="text-muted">Select an inquiry to view its details.</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </main>
+
+        <!-- FLOATING CHAT UI CONTAINER (Unchanged) -->
+        <div id="floating-chat-container"></div>
+    </div>
+
+    <!-- Modal for Viewing Inquiry Details (Unchanged) -->
+    <div class="modal fade" id="viewInquiryDetailsModal" tabindex="-1" aria-labelledby="viewInquiryDetailsModalLabel" aria-hidden="true"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="viewInquiryDetailsModalLabel">Inquiry Details</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><dl class="row"><dt class="col-sm-3">Inquiry ID</dt><dd class="col-sm-9"><span id="details-inquiry-id"></span></dd><dt class="col-sm-3">Outcome</dt><dd class="col-sm-9"><span id="details-inquiry-outcome"></span></dd><dt class="col-sm-3">Topic</dt><dd class="col-sm-9"><span id="details-inquiry-topic"></span></dd><dt class="col-sm-3">Date Submitted</dt><dd class="col-sm-9"><span id="details-inquiry-date"></span></dd><dt class="col-sm-3">Inquired By</dt><dd class="col-sm-9"><span id="details-inquiry-inquiredBy"></span></dd><dt class="col-sm-3">Message</dt><dd class="col-sm-9"><p id="details-inquiry-message" style="white-space: pre-wrap;"></p></dd></dl></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div></div></div></div>
+
+    <!-- NEW: Modal for Assigning Inquiry Confirmation -->
+    <div class="modal fade" id="assignInquiryModal" tabindex="-1" aria-labelledby="assignInquiryModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="assignInquiryModalLabel">Confirm Assignment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="assignInquiryModalBody">
+                    <!-- Confirmation text will be set by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmInquiryAssignBtn">Confirm Assignment</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->
