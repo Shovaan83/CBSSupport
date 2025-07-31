@@ -5,6 +5,14 @@
     --admin-accent: #3498db;
     --admin-text-light: #ecf0f1;
     --admin-border-color: #e1e8ed;
+    --messenger-blue: #0084ff;
+    --messenger-gray: #e9e9eb;
+    /* Variables from client chat.css for synergy */
+    --primary-color: #0084ff;
+    --light-grey: #f4f5f7;
+    --border-color: #dfe1e6;
+    --text-dark: #172b4d;
+    --text-light: #505f79;
 }
 
 body {
@@ -65,7 +73,7 @@ body {
         }
 
         .sidebar-nav a.active {
-            background-color: var(--admin-accent);
+            background-color: var(--messenger-blue);
             color: #fff;
         }
 
@@ -73,12 +81,13 @@ body {
             margin-right: 12px;
         }
 
-/* --- MAIN CONTENT & PAGES --- */
+/* --- GENERAL PAGE STYLES (For Dashboard, Ticket/Inquiry Management) --- */
 .admin-content {
     display: flex;
     flex-direction: column;
     overflow: hidden;
     background-color: var(--admin-content-bg);
+    position: relative;
 }
 
 .admin-page {
@@ -113,6 +122,312 @@ body {
     overflow-y: auto;
     padding: 1.5rem;
 }
+
+
+/* 
+=================================================================
+FIX STARTS HERE: ADMIN CHAT PAGE UI OVERHAUL
+The following styles are specifically for the #chats-page to make it
+look like the client-side chat dashboard, as seen in the screenshot.
+=================================================================
+*/
+
+#chats-page {
+    padding: 0;
+    overflow: hidden;
+    background-color: white;
+}
+
+    /* Replicate the client-side 3-column layout */
+    #chats-page .dashboard-container {
+        height: 100%;
+        width: 100%;
+        display: grid;
+        grid-template-columns: 25% 40% 35%;
+        grid-template-rows: 100vh;
+        gap: 0;
+    }
+
+    /* Style the panels within the chats page */
+    #chats-page .dashboard-panel {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        background-color: #fff;
+        border-right: 1px solid var(--border-color);
+    }
+
+    #chats-page .panel-header {
+        padding: 0.8rem 1.25rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        border-bottom: 1px solid var(--border-color);
+        flex-shrink: 0;
+        background-color: white;
+    }
+
+    #chats-page .panel-body {
+        flex-grow: 1;
+        overflow-y: auto;
+    }
+
+    /* Conversation List Styling */
+    #chats-page #conversation-list-panel .panel-body {
+        padding: 0;
+    }
+
+    #chats-page .conversation-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1.25rem;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+        #chats-page .conversation-item:hover {
+            background-color: var(--light-grey);
+        }
+
+        #chats-page .conversation-item.active {
+            background-color: #e9f2ff;
+            border-left: 4px solid var(--primary-color);
+            padding-left: calc(1.25rem - 4px);
+        }
+
+    #chats-page .accordion-item {
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    #chats-page .accordion-button {
+        font-weight: 600;
+        color: var(--text-dark);
+        background-color: white !important;
+    }
+
+    #chats-page .accordion-body {
+        padding: 0;
+    }
+
+    #chats-page .accordion .list-group-item {
+        border: none;
+        border-top: 1px solid var(--border-color);
+    }
+
+    #chats-page .conversation-item .icon {
+        color: var(--text-light);
+    }
+
+    /* Avatar Styling */
+    #chats-page .avatar-initials {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        color: #fff;
+        font-weight: 600;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    #chats-page .avatar-bg-blue {
+        background-color: #0052cc;
+    }
+
+    #chats-page .avatar-bg-green {
+        background-color: #00875a;
+    }
+
+    #chats-page .avatar-bg-purple {
+        background-color: #5243aa;
+    }
+
+    #chats-page .avatar-bg-red {
+        background-color: #de350b;
+    }
+
+    /* Main Chat Panel Styling */
+    #chats-page #chat-panel .panel-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background-color: white;
+    }
+
+    #chats-page #chat-panel-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 1rem 1.5rem;
+        background-color: var(--light-grey);
+    }
+
+    #chats-page .chat-footer {
+        padding: 1rem;
+        background-color: #fff;
+        border-top: 1px solid var(--border-color);
+        position: relative;
+    }
+
+    #chats-page .chat-input-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    #chats-page .panel-search {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--admin-border-color);
+        background-color: #fff;
+    }
+
+        #chats-page .panel-search .fa-search {
+            color: #adb5bd;
+            margin-right: 0.75rem;
+        }
+
+        #chats-page .panel-search input {
+            border: none;
+            background: transparent;
+            width: 100%;
+            outline: none;
+            padding: 0;
+            font-size: 0.9rem;
+        }
+
+    /* History Column (3rd Column) Styling */
+    #chats-page #history-column {
+        background-color: transparent;
+        border-right: none;
+        display: flex;
+        flex-direction: column;
+        padding: 1.5rem;
+        gap: 1.5rem;
+        overflow-y: auto;
+        background-color: var(--light-grey);
+    }
+
+    #chats-page .history-panel {
+        background-color: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #chats-page .history-table-container {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 0.5rem;
+    }
+
+    #chats-page .dataTables_filter {
+        position: relative;
+    }
+
+        #chats-page .dataTables_filter label {
+            width: 100%;
+            font-size: 0;
+        }
+
+        #chats-page .dataTables_filter input {
+            width: 100% !important;
+            padding-left: 2.2rem !important;
+        }
+
+        #chats-page .dataTables_filter .search-icon {
+            position: absolute;
+            top: 50%;
+            left: 0.8rem;
+            transform: translateY(-50%);
+            color: var(--text-light);
+            pointer-events: none;
+        }
+
+    #chats-page .table th, #chats-page .table td {
+        vertical-align: middle;
+        padding: 0.75rem;
+    }
+
+    #chats-page .badge {
+        font-size: 0.7rem;
+    }
+
+    /* Universal Message Bubble Styles (scoped to #chats-page) */
+    #chats-page .message-row {
+        max-width: 80%;
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+    }
+
+    #chats-page .message-content {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    #chats-page .message-bubble {
+        padding: 10px 14px;
+        line-height: 1.4;
+        word-wrap: break-word;
+        border-radius: 18px;
+    }
+
+        #chats-page .message-bubble p {
+            margin: 0;
+        }
+
+    #chats-page .message-timestamp {
+        font-size: 0.75rem;
+        color: #868e96;
+        margin-top: 4px;
+        padding: 0 5px;
+    }
+
+    #chats-page .message-row.received {
+        align-self: flex-start;
+    }
+
+        #chats-page .message-row.received .message-bubble {
+            background-color: var(--messenger-gray);
+            color: #050505;
+            border-bottom-left-radius: 4px;
+            border-top-left-radius: 4px;
+        }
+
+    #chats-page .message-row.sent {
+        align-self: flex-end;
+    }
+
+        #chats-page .message-row.sent .message-bubble {
+            background-color: var(--messenger-blue);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+            border-top-right-radius: 4px;
+        }
+
+        #chats-page .message-row.sent .message-timestamp {
+            text-align: right;
+        }
+
+    #chats-page .message-sender {
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 2px;
+        color: var(--text-light);
+    }
+
+/*
+=================================================================
+FIX ENDS HERE: The rest of the CSS is for the other admin pages
+and remains as it was.
+=================================================================
+*/
 
 /* --- DASHBOARD STYLES --- */
 .dashboard-card {
@@ -161,16 +476,6 @@ body {
 .chart-container {
     position: relative;
     flex-grow: 1;
-}
-
-.large-card {
-    grid-column: span 2;
-}
-
-@media (max-width: 1200px) {
-    .large-card {
-        grid-column: span 1;
-    }
 }
 
 .list-card-header {
@@ -242,20 +547,7 @@ body {
     color: #664d03;
 }
 
-/* --- CHATS PAGE STYLES --- */
-#chats-page {
-    padding: 0;
-    overflow: hidden;
-}
-
-    #chats-page.active .dashboard-container {
-        height: 100%;
-        width: 100%;
-        display: grid;
-        grid-template-columns: 30% 70%;
-    }
-
-/* --- TICKET & ENQUIRY MANAGEMENT STYLES --- */
+/* --- TICKET & INQUIRY MANAGEMENT PAGE STYLES --- */
 .ticket-management-layout {
     display: grid;
     grid-template-columns: 60% 40%;
@@ -295,44 +587,261 @@ body {
         color: #6c757d;
     }
 
-    .ticket-properties .form-control[disabled] {
-        background-color: #f4f7fa;
-        border: 1px solid #ced4da;
-    }
-
-.ticket-conversation {
-    flex-grow: 1;
-    padding: 1rem;
-    overflow-y: auto;
-}
-
-.ticket-reply {
-    padding: 1rem;
-    border-top: 1px solid var(--admin-border-color);
-}
-
 .table-hover > tbody > tr.table-active {
     background-color: #e9f2ff;
 }
 
-.badge.bg-pending {
-    background-color: #f1c40f !important;
-    color: #000;
-}
-
-.badge.bg-resolved {
-    background-color: #2ecc71 !important;
+/* --- Custom Badge Styles --- */
+.badge-status, .badge-priority {
     color: #fff;
+    padding: 0.35em 0.65em;
+    font-size: .75em;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: .25rem;
 }
 
-.badge.bg-low {
-    background-color: #3498db !important;
+.badge-status-pending {
+    background-color: #facc15;
+    color: #422006;
 }
 
-.badge.bg-normal {
-    background-color: #2ecc71 !important;
+.badge-status-resolved {
+    background-color: #4ade80;
 }
 
-.badge.bg-high {
-    background-color: #e74c3c !important;
+.badge-status-on\.hold {
+    background-color: #60a5fa;
 }
+
+.badge-priority-low {
+    background-color: #3b82f6;
+}
+
+.badge-priority-normal {
+    background-color: #22c55e;
+}
+
+.badge-priority-high {
+    background-color: #f97316;
+}
+
+.badge-priority-urgent {
+    background-color: #ef4444;
+}
+
+/* --- INQUIRY CHAT PANEL (MESSENGER STYLE) --- */
+#inquiry-chat-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #fff;
+}
+
+    #inquiry-chat-content .panel-header {
+        flex-shrink: 0;
+    }
+
+    #inquiry-chat-content .ticket-conversation {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    #inquiry-chat-content .ticket-reply {
+        flex-shrink: 0;
+        padding: 0.75rem;
+        border-top: 1px solid var(--admin-border-color);
+        background-color: #fff;
+        position: relative;
+    }
+
+    #inquiry-chat-content #inquiry-message-input {
+        width: 100%;
+        border-radius: 20px;
+        background-color: #f0f2f5;
+        border: none;
+        padding: 0.5rem 2.75rem 0.5rem 1rem;
+        height: 40px;
+        line-height: 1.5;
+    }
+
+        #inquiry-chat-content #inquiry-message-input:focus {
+            outline: none;
+            box-shadow: none;
+            background-color: #e4e6eb;
+        }
+
+    #inquiry-chat-content #inquiry-send-btn {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: transparent;
+        border: none;
+        color: var(--messenger-blue);
+        font-size: 1rem;
+    }
+
+        #inquiry-chat-content #inquiry-send-btn:hover {
+            background-color: #f0f2f5;
+        }
+
+/* --- FLOATING CHAT STYLES --- */
+#floating-chat-container {
+    position: fixed;
+    bottom: 0;
+    right: 20px;
+    display: flex;
+    gap: 15px;
+    z-index: 1050;
+    align-items: flex-end;
+    pointer-events: none;
+}
+
+.floating-chat-box {
+    width: 340px;
+    background-color: #fff;
+    border: 1px solid var(--admin-border-color);
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    height: 420px;
+    transition: all 0.3s ease;
+    pointer-events: auto;
+}
+
+    .floating-chat-box.collapsed {
+        height: 48px;
+        overflow: hidden;
+    }
+
+.chat-box-header {
+    background-color: var(--admin-sidebar-bg);
+    color: var(--admin-text-light);
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.chat-box-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+}
+
+.chat-box-actions button {
+    background: none;
+    border: none;
+    color: var(--admin-text-light);
+    font-size: 1rem;
+    padding: 0 5px;
+    opacity: 0.8;
+}
+
+.chat-box-body {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    background-color: #fdfdfd;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.chat-box-footer {
+    padding: 0.75rem;
+    border-top: 1px solid var(--admin-border-color);
+    display: flex;
+    gap: 0.5rem;
+    background-color: #fff;
+    flex-shrink: 0;
+}
+
+    .chat-box-footer textarea {
+        flex-grow: 1;
+        border-radius: 6px;
+        resize: none;
+        height: 40px;
+        font-size: 0.9rem;
+    }
+
+    .chat-box-footer .btn {
+        flex-shrink: 0;
+    }
+
+/* Universal message styles for Inquiry Panel and Floating Chats */
+.ticket-conversation .message-row, .chat-box-body .message-row {
+    max-width: 80%;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.ticket-conversation .message-content, .chat-box-body .message-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.ticket-conversation .message-bubble, .chat-box-body .message-bubble {
+    padding: 10px 14px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    border-radius: 18px;
+}
+
+    .ticket-conversation .message-bubble p, .chat-box-body .message-bubble p {
+        margin: 0;
+    }
+
+.ticket-conversation .message-timestamp, .chat-box-body .message-timestamp {
+    font-size: 0.75rem;
+    color: #868e96;
+    margin-top: 4px;
+    padding: 0 5px;
+}
+
+.ticket-conversation .message-row.received, .chat-box-body .message-row.received {
+    align-self: flex-start;
+}
+
+    .ticket-conversation .message-row.received .message-bubble, .chat-box-body .message-row.received .message-bubble {
+        background-color: var(--messenger-gray);
+        color: #050505;
+        border-bottom-left-radius: 4px;
+    }
+
+.ticket-conversation .message-row.sent, .chat-box-body .message-row.sent {
+    align-self: flex-end;
+}
+
+    .ticket-conversation .message-row.sent .message-bubble, .chat-box-body .message-row.sent .message-bubble {
+        background-color: var(--messenger-blue);
+        color: #fff;
+        border-bottom-right-radius: 4px;
+    }
+
+    .ticket-conversation .message-row.sent .message-timestamp, .chat-box-body .message-row.sent .message-timestamp {
+        text-align: right;
+    }

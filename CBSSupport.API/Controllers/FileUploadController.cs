@@ -59,7 +59,7 @@ namespace CBSSupport.API.Controllers
             }
             catch (Exception ex)
             {
-                // Log the exception
+                // Log the exception 
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }

@@ -13,19 +13,19 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/chat.css" asp-append-version="true" />
+    <!-- MERGE-NOTE: No need to link chat.css here, admin.css will handle all styles -->
 </head>
 <body>
 
     <div class="admin-container">
-        <!-- ===== ADMIN SIDEBAR ===== -->
+        <!-- ===== ADMIN SIDEBAR (Unchanged) ===== -->
         <aside class="admin-sidebar">
             <div class="sidebar-header"><i class="fas fa-shield-alt"></i> Admin Panel</div>
             <ul class="sidebar-nav">
                 <li class="nav-item"><a class="nav-link active" data-page="dashboard"><i class="fas fa-fw fa-tachometer-alt"></i> Dashboard</a></li>
                 <li class="nav-item"><a class="nav-link" data-page="chats"><i class="fas fa-fw fa-comments"></i> Chats</a></li>
                 <li class="nav-item"><a class="nav-link" data-page="ticket-management"><i class="fas fa-fw fa-ticket-alt"></i> Ticket Management</a></li>
-                <li class="nav-item"><a class="nav-link" data-page="enquiry-management"><i class="fas fa-fw fa-question-circle"></i> Enquiry Management</a></li>
+                <li class="nav-item"><a class="nav-link" data-page="inquiry-management"><i class="fas fa-fw fa-question-circle"></i> Inquiry Management</a></li>
             </ul>
         </aside>
 
@@ -60,12 +60,32 @@
             <!-- PAGE 2: CHATS -->
             <div id="chats-page" class="admin-page">
                 <div class="dashboard-container">
-                    <div id="conversation-list-panel" class="dashboard-panel"><div class="panel-header"><span>Live Conversations</span></div><div class="panel-body" id="conversation-list-container"></div></div>
-                    <div id="chat-panel" class="dashboard-panel"><div class="panel-header" id="chat-header"></div><div id="chat-panel-body" class="panel-body"></div><div class="chat-footer"><div class="chat-input-container"><input type="file" id="file-input" style="display: none;" /><div class="chat-input-actions"><button class="btn btn-icon" id="attachment-button" aria-label="Attach file"><i class="fas fa-paperclip"></i></button></div><input type="text" class="form-control" placeholder="Type a message..." id="message-input"><button class="btn btn-primary" type="button" id="send-button" aria-label="Send Message"><i class="fas fa-paper-plane"></i></button></div></div></div>
+                    <div id="conversation-list-panel" class="dashboard-panel">
+                        <div class="panel-header"><span>Live Conversations</span></div>
+                        <div class="panel-search">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="conversation-search" placeholder="Search conversations...">
+                        </div>
+                        <div class="panel-body" id="conversation-list-container"></div>
+                    </div>
+                    <div id="chat-panel" class="dashboard-panel">
+                        <div class="panel-header" id="chat-header"></div>
+                        <div id="chat-panel-body" class="panel-body"></div>
+                        <div class="chat-footer">
+                            <div class="chat-input-container">
+                                <input type="file" id="file-input" style="display: none;" />
+                                <div class="chat-input-actions">
+                                    <button class="btn btn-icon" id="attachment-button" aria-label="Attach file"><i class="fas fa-paperclip"></i></button>
+                                </div>
+                                <input type="text" class="form-control" placeholder="Type a message..." id="message-input">
+                                <button class="btn btn-primary" type="button" id="send-button" aria-label="Send Message"><i class="fas fa-paper-plane"></i></button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- PAGE 3: TICKET MANAGEMENT -->
+            <!-- PAGE 3: TICKET MANAGEMENT (Your UI, Friend's Functionality) -->
             <div id="ticket-management-page" class="admin-page">
                 <div class="page-header">
                     <h1>All Support Tickets</h1>
@@ -77,30 +97,83 @@
                 </div>
                 <div class="page-content">
                     <div class="ticket-management-layout">
-                        <div class="ticket-list-panel"><div class="panel-body"><table id="ticketsTable" class="table table-hover" style="width:100%"><thead><tr><th>ID</th><th>Subject</th><th>Created By</th><th>Assigned To</th><th>Status</th><th>Priority</th><th>Last Update</th></tr></thead><tbody></tbody></table></div></div>
+                        <div class="ticket-list-panel"><div class="panel-body"><table id="ticketsTable" class="table table-hover" style="width:100%"><thead><tr><th>ID</th><th>Subject</th><th>Created By</th><th>Assigned To</th><th>Status</th><th>Priority</th><th>Last Update</th><th>Actions</th></tr></thead><tbody></tbody></table></div></div>
                         <div class="ticket-detail-panel">
                             <div id="ticket-detail-content" style="display: none;">
-                                <div class="ticket-detail-header"><span id="detail-ticket-id">#...</span><span id="detail-ticket-subject"></span></div><div class="ticket-properties"><div class="form-group"><label>Status</label><select id="detail-status" class="form-select"></select></div><div class="form-group"><label>Priority</label><select id="detail-priority" class="form-select"></select></div><div class="form-group"><label>Assignee</label><select id="detail-assignee" class="form-select"></select></div><div class="form-group"><label>Created By</label><input type="text" id="detail-createdby" class="form-control" disabled /></div></div><div class="ticket-conversation" id="ticket-conversation-view"></div>
-                                <div class="ticket-reply">
-                                    <ul class="nav nav-tabs" id="reply-tabs">
-                                        <li class="nav-item"><button class="nav-link active">Reply to Client</button></li>
-                                    </ul>
-                                    <div class="tab-content pt-2">
-                                        <div class="tab-pane fade show active"><textarea id="reply-textarea" class="form-control" rows="3" placeholder="Type your reply to the client..."></textarea><button id="send-reply-btn" class="btn btn-primary mt-2">Send Reply</button></div>
-                                    </div>
+                                <div class="ticket-detail-header"><span id="detail-ticket-id">#...</span><span id="detail-ticket-subject"></span></div>
+                                <div class="ticket-properties">
+                                    <div class="form-group"><label>Status</label><select id="detail-status" class="form-select"></select></div>
+                                    <div class="form-group"><label>Priority</label><select id="detail-priority" class="form-select"></select></div>
+                                    <div class="form-group"><label>Assignee</label><select id="detail-assignee" class="form-select"></select></div>
+                                    <div class="form-group"><label>Created By</label><input type="text" id="detail-createdby" class="form-control" disabled /></div>
                                 </div>
-                            </div><div id="ticket-detail-placeholder" class="d-flex align-items-center justify-content-center h-100"><p class="text-muted">Select a ticket to view its details.</p></div>
+                                <!-- MERGE-NOTE: This static content is kept from your original design. The chat functionality is now in floating pop-ups. -->
+                                <div class="p-4 text-center text-muted d-flex flex-column align-items-center justify-content-center h-100">
+                                    <i class="fas fa-comments fa-2x mb-2"></i>
+                                    <p>Ticket conversations now open in floating chat windows.</p>
+                                    <p class="small">Click the "Chat" button on a ticket to start.</p>
+                                </div>
+                            </div>
+                            <div id="ticket-detail-placeholder" class="d-flex align-items-center justify-content-center h-100"><p class="text-muted">Select a ticket to view its details.</p></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- PAGE 4: ENQUIRY MANAGEMENT -->
-            <div id="enquiry-management-page" class="admin-page">
-                <div class="page-header"><h1>Enquiry Management</h1></div>
-                <div class="page-content"><div class="history-panel h-100"><div class="history-table-container panel-body"><table id="inquiriesDataTable" class="table table-hover" style="width:100%"><thead><tr><th>ID</th><th>Topic</th><th>Inquired By</th><th>Date</th><th>Outcome</th></tr></thead><tbody></tbody></table></div></div></div>
+            <!-- PAGE 4: INQUIRY MANAGEMENT (Your UI, Your Functionality) -->
+            <div id="inquiry-management-page" class="admin-page">
+                <div class="page-header">
+                    <h1>Inquiry Management</h1>
+                    <div class="d-flex gap-2">
+                        <select id="inquiry-status-filter" class="form-select" style="width: auto;">
+                            <option value="">All Inquiries</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="page-content">
+                    <div class="ticket-management-layout">
+                        <div class="ticket-list-panel">
+                            <div class="panel-body">
+                                <table id="inquiriesDataTable" class="table table-hover" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Topic</th>
+                                            <th>Inquired By</th>
+                                            <th>Date</th>
+                                            <th>Outcome</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="ticket-detail-panel">
+                            <!-- MERGE-NOTE: This section uses the unified Messenger-like chat UI defined in the new admin.css -->
+                            <div id="inquiry-chat-content" style="display: none;">
+                                <div class="panel-header" id="inquiry-chat-header">Inquiry Conversation</div>
+                                <div class="ticket-conversation" id="inquiry-chat-conversation"></div>
+                                <div class="ticket-reply">
+                                    <input type="text" id="inquiry-message-input" class="form-control" placeholder="Type a message...">
+                                    <button id="inquiry-send-btn" class="btn btn-primary btn-icon" aria-label="Send Message">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="inquiry-chat-placeholder" class="d-flex align-items-center justify-content-center h-100">
+                                <p class="text-muted">Select an inquiry to view the conversation.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
+
+        <!-- MERGE-NOTE: This container is required for your friend's floating chat functionality -->
+        <div id="floating-chat-container"></div>
     </div>
 
     <!-- Scripts -->
