@@ -18,8 +18,9 @@ body {
 
 .dashboard-container {
     display: grid;
-    /* MERGE-NOTE: Using friend's grid layout for better proportions */
-    grid-template-columns: 25% 40% 35%;
+    /* ✅ FIX: Adjusted column widths to give more space to the third column (history/tickets). */
+    /* From: 25% 40% 35% */
+    grid-template-columns: 20% 35% 45%;
     grid-template-rows: 100vh;
     width: 100vw;
     height: 100vh;
@@ -159,9 +160,10 @@ body {
     color: var(--text-light);
     font-style: italic;
     transition: opacity 0.3s ease;
+    opacity: 0; /* Hidden by default */
 }
 
-/* --- UNIFIED CHAT STYLES (from friend's CSS) --- */
+/* --- UNIFIED CHAT STYLES --- */
 .message-row {
     display: flex;
     gap: 10px;
@@ -302,6 +304,53 @@ body {
     text-decoration: underline;
 }
 
+.file-preview-container {
+    padding: 0 0 0.5rem 0;
+    display: none; /* Initially hidden */
+}
+
+.file-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: var(--light-grey);
+    padding: 0.5rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.file-preview-thumbnail {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.file-preview-icon {
+    font-size: 1.5rem;
+    width: 32px;
+    text-align: center;
+    color: var(--text-light);
+    flex-shrink: 0;
+}
+
+.file-preview-name {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#remove-file-preview {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 0.25rem;
+}
+
 /* --- COLUMN 3: HISTORY --- */
 #history-column {
     background-color: transparent;
@@ -336,7 +385,7 @@ body {
         width: 100%;
         font-size: 0;
     }
-    /* Hide "Search:" text */
+
     .dataTables_filter input {
         width: 100% !important;
         padding-left: 2.2rem !important;
@@ -366,7 +415,7 @@ body {
     color: white;
 }
 
-/* --- POP-UP CHAT STYLES (Applies to both Inquiry and Ticket popups) --- */
+/* --- POP-UP CHAT STYLES --- */
 .chat-popup {
     position: fixed;
     bottom: 20px;

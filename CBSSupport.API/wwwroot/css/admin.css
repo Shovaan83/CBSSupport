@@ -126,9 +126,7 @@ body {
 
 /* 
 =================================================================
-FIX STARTS HERE: ADMIN CHAT PAGE UI OVERHAUL
-The following styles are specifically for the #chats-page to make it
-look like the client-side chat dashboard, as seen in the screenshot.
+ADMIN CHAT PAGE UI STYLES
 =================================================================
 */
 
@@ -138,17 +136,15 @@ look like the client-side chat dashboard, as seen in the screenshot.
     background-color: white;
 }
 
-    /* Replicate the client-side 3-column layout */
     #chats-page .dashboard-container {
         height: 100%;
         width: 100%;
         display: grid;
-        grid-template-columns: 25% 40% 35%;
+        grid-template-columns: 25% 1fr;
         grid-template-rows: 100vh;
         gap: 0;
     }
 
-    /* Style the panels within the chats page */
     #chats-page .dashboard-panel {
         display: flex;
         flex-direction: column;
@@ -171,7 +167,6 @@ look like the client-side chat dashboard, as seen in the screenshot.
         overflow-y: auto;
     }
 
-    /* Conversation List Styling */
     #chats-page #conversation-list-panel .panel-body {
         padding: 0;
     }
@@ -218,7 +213,6 @@ look like the client-side chat dashboard, as seen in the screenshot.
         color: var(--text-light);
     }
 
-    /* Avatar Styling */
     #chats-page .avatar-initials {
         width: 42px;
         height: 42px;
@@ -248,7 +242,6 @@ look like the client-side chat dashboard, as seen in the screenshot.
         background-color: #de350b;
     }
 
-    /* Main Chat Panel Styling */
     #chats-page #chat-panel .panel-header {
         display: flex;
         align-items: center;
@@ -299,65 +292,6 @@ look like the client-side chat dashboard, as seen in the screenshot.
             font-size: 0.9rem;
         }
 
-    /* History Column (3rd Column) Styling */
-    #chats-page #history-column {
-        background-color: transparent;
-        border-right: none;
-        display: flex;
-        flex-direction: column;
-        padding: 1.5rem;
-        gap: 1.5rem;
-        overflow-y: auto;
-        background-color: var(--light-grey);
-    }
-
-    #chats-page .history-panel {
-        background-color: #fff;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        display: flex;
-        flex-direction: column;
-    }
-
-    #chats-page .history-table-container {
-        flex-grow: 1;
-        overflow-y: auto;
-        padding: 0.5rem;
-    }
-
-    #chats-page .dataTables_filter {
-        position: relative;
-    }
-
-        #chats-page .dataTables_filter label {
-            width: 100%;
-            font-size: 0;
-        }
-
-        #chats-page .dataTables_filter input {
-            width: 100% !important;
-            padding-left: 2.2rem !important;
-        }
-
-        #chats-page .dataTables_filter .search-icon {
-            position: absolute;
-            top: 50%;
-            left: 0.8rem;
-            transform: translateY(-50%);
-            color: var(--text-light);
-            pointer-events: none;
-        }
-
-    #chats-page .table th, #chats-page .table td {
-        vertical-align: middle;
-        padding: 0.75rem;
-    }
-
-    #chats-page .badge {
-        font-size: 0.7rem;
-    }
-
-    /* Universal Message Bubble Styles (scoped to #chats-page) */
     #chats-page .message-row {
         max-width: 80%;
         display: flex;
@@ -378,8 +312,9 @@ look like the client-side chat dashboard, as seen in the screenshot.
         border-radius: 18px;
     }
 
-        #chats-page .message-bubble p {
+        #chats-page .message-bubble .message-text {
             margin: 0;
+            padding: 0;
         }
 
     #chats-page .message-timestamp {
@@ -396,8 +331,6 @@ look like the client-side chat dashboard, as seen in the screenshot.
         #chats-page .message-row.received .message-bubble {
             background-color: var(--messenger-gray);
             color: #050505;
-            border-bottom-left-radius: 4px;
-            border-top-left-radius: 4px;
         }
 
     #chats-page .message-row.sent {
@@ -407,8 +340,6 @@ look like the client-side chat dashboard, as seen in the screenshot.
         #chats-page .message-row.sent .message-bubble {
             background-color: var(--messenger-blue);
             color: #fff;
-            border-bottom-right-radius: 4px;
-            border-top-right-radius: 4px;
         }
 
         #chats-page .message-row.sent .message-timestamp {
@@ -422,12 +353,98 @@ look like the client-side chat dashboard, as seen in the screenshot.
         color: var(--text-light);
     }
 
-/*
-=================================================================
-FIX ENDS HERE: The rest of the CSS is for the other admin pages
-and remains as it was.
-=================================================================
-*/
+    #chats-page .attachment-preview-image {
+        max-width: 300px;
+        height: auto;
+        border-radius: 15px;
+        cursor: pointer;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    #chats-page .message-bubble.image-only {
+        padding: 0;
+        background-color: transparent;
+        overflow: hidden;
+    }
+
+    #chats-page .message-attachment {
+        padding: 10px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 5px;
+    }
+
+    #chats-page .message-row.received .message-attachment {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    #chats-page .message-row.sent .message-attachment {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    #chats-page .attachment-link {
+        text-decoration: none;
+        color: var(--primary-color);
+    }
+
+    #chats-page .message-row.sent .attachment-link {
+        color: #fff;
+        text-decoration: underline;
+    }
+
+/* ✅ FIX: Added file preview styles to match the client-side chat. */
+.file-preview-container {
+    padding: 0 0 0.5rem 0;
+    display: none;
+}
+
+.file-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: var(--light-grey);
+    padding: 0.5rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.file-preview-thumbnail {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.file-preview-icon {
+    font-size: 1.5rem;
+    width: 32px;
+    text-align: center;
+    color: var(--text-light);
+    flex-shrink: 0;
+}
+
+.file-preview-name {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#remove-file-preview {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 0.25rem;
+}
+
 
 /* --- DASHBOARD STYLES --- */
 .dashboard-card {
@@ -512,12 +529,6 @@ and remains as it was.
     gap: 1rem;
 }
 
-    .recent-ticket-info .date-bar {
-        width: 4px;
-        height: 32px;
-        border-radius: 4px;
-    }
-
     .recent-ticket-info strong {
         display: block;
         font-weight: 600;
@@ -527,24 +538,10 @@ and remains as it was.
         color: #6c757d;
     }
 
-.badge-overdue {
-    background-color: #ffe3e3;
-    color: #dc3545;
-}
-
-.badge-open {
-    background-color: #e0f3ff;
-    color: #0d6efd;
-}
-
-.badge-completed {
-    background-color: #d1e7dd;
-    color: #198754;
-}
-
-.badge-pending {
-    background-color: #fff3cd;
-    color: #664d03;
+.recent-ticket-item .badge-status,
+.recent-ticket-item .badge-priority {
+    font-size: 0.7rem;
+    padding: .3em .6em;
 }
 
 /* --- TICKET & INQUIRY MANAGEMENT PAGE STYLES --- */
@@ -564,6 +561,12 @@ and remains as it was.
     flex-direction: column;
     overflow: hidden;
 }
+
+    .ticket-list-panel > .panel-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
 
 .ticket-detail-header {
     padding: 1rem;

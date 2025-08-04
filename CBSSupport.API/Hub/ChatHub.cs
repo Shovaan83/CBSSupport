@@ -32,24 +32,23 @@ namespace CBSSupport.API.Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
-        // MODIFICATION: Updated to support message IDs and file attachments, just like the public method.
         public async Task SendPrivateMessage(string groupName, string senderName, string message, string fileUrl = null, string fileName = null, string fileType = null)
         {
             long messageId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             string initials = !string.IsNullOrEmpty(senderName) ? senderName.Substring(0, 1).ToUpper() : "?";
-
-            // Broadcast a message with all the new data ONLY to clients in the specified group.
             await Clients.Group(groupName).SendAsync("ReceivePrivateMessage", messageId, groupName, senderName, message, DateTime.UtcNow, initials, fileUrl, fileName, fileType);
         }
 
+        // ✅ CHANGE: Added methods to broadcast typing status to other clients in a group.
         public async Task UserIsTyping(string groupName, string userName)
         {
-            await Clients.Group(groupName).SendAsync("ReceiveTypingNotification", groupName, userName, true);
+            // We broadcast to others in the group, excluding the caller who is typing.
+            await Clients.GroupExcept(groupName, Context.ConnectionId).SendAsync("ReceiveTypingNotification", groupName, userName, true);
         }
 
         public async Task UserStoppedTyping(string groupName, string userName)
         {
-            await Clients.Group(groupName).SendAsync("ReceiveTypingNotification", groupName, userName, false);
+            await Clients.GroupExcept(groupName, Context.ConnectionId).SendAsync("ReceiveTypingNotification", groupName, userName, false);
         }
 
         public async Task GetMyConversations()
