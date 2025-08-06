@@ -1,14 +1,24 @@
 using CBSSupport.API.Hubs;
 using CBSSupport.Shared.Data;
+using CBSSupport.Shared.Helpers;
 using CBSSupport.Shared.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- 1. Basic Service Registration ---
-builder.Services.AddControllersWithViews();
-builder.Services.AddSignalR();
+var mvcBuilder = builder.Services.AddControllersWithViews();
 
+if (builder.Environment.IsDevelopment())
+{
+    mvcBuilder.AddRazorRuntimeCompilation();
+}
+
+
+builder.Services.AddSignalR();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -18,57 +28,68 @@ builder.Services.AddSession(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
-// --- 2. Get Connection String ---
+// --- 2. Get Connection String (No changes here) ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(connectionString))
 {
     throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 }
 
-// --- 3. Register your custom services ---
+// --- 3. Register your custom services (No changes here) ---
 builder.Services.AddSingleton<IChatService>(provider => new ChatService(connectionString));
 builder.Services.AddSingleton<IUserRepository>(provider => new UserRepository(connectionString));
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// --- 4. CONFIGURE COOKIE AUTHENTICATION ---
-// This replaces the entire JWT section.
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
+// --- 4. CONFIGURE AUTHENTICATION (No changes here) ---
+builder.Services.AddAuthentication(options => {
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+})
+.AddCookie(options =>
+{
+    options.Cookie.Name = "CBSSupport.AuthCookie";
+    options.LoginPath = "/Login/Index";
+    options.LogoutPath = "/Login/Logout";
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+    options.SlidingExpiration = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+})
+.AddJwtBearer(options =>
+{
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.Cookie.Name = "CBSSupport.AuthCookie";
-        options.LoginPath = "/Login/Index"; 
-        options.LogoutPath = "/Login/Logout";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
-        options.SlidingExpiration = true;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Strict;
-    });
-
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+    };
+});
 
 var app = builder.Build();
 
-// --- Configure the HTTP request pipeline ---
+// --- Configure the HTTP request pipeline (No changes here) ---
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
-
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-
-// IMPORTANT: Middleware order is critical
-app.UseAuthentication(); // First, establish who the user is from the cookie
-app.UseAuthorization();  // Then, check if they are authorized for the resource
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseSession();
 
-// --- Map Endpoints ---
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Login}/{action=Index}/{id?}"); 
+    pattern: "{controller=Login}/{action=Index}/{id?}");
 
+app.MapControllers();
 app.MapHub<ChatHub>("/chathub");
-
 app.Run();

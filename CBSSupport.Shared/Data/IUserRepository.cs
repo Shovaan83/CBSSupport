@@ -6,5 +6,7 @@ namespace CBSSupport.Shared.Data
     public interface IUserRepository
     {
         Task<AdminUser?> GetByUsernameAsync(string username);
+
+        Task<ClientUser?> GetClientUserAsync(long clientId, string username);
     }
 }

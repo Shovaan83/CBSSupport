@@ -3,42 +3,52 @@
 document.addEventListener("DOMContentLoaded", function () {
     const adminRadio = document.getElementById('adminRole');
     const clientRadio = document.getElementById('clientRole');
-    const branchCodeGroup = document.getElementById('branch-code-group');
-    const roleTypeHidden = document.getElementById('roleTypeHidden')
-    const branchCodeInput = document.getElementById('branchCode');
+    const roleTypeHidden = document.getElementById('roleTypeHidden');
     const roleSelectorSlider = document.querySelector('.role-selector-slider');
-    const branchCodeHidden = document.getElementById('branchCodeHidden');
 
-    function updateRole() {
-        if (adminRadio.checked) {
-            roleTypeHidden.value = "admin";
-        } else if (clientRadio.checked) {
-            roleTypeHidden.value = "client";
-        }
-    }
+    const adminForm = document.getElementById('adminForm');
+    const clientForm = document.getElementById('clientForm');
 
-    function updateBranchCode() {
-        branchCodeHidden.value = branchCodeInput.value;
-    }
+    // Get all the input fields within each form section
+    const adminInputs = adminForm.querySelectorAll('input');
+    const clientInputs = clientForm.querySelectorAll('input');
+
     function handleRoleChange() {
         if (clientRadio.checked) {
+            // --- Client is selected ---
+            roleTypeHidden.value = "client";
             roleSelectorSlider.classList.add('client');
-            branchCodeGroup.classList.remove('disabled');
-            branchCodeInput.required = true;
-            branchCodeInput.tabIndex = 0;
+
+            // Show client form and hide admin form
+            adminForm.style.display = 'none';
+            clientForm.style.display = 'block';
+
+            // IMPORTANT: Disable admin inputs and enable client inputs
+            adminInputs.forEach(input => input.disabled = true);
+            clientInputs.forEach(input => input.disabled = false);
+
         } else {
+            // --- Admin is selected ---
+            roleTypeHidden.value = "admin";
             roleSelectorSlider.classList.remove('client');
-            branchCodeGroup.classList.add('disabled');
-            branchCodeInput.required = false;
-            branchCodeInput.tabIndex = -1;
-            branchCodeInput.value = '';
+
+            // Show admin form and hide client form
+            adminForm.style.display = 'block';
+            clientForm.style.display = 'none';
+
+            // IMPORTANT: Enable admin inputs and disable client inputs
+            adminInputs.forEach(input => input.disabled = false);
+            clientInputs.forEach(input => input.disabled = true);
         }
     }
 
-    adminRadio.addEventListener('change', handleRoleChange);
-    clientRadio.addEventListener('change', handleRoleChange);
-    branchCodeInput.addEventListener('input', updateBranchCode);
+    if (adminRadio) {
+        adminRadio.addEventListener('change', handleRoleChange);
+    }
+    if (clientRadio) {
+        clientRadio.addEventListener('change', handleRoleChange);
+    }
 
-    updateRole();
+    // Initialize the form state when the page first loads
     handleRoleChange();
 });
