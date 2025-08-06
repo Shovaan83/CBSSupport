@@ -9,10 +9,12 @@ namespace CBSSupport.API.Hubs
     public class ChatHub : Hub
     {
         private readonly IChatService _chatService;
+        private readonly ILogger<ChatHub> _logger;
 
-        public ChatHub(IChatService chatService)
+        public ChatHub(IChatService chatService, ILogger<ChatHub> logger)
         {
             _chatService = chatService;
+            _logger = logger;
         }
 
         public async Task SendPublicMessage(string senderName, string message, string fileUrl = null, string fileName = null, string fileType = null)
@@ -32,7 +34,6 @@ namespace CBSSupport.API.Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
-        // MODIFICATION: Updated to support message IDs and file attachments, just like the public method.
         public async Task SendPrivateMessage(string groupName, string senderName, string message, string fileUrl = null, string fileName = null, string fileType = null)
         {
             long messageId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -44,29 +45,41 @@ namespace CBSSupport.API.Hubs
 
         public async Task UserIsTyping(string groupName, string userName)
         {
-            await Clients.Group(groupName).SendAsync("ReceiveTypingNotification", groupName, userName, true);
+            await Clients.GroupExcept(groupName, Context.ConnectionId).SendAsync("ReceiveTypingNotification", groupName, userName, true);
         }
 
         public async Task UserStoppedTyping(string groupName, string userName)
         {
-            await Clients.Group(groupName).SendAsync("ReceiveTypingNotification", groupName, userName, false);
+            await Clients.GroupExcept(groupName, Context.ConnectionId).SendAsync("ReceiveTypingNotification", groupName, userName, false);
         }
 
-        public async Task GetMyConversations()
+        public async Task GetMyConversations(long clientId)
         {
-            long mockClientAuthUserId = 1;
-            var tickets = await _chatService.GetInstructionTicketsForUserAsync(mockClientAuthUserId);
-            await Clients.Caller.SendAsync("ReceiveConversationList", tickets);
+            try
+            {
+                var sidebarData = await _chatService.GetSidebarForUserAsync(0, clientId);
+                await Clients.Caller.SendAsync("ReceivesSidebarData", sidebarData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("An error occurred in GetMyConversations for client ID {ClientId}", clientId);
+                _logger.LogError(ex, "Full exception details for the error above.");
+            }
         }
 
         public async Task CreateTicket(string subject)
         {
-            long mockClientAuthUserId = 1;
-            int mockInsertUser = 1;
-            var newTicket = new ChatMessage { /* ... */ };
-            long newId = await _chatService.CreateInstructionTicketAsync(newTicket);
-            newTicket.Id = newId;
-            await Clients.Caller.SendAsync("NewTicketCreated", newTicket);
+            var newTicket = new ChatMessage
+            {
+                Instruction = subject,
+                InstTypeId = 100, // Default to support group
+                Status = true,
+                InstChannel = "chat",
+                IpAddress = Context.GetHttpContext()?.Connection.RemoteIpAddress?.ToString()
+            };
+
+            ChatMessage savedTicket = await _chatService.CreateInstructionTicketAsync(newTicket);
+            await Clients.Caller.SendAsync("NewTicketCreated", savedTicket);
         }
     }
 }

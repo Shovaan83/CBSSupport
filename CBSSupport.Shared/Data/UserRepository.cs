@@ -23,5 +23,21 @@ namespace CBSSupport.Shared.Data
                 return await connection.QuerySingleOrDefaultAsync<AdminUser>(sql, new { Username = username });
             }
         }
+
+        public async Task<ClientUser?> GetClientUserAsync(long clientId, string username)
+        {
+            var sql = @"
+                SELECT * 
+                FROM internal.support_users
+                WHERE client_id = @ClientId AND user_name = @Username";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                return await connection.QuerySingleOrDefaultAsync<ClientUser>(
+                    sql,
+                    new { ClientId = clientId, Username = username }
+                );
+            }
+        }
     }
 }

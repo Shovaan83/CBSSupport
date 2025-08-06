@@ -4,80 +4,129 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
 using System.Security.Claims;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace CBSSupport.API.Controllers
 {
     [AllowAnonymous]
-    public class LoginController : Microsoft.AspNetCore.Mvc.Controller
+    public class LoginController : Controller
     {
         private readonly IAuthService _authService;
+        private readonly ILogger<LoginController> _logger;
 
-        public LoginController(IAuthService authService)
+        public LoginController(IAuthService authService, ILogger<LoginController> logger)
         {
             _authService = authService;
+            _logger = logger;
         }
 
         [HttpGet]
         public IActionResult Index()
         {
-            if (User.Identity != null && User.Identity.IsAuthenticated)
+            // Handles users who are already logged in and try to visit the login page.
+            if (User.Identity is { IsAuthenticated: true })
             {
-                return RedirectToAction("Index", "Support");
-            }
+                // If the logged-in user has the "Client" role, send them to the Support page.
+                if (User.IsInRole("Client"))
+                {
+                    return RedirectToAction("Index", "Support");
+                }
 
-            var model = new LoginViewModel();
-            return View(model);
+                // Otherwise, assume they are an Admin and send them to the AdminSupport page.
+                return RedirectToAction("Index", "AdminSupport");
+            }
+            return View(new LoginViewModel());
         }
 
         [HttpPost]
-        [AllowAnonymous]
         public async Task<IActionResult> Index(LoginViewModel model)
         {
-            if (!ModelState.IsValid)
+            if (!ModelState.IsValid) return View(model);
+
+            if (model.RoleType == "admin")
             {
-
-                return View(model);
-            }
-
-            var user = await _authService.ValidateUserAsync(model.Username, model.Password);
-
-            if (user != null)
-            {
-                var claims = new List<Claim>
+                // --- ADMIN LOGIN LOGIC ---
+                if (string.IsNullOrEmpty(model.Username) || string.IsNullOrEmpty(model.Password))
                 {
-                    new Claim(ClaimTypes.Name, user.Username),
-                    new Claim("FullName", user.FullName),
-                    new Claim(ClaimTypes.Role, user.Role ?? "User"),
-                    new Claim("SessionId", Guid.NewGuid().ToString()),
-                };
-
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var authProperties = new AuthenticationProperties { 
-                    IsPersistent = model.RememberMe,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(60),
-                    RedirectUri = Url.Action("Index", "Support")
-                };
-
-                await HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(claimsIdentity),
-                    authProperties);
-
-                HttpContext.Session.SetString("UserId", user.Id.ToString());
-                HttpContext.Session.SetString("Username", user.Username);
-
-                if (Url.IsLocalUrl("/Support"))
-                {
-                    return Redirect("/Support");
+                    ModelState.AddModelError(string.Empty, "Username and Password are required for admin login.");
+                    return View(model);
                 }
-                return RedirectToAction("Index", "Support");
+
+                var adminUser = await _authService.ValidateUserAsync(model.Username, model.Password);
+                if (adminUser != null)
+                {
+                    var claims = new List<Claim>
+                    {
+                        new Claim(ClaimTypes.Name, adminUser.Username),
+                        new Claim("FullName", adminUser.FullName),
+                        new Claim(ClaimTypes.Role, "Admin"), // The role is "Admin"
+                        new Claim("UserId", adminUser.Id.ToString())
+                    };
+
+                    await SignInUser(claims, model.RememberMe, "/AdminSupport");
+                    return RedirectToAction("Index", "AdminSupport");
+                }
+            }
+            else if (model.RoleType == "client" && model.ClientLogin != null)
+            {
+
+                if (!model.ClientLogin.ClientCode.HasValue || string.IsNullOrEmpty(model.ClientLogin.Username) || string.IsNullOrEmpty(model.ClientLogin.Password))
+                {
+                    ModelState.AddModelError(string.Empty, "Client Code, Username, and Password are required.");
+                    return View(model);
+                }
+
+                // --- CLIENT LOGIN LOGIC ---
+                var clientUser = await _authService.ValidateClientUserAsync(
+                    model.ClientLogin.ClientCode.Value,
+                    model.ClientLogin.Username,
+                    model.ClientLogin.Password
+                );
+
+                if (clientUser != null)
+                {
+                    var claims = new List<Claim>
+                    {
+                        new Claim(ClaimTypes.Name, clientUser.Username),
+                        new Claim("FullName", clientUser.FullName),
+                        new Claim(ClaimTypes.Role, "Client"), // The role is "Client"
+                        new Claim("UserId", clientUser.Id.ToString()),
+                        new Claim("ClientId", clientUser.ClientId.ToString())
+                    };
+
+                    await SignInUser(claims, model.RememberMe, "/Support");
+                    return RedirectToAction("Index", "Support");
+                }
             }
 
-            ModelState.AddModelError(string.Empty, "Invalid username or password.");
+            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             return View(model);
+        }
+
+        // Helper method to create the auth cookie and set the session.
+        private async Task SignInUser(List<Claim> claims, bool isPersistent, string redirectUri)
+        {
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = isPersistent,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(60),
+                RedirectUri = redirectUri
+            };
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties);
+
+            var userIdClaim = claims.FirstOrDefault(c => c.Type == "UserId");
+            var userNameClaim = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name);
+
+            if (userIdClaim != null) HttpContext.Session.SetString("UserId", userIdClaim.Value);
+            if (userNameClaim != null) HttpContext.Session.SetString("Username", userNameClaim.Value);
+
+            _logger.LogInformation("Session set for UserId: {UserId}", userIdClaim?.Value ?? "N/A");
         }
 
         [HttpGet]
@@ -87,4 +136,4 @@ namespace CBSSupport.API.Controllers
             return RedirectToAction("Index", "Login");
         }
     }
-}
+}   
