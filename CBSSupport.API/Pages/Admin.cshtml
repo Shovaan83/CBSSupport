@@ -31,11 +31,35 @@
         <!-- ===== MAIN CONTENT AREA ===== -->
         <main class="admin-content">
 
+            <!-- ===== NOTIFICATION FEATURE START ===== -->
+            <div class="notification-area">
+                <button id="notification-bell" class="notification-bell-btn" aria-label="Toggle Notifications">
+                    <i class="far fa-bell"></i>
+                    <span id="notification-badge" class="notification-badge"></span>
+                </button>
+                <div id="notification-dropdown" class="notification-dropdown">
+                    <div class="notification-header">
+                        <h3>Notifications</h3>
+                        <div class="notification-actions">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                    </div>
+                    <div class="notification-tabs">
+                        <button class="notification-tab-btn active" data-filter="all">All <span class="tab-count" id="notif-count-all">0</span></button>
+                        <button class="notification-tab-btn" data-filter="unread">Unread</button>
+                    </div>
+                    <div id="notification-list" class="notification-list">
+                        <div class="notification-placeholder">
+                            <p>No new notifications.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- ===== NOTIFICATION FEATURE END ===== -->
             <!-- PAGE 1: DASHBOARD -->
             <div id="dashboard-page" class="admin-page active">
                 <div class="page-header">
                     <h1>Support Overview</h1>
-                    <button class="btn btn-dark"><i class="fas fa-plus me-2"></i>Add New</button>
                 </div>
                 <div class="page-content">
                     <div class="row g-4">
@@ -71,7 +95,6 @@
                         <div class="panel-header" id="chat-header"></div>
                         <div id="chat-panel-body" class="panel-body"></div>
                         <div class="chat-footer">
-                            <!-- ✅ FIX: Added the file preview container, which was missing. -->
                             <div id="file-preview-container" class="file-preview-container"></div>
                             <div class="chat-input-container">
                                 <input type="file" id="file-input" style="display: none;" />

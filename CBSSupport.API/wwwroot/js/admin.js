@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUserIdentity = adminUserIdentity;
     let currentChatContext = {};
     const teamMembers = [{ name: "CBS Support", initials: "S", avatarClass: "avatar-bg-green" }, { name: "Admin User", initials: "A", avatarClass: "avatar-bg-purple" }];
-    const customerList = [{ name: "Alzeena Limbu", initials: "A", avatarClass: "avatar-bg-purple" }, { name: "Soniya Basnet", initials: "S", avatarClass: "avatar-bg-red" }, { name: "Ram Shah", initials: "R", avatarClass: "avatar-bg-blue" }, { name: "Namsang Limbu", initials: "N", avatarClass: "avatar-bg-red" }];
+    const customerList = [{ name: "Alzeena Limbu", initials: "A", avatarClass: "avatar-bg-purple" }, { name: "Soniya Basnet", initials: "S", avatarClass: "avatar-bg-red" }, { name: "Ram Shah", initials: "R", avatarClass: "avatar-bg-blue" }, { name: "Namsang Limbu", initials: "N", avatarClass: "avatar-bg-red" }, { name: "Hema Rai", initials: "H", avatarClass: "avatar-bg-purple" }];
 
     const internalStaff = [
         { name: "Numa Limbu", initials: "N", avatarClass: "avatar-bg-blue" },
@@ -40,10 +40,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const ticketDetailPlaceholder = document.getElementById('ticket-detail-placeholder');
     const floatingChatContainer = document.getElementById('floating-chat-container');
 
+    // --- NOTIFICATION FEATURE DOM REFS ---
+    const notificationBell = document.getElementById('notification-bell');
+    const notificationDropdown = document.getElementById('notification-dropdown');
+    const notificationBadge = document.getElementById('notification-badge');
+    const notificationList = document.getElementById('notification-list');
+    const notificationTabs = document.querySelector('.notification-tabs');
+
     // --- LOCALSTORAGE & SIGNALR ---
     const ticketsLocalStorageKey = 'supportTickets';
+    const inquiriesLocalStorageKey = 'clientInquiries';
+    const notificationLocalStorageKey = 'adminNotifications';
     const getTickets = () => JSON.parse(localStorage.getItem(ticketsLocalStorageKey)) || [];
     const saveTickets = (allTickets) => localStorage.setItem(ticketsLocalStorageKey, JSON.stringify(allTickets));
+    const getInquiries = () => JSON.parse(localStorage.getItem(inquiriesLocalStorageKey)) || [];
     const getChatHistory = (id) => JSON.parse(localStorage.getItem(id)) || [];
     const saveMessageToHistory = (id, data) => {
         const history = getChatHistory(id);
@@ -64,7 +74,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const formatTimestamp = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const formatDateTime = (isoString) => isoString ? new Date(isoString).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
     const generateGroupName = (u1, u2) => [u1, u2].sort().join('_');
-    const getAvatarDetails = (userName) => teamMembers.find(u => u.name === userName) || internalStaff.find(u => u.name === userName) || customerList.find(u => u.name === userName) || { initials: userName.substring(0, 1).toUpperCase(), avatarClass: "avatar-bg-blue" };
+    const getAvatarDetails = (userName) => {
+        const user = teamMembers.find(u => u.name === userName) || internalStaff.find(u => u.name === userName) || customerList.find(u => u.name === userName);
+        const imageMap = {
+            "Jenny Willson": "https://i.pravatar.cc/150?u=jenny",
+            "Robert Fox": "https://i.pravatar.cc/150?u=robert",
+            "Emily Sent": "https://i.pravatar.cc/150?u=emily",
+            "Wade Warren": "https://i.pravatar.cc/150?u=wade",
+            "Esther Howard": "https://i.pravatar.cc/150?u=esther",
+            "Soniya Basnet": "https://i.pravatar.cc/150?u=soniya",
+            "Alzeena Limbu": "https://i.pravatar.cc/150?u=alzeena",
+            "Ram Shah": "https://i.pravatar.cc/150?u=ram",
+            "Namsang Limbu": "https://i.pravatar.cc/150?u=namsang",
+            "Hema Rai": "https://i.pravatar.cc/150?u=hema"
+        };
+        if (user) return { ...user, image: imageMap[userName] || `https://i.pravatar.cc/150?u=${encodeURIComponent(userName)}` };
+        return { initials: userName ? userName.substring(0, 1).toUpperCase() : '?', avatarClass: "avatar-bg-blue", image: imageMap[userName] || `https://i.pravatar.cc/150?u=default` };
+    };
     const scrollToBottom = (element) => { if (element) { element.scrollTop = element.scrollHeight; } };
     const updateSendButtonState = () => { if (sendButton) { const hasFile = fileInput && fileInput.files.length > 0; sendButton.disabled = connection.state !== "Connected" || (messageInput && messageInput.value.trim() === "" && !hasFile); } };
     const generateStatusBadge = (status) => `<span class="badge-status badge-status-${(status || 'Pending').toLowerCase().replace(' ', '.')}">${status || 'Pending'}</span>`;
@@ -113,6 +139,172 @@ document.addEventListener('DOMContentLoaded', () => {
             if (attachBtn) attachBtn.disabled = false;
             updateSendButtonState();
         }
+    }
+
+    // --- NOTIFICATION FEATURE LOGIC ---
+    let notifications = [];
+    let currentNotificationFilter = 'all';
+
+    function timeSince(date) {
+        const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+        let interval = seconds / 31536000;
+        if (interval > 1) return Math.floor(interval) + " years ago";
+        interval = seconds / 2592000;
+        if (interval > 1) return Math.floor(interval) + " months ago";
+        interval = seconds / 86400;
+        if (interval > 1) return Math.floor(interval) + " days ago";
+        interval = seconds / 3600;
+        if (interval > 1) return Math.floor(interval) + " hours ago";
+        interval = seconds / 60;
+        if (interval > 1) return Math.floor(interval) + " min ago";
+        return Math.floor(seconds) + " sec ago";
+    }
+
+    function renderNotifications() {
+        notificationList.innerHTML = '';
+        const filteredNotifications = notifications.filter(n => {
+            if (currentNotificationFilter === 'unread') return !n.read;
+            return true;
+        });
+
+        if (filteredNotifications.length === 0) {
+            notificationList.innerHTML = '<div class="notification-placeholder"><p>No notifications to show.</p></div>';
+        } else {
+            filteredNotifications.forEach(n => {
+                const avatar = getAvatarDetails(n.sender);
+                const item = document.createElement('div');
+                item.className = `notification-item ${n.read ? '' : 'unread'}`;
+
+                let contentHtml = '';
+                let textHtml = '';
+
+                switch (n.type) {
+                    case 'created':
+                        textHtml = `<p class="notification-text"><strong>${n.sender}</strong> created a new ${n.sourceType.toLowerCase()} <strong>${n.sourceId}</strong></p>`;
+                        break;
+                    case 'file':
+                        textHtml = `<p class="notification-text"><strong>${n.sender}</strong> sent a file in <strong>${n.sourceType}</strong></p>`;
+                        contentHtml = `<div class="notification-attachment">
+                                       <span><i class="fas fa-paperclip"></i> ${n.message}</span>
+                                       <span class="file-size">${n.fileSize || ''}</span>
+                                   </div>`;
+                        break;
+                    case 'reply':
+                    default:
+                        const bubbleColor = n.sourceType === 'Inquiry' ? 'bubble-purple' : 'bubble-green';
+                        if (n.sourceType === 'Group Chat') {
+                            textHtml = `<p class="notification-text"><strong>${n.sender}</strong> sent a reply to the <strong>Public Group Chat</strong></p>`;
+                        } else {
+                            textHtml = `<p class="notification-text"><strong>${n.sender}</strong> sent you a reply</p>`;
+                        }
+                        contentHtml = `<div class="notification-bubble ${bubbleColor}">
+                                           <span>${n.message}</span>
+                                           <button class="btn btn-sm">Reply</button>
+                                       </div>`;
+                        break;
+                }
+
+                item.innerHTML = `
+                    <div class="notification-avatar">
+                        <img src="${avatar.image}" alt="${avatar.initials}">
+                    </div>
+                    <div class="notification-content">
+                        ${textHtml}
+                        ${contentHtml}
+                        <div class="notification-timestamp">${timeSince(n.timestamp)}</div>
+                    </div>`;
+                notificationList.appendChild(item);
+            });
+        }
+        updateNotificationBadge();
+    }
+
+
+    function updateNotificationBadge() {
+        const unreadCount = notifications.filter(n => !n.read).length;
+        const allCount = notifications.length;
+
+        document.getElementById('notif-count-all').textContent = allCount;
+        const badge = document.getElementById('notification-badge');
+
+        if (unreadCount > 0) {
+            badge.textContent = unreadCount;
+            badge.classList.add('show');
+        } else {
+            badge.textContent = '';
+            badge.classList.remove('show');
+        }
+    }
+
+    function addNotification(data) {
+        const newNotification = {
+            id: Date.now(),
+            sender: data.sender,
+            sourceType: data.sourceType,
+            sourceId: data.sourceId,
+            type: data.type || 'reply',
+            message: data.message || '',
+            fileSize: data.fileSize || '',
+            timestamp: new Date().toISOString(),
+            read: false
+        };
+
+        const lastNotif = notifications[0];
+        if (lastNotif && lastNotif.sender === newNotification.sender && lastNotif.sourceId === newNotification.sourceId && (new Date() - new Date(lastNotif.timestamp) < 10000)) {
+            return;
+        }
+
+        notifications.unshift(newNotification);
+        if (notifications.length > 50) notifications.pop();
+        localStorage.setItem(notificationLocalStorageKey, JSON.stringify(notifications));
+        renderNotifications();
+    }
+
+    function markNotificationsAsRead() {
+        let changed = false;
+        notifications.forEach(n => {
+            if (!n.read) {
+                n.read = true;
+                changed = true;
+            }
+        });
+        if (changed) {
+            localStorage.setItem(notificationLocalStorageKey, JSON.stringify(notifications));
+            if (currentNotificationFilter === 'all') {
+                renderNotifications();
+            }
+            updateNotificationBadge();
+        }
+    }
+
+    function initNotifications() {
+        const storedNotifications = localStorage.getItem(notificationLocalStorageKey);
+        notifications = storedNotifications ? JSON.parse(storedNotifications) : [];
+        renderNotifications();
+
+        notificationBell.addEventListener('click', (e) => {
+            e.stopPropagation();
+            notificationDropdown.classList.toggle('show');
+            if (notificationDropdown.classList.contains('show')) {
+                setTimeout(markNotificationsAsRead, 1500);
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!notificationDropdown.contains(e.target) && !notificationBell.contains(e.target)) {
+                notificationDropdown.classList.remove('show');
+            }
+        });
+
+        notificationTabs.addEventListener('click', (e) => {
+            const target = e.target.closest('.notification-tab-btn');
+            if (target) {
+                notificationTabs.querySelector('.active').classList.remove('active');
+                target.classList.add('active');
+                currentNotificationFilter = target.dataset.filter;
+                renderNotifications();
+            }
+        });
     }
 
     // --- PAGE INITIALIZERS ---
@@ -263,15 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const allTickets = getTickets(); if (allTickets.length > 0) { const firstTicketId = allTickets.sort((a, b) => new Date(b.lastUpdate || b.submissionTimestamp) - new Date(a.lastUpdate || a.submissionTimestamp))[0].id; populateTicketDetails(firstTicketId); ticketsTable.row(function (idx, data, node) { return data.id.toString() === firstTicketId.toString(); }).nodes().to$().addClass('table-active'); }
         },
         'inquiry-management': function () {
-            const inquiryLocalStorageKey = 'clientInquiries';
-            const getInquiries = () => JSON.parse(localStorage.getItem(inquiryLocalStorageKey)) || [];
-            const saveInquiries = (allInquiries) => localStorage.setItem(inquiryLocalStorageKey, JSON.stringify(allInquiries));
-            const getInquiryChatHistory = (id) => JSON.parse(localStorage.getItem(`inquiry-chat-${id}`)) || [];
-            const saveInquiryChatHistory = (id, history) => localStorage.setItem(`inquiry-chat-${id}`, JSON.stringify(history));
-
-            // This variable needs to be accessible to the 'draw' event listener, but reset on init
             let currentActiveInquiryId = null;
-
             const inquiryChatContent = document.getElementById('inquiry-chat-content');
             const inquiryChatPlaceholder = document.getElementById('inquiry-chat-placeholder');
             const inquiryChatConversation = document.getElementById('inquiry-chat-conversation');
@@ -301,7 +485,6 @@ document.addEventListener('DOMContentLoaded', () => {
             function populateInquiryChat(inquiryId) {
                 const inquiry = getInquiries().find(i => i.id === inquiryId); if (!inquiry) return;
                 currentActiveInquiryId = inquiryId;
-                // ✅ FIX: Store the active ID directly on the DOM element to use as the source of truth.
                 inquiryChatContent.dataset.activeInquiryId = inquiryId;
                 inquiryChatPlaceholder.style.display = 'none'; inquiryChatContent.style.display = 'flex'; document.getElementById('inquiry-chat-header').textContent = `Inquiry: ${inquiry.topic}`;
                 inquiryChatConversation.innerHTML = ''; const chatHistory = getInquiryChatHistory(inquiryId);
@@ -311,23 +494,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             function handleInquiryReply() {
-                // ✅ FIX: Read the active ID directly from the chat container to prevent using a stale ID.
                 const activeId = inquiryChatContent.dataset.activeInquiryId;
                 const text = inquiryMessageInput.value.trim();
                 if (!text || !activeId) return;
-
                 const messageData = { sender: adminUserIdentity, text: text, timestamp: new Date().toISOString() };
                 const history = getInquiryChatHistory(activeId);
                 history.push(messageData);
-                saveInquiryChatHistory(activeId, history);
-                populateInquiryChat(activeId); // Refresh using the correct ID
+                localStorage.setItem(`inquiry-chat-${activeId}`, JSON.stringify(history));
+                populateInquiryChat(activeId);
                 inquiryMessageInput.value = '';
                 inquiryMessageInput.focus();
             }
 
             function markAsCompleted(inquiryId) {
                 let allInquiries = getInquiries(); const inquiryIndex = allInquiries.findIndex(i => i.id === inquiryId);
-                if (inquiryIndex > -1) { allInquiries[inquiryIndex].outcome = 'Completed'; saveInquiries(allInquiries); inquiriesTable.row(function (idx, data, node) { return data.id === inquiryId; }).data(allInquiries[inquiryIndex]).draw(false); }
+                if (inquiryIndex > -1) { allInquiries[inquiryIndex].outcome = 'Completed'; localStorage.setItem(inquiriesLocalStorageKey, JSON.stringify(allInquiries)); inquiriesTable.row(function (idx, data, node) { return data.id === inquiryId; }).data(allInquiries[inquiryIndex]).draw(false); }
             }
 
             $.fn.dataTable.ext.search.pop(); $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) { if (settings.nTable.id !== 'inquiriesDataTable') return true; const selectedStatus = inquiryStatusFilter.value; if (selectedStatus === "") return true; const rowData = inquiriesTable.row(dataIndex).data(); return selectedStatus === (rowData.outcome || 'Pending'); });
@@ -336,12 +517,10 @@ document.addEventListener('DOMContentLoaded', () => {
             inquiryStatusFilter.addEventListener('change', () => { inquiriesTable.draw(); });
             inquirySendBtn.addEventListener('click', handleInquiryReply);
             inquiryMessageInput.addEventListener('keyup', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleInquiryReply(); } });
-
             const inquiries = getInquiries();
             if (inquiries.length > 0) {
                 const firstInquiry = inquiries[0];
                 populateInquiryChat(firstInquiry.id);
-                // Use a slight delay to ensure DataTables has drawn the rows before adding the class
                 setTimeout(() => {
                     const firstRow = inquiriesTable.row(0).node();
                     if (firstRow) $(firstRow).addClass('table-active');
@@ -356,55 +535,100 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault(); const pageName = $(this).data('page');
             $('.admin-sidebar .nav-link.active').removeClass('active'); $(this).addClass('active');
             $('.admin-page.active').removeClass('active'); $('#' + pageName + '-page').addClass('active');
-            if (pageInitializers[pageName]) { pageInitializers[pageName](); initializedPages[pageName] = true; }
+            if (pageInitializers[pageName] && !initializedPages[pageName]) {
+                pageInitializers[pageName]();
+                initializedPages[pageName] = true;
+            }
         });
         const initialPage = $('.admin-sidebar .nav-link.active').data('page');
-        if (pageInitializers[initialPage]) { pageInitializers[initialPage](); initializedPages[initialPage] = true; }
+        if (pageInitializers[initialPage]) {
+            pageInitializers[initialPage]();
+            initializedPages[initialPage] = true;
+        }
     }
 
     // --- REAL-TIME EVENT HANDLERS ---
     connection.on("ReceivePublicMessage", (messageId, sender, msg, time, initials, fileUrl, fileName, fileType) => {
-        const data = { id: messageId, sender, message: msg, timestamp: time, fileUrl, fileName, fileType }; saveMessageToHistory('public', data);
-        if (currentChatContext.id === 'public' && pageInitializers.chats.displayChatMessage) { pageInitializers.chats.displayChatMessage(data, false); }
+        const data = { id: messageId, sender, message: msg, timestamp: time, fileUrl, fileName, fileType };
+        saveMessageToHistory('public', data);
+        if (currentChatContext.id === 'public' && pageInitializers.chats.displayChatMessage) {
+            pageInitializers.chats.displayChatMessage(data, false);
+        }
+
+        // --- NOTIFICATION HOOK FOR GROUP CHAT ---
+        if (sender !== adminUserIdentity) {
+            if (fileName) { // It's a file
+                addNotification({
+                    sender: sender,
+                    sourceType: 'the Public Group Chat',
+                    sourceId: '',
+                    type: 'file',
+                    message: fileName,
+                });
+            } else if (msg) { // It's a text message
+                addNotification({
+                    sender: sender,
+                    sourceType: 'Group Chat',
+                    sourceId: 'Public',
+                    type: 'reply',
+                    message: msg
+                });
+            }
+        }
     });
+
     connection.on("ReceivePrivateMessage", (messageId, groupName, sender, msg, time, initials, fileUrl, fileName, fileType) => {
-        const data = { id: messageId, sender, message: msg, timestamp: time, fileUrl, fileName, fileType }; saveMessageToHistory(groupName, data);
-        if (currentChatContext.id === groupName && pageInitializers.chats.displayChatMessage) { pageInitializers.chats.displayChatMessage(data, false); }
+        const data = { id: messageId, sender, message: msg, timestamp: time, fileUrl, fileName, fileType };
+        saveMessageToHistory(groupName, data);
+        if (currentChatContext.id === groupName && pageInitializers.chats.displayChatMessage) {
+            pageInitializers.chats.displayChatMessage(data, false);
+        }
+        if (customerList.some(c => c.name === sender)) {
+            addNotification({ sender: sender, sourceType: 'Direct Message', sourceId: 'Private', type: 'reply', message: msg });
+        }
     });
 
     window.addEventListener('storage', (event) => {
-        if (event.key.startsWith('ticket-chat-')) {
+        // --- NOTIFICATION FOR NEW TICKET/INQUIRY CREATED ---
+        if (event.key === ticketsLocalStorageKey || event.key === inquiriesLocalStorageKey) {
+            const oldValue = JSON.parse(event.oldValue || '[]');
+            const newValue = JSON.parse(event.newValue || '[]');
+            if (newValue.length > oldValue.length) {
+                const newItem = newValue[0];
+                const sourceType = event.key === ticketsLocalStorageKey ? 'Ticket' : 'Inquiry';
+                addNotification({
+                    sender: newItem.createdBy || newItem.inquiredBy,
+                    sourceType: sourceType,
+                    sourceId: `#${newItem.id}`,
+                    type: 'created'
+                });
+            }
+        }
+
+        // --- NOTIFICATION FOR REPLIES ---
+        if (event.key && event.key.startsWith('ticket-chat-') && event.newValue) {
             const ticketId = event.key.replace('ticket-chat-', '');
             const chatBox = document.getElementById(`chatbox-${ticketId}`);
             if (chatBox) {
-                const chatBody = chatBox.querySelector('.chat-box-body');
-                renderChatMessagesInPopup(ticketId, chatBody);
+                renderChatMessagesInPopup(ticketId, chatBox.querySelector('.chat-box-body'));
+            }
+            const history = JSON.parse(event.newValue);
+            const lastMessage = history[history.length - 1];
+            if (lastMessage && !agents.includes(lastMessage.sender) && lastMessage.sender !== adminUserIdentity) {
+                addNotification({ sender: lastMessage.sender, sourceType: 'Ticket', sourceId: `#${ticketId}`, type: 'reply', message: lastMessage.text });
             }
         }
-        if (event.key.startsWith('inquiry-chat-')) {
+        if (event.key && event.key.startsWith('inquiry-chat-') && event.newValue) {
             const inquiryId = event.key.replace('inquiry-chat-', '');
             const activeId = document.getElementById('inquiry-chat-content').dataset.activeInquiryId;
             if (activeId === inquiryId) {
-                // Find the populateInquiryChat function if it exists on the page
-                const initializer = initializedPages['inquiry-management'];
-                if (initializer) {
-                    // This is a bit of a hack, but we need to re-run the populate function.
-                    // A better long-term solution would be a more robust state management system.
-                    const chatContent = document.getElementById('inquiry-chat-content');
-                    const history = JSON.parse(event.newValue || '[]');
-                    const conversation = document.getElementById('inquiry-chat-conversation');
-                    conversation.innerHTML = '';
-                    if (history.length > 0) {
-                        history.forEach(msg => {
-                            const isAgentReply = msg.sender === adminUserIdentity;
-                            const messageClass = isAgentReply ? 'sent' : 'received';
-                            conversation.innerHTML += `<div class="message-row ${messageClass}"><div class="message-content"><div class="message-bubble"><p>${msg.text}</p></div><div class="message-timestamp">${msg.sender} - ${formatDateTime(msg.timestamp)}</div></div></div>`;
-                        });
-                    } else {
-                        conversation.innerHTML = `<div class="p-3 text-muted text-center">No conversation history. Start the conversation!</div>`;
-                    }
-                    scrollToBottom(conversation);
-                }
+                const inquiry = getInquiries().find(i => i.id === inquiryId);
+                if (inquiry) populateInquiryChat(inquiryId);
+            }
+            const history = JSON.parse(event.newValue);
+            const lastMessage = history[history.length - 1];
+            if (lastMessage && !agents.includes(lastMessage.sender) && lastMessage.sender !== adminUserIdentity) {
+                addNotification({ sender: lastMessage.sender, sourceType: 'Inquiry', sourceId: `${inquiryId}`, type: 'reply', message: lastMessage.text });
             }
         }
     });
@@ -412,6 +636,6 @@ document.addEventListener('DOMContentLoaded', () => {
     connection.start().then(() => {
         console.log("SignalR Connected (Admin).");
         initializeAdminPanel();
+        initNotifications();
     }).catch(err => console.error("SignalR Connection Error: ", err));
 });
-
