@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const adminUserIdentity = "Admin User";
     let currentUserIdentity = adminUserIdentity;
     let currentChatContext = {};
+    const originalPageTitle = document.title; // Store the original title
     const teamMembers = [{ name: "CBS Support", initials: "S", avatarClass: "avatar-bg-green" }, { name: "Admin User", initials: "A", avatarClass: "avatar-bg-purple" }];
     const customerList = [{ name: "Alzeena Limbu", initials: "A", avatarClass: "avatar-bg-purple" }, { name: "Soniya Basnet", initials: "S", avatarClass: "avatar-bg-red" }, { name: "Ram Shah", initials: "R", avatarClass: "avatar-bg-blue" }, { name: "Namsang Limbu", initials: "N", avatarClass: "avatar-bg-red" }, { name: "Hema Rai", initials: "H", avatarClass: "avatar-bg-purple" }];
 
@@ -47,6 +48,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const notificationList = document.getElementById('notification-list');
     const notificationTabs = document.querySelector('.notification-tabs');
 
+    // --- TOAST POPUP DOM REFS ---
+    const toastPopup = document.getElementById('toast-notification-popup');
+    const toastAvatar = document.getElementById('toast-avatar-initials');
+    const toastSender = document.getElementById('toast-sender-name');
+    const toastMessage = document.getElementById('toast-message');
+    const toastReplyInput = document.getElementById('toast-reply-input');
+    const toastSendBtn = document.getElementById('toast-send-btn');
+    const toastCloseBtn = document.getElementById('toast-close-btn');
+    let currentPopupContext = null; // To store context for replying from toast
+
     // --- LOCALSTORAGE & SIGNALR ---
     const ticketsLocalStorageKey = 'supportTickets';
     const inquiriesLocalStorageKey = 'clientInquiries';
@@ -54,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const getTickets = () => JSON.parse(localStorage.getItem(ticketsLocalStorageKey)) || [];
     const saveTickets = (allTickets) => localStorage.setItem(ticketsLocalStorageKey, JSON.stringify(allTickets));
     const getInquiries = () => JSON.parse(localStorage.getItem(inquiriesLocalStorageKey)) || [];
+    const saveInquiries = (allInquiries) => localStorage.setItem(inquiriesLocalStorageKey, JSON.stringify(allInquiries));
     const getChatHistory = (id) => JSON.parse(localStorage.getItem(id)) || [];
     const saveMessageToHistory = (id, data) => {
         const history = getChatHistory(id);
@@ -68,6 +80,13 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem(`ticket-chat-${ticketId}`, JSON.stringify(history));
     };
 
+    const getInquiryChatHistory = (inquiryId) => JSON.parse(localStorage.getItem(`inquiry-chat-${inquiryId}`)) || [];
+    const saveInquiryChatMessage = (inquiryId, messageData) => {
+        const history = getInquiryChatHistory(inquiryId);
+        history.push(messageData);
+        localStorage.setItem(`inquiry-chat-${inquiryId}`, JSON.stringify(history));
+    };
+
     const connection = new signalR.HubConnectionBuilder().withUrl("/chathub").withAutomaticReconnect().build();
 
     // --- HELPER FUNCTIONS ---
@@ -76,20 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const generateGroupName = (u1, u2) => [u1, u2].sort().join('_');
     const getAvatarDetails = (userName) => {
         const user = teamMembers.find(u => u.name === userName) || internalStaff.find(u => u.name === userName) || customerList.find(u => u.name === userName);
-        const imageMap = {
-            "Jenny Willson": "https://i.pravatar.cc/150?u=jenny",
-            "Robert Fox": "https://i.pravatar.cc/150?u=robert",
-            "Emily Sent": "https://i.pravatar.cc/150?u=emily",
-            "Wade Warren": "https://i.pravatar.cc/150?u=wade",
-            "Esther Howard": "https://i.pravatar.cc/150?u=esther",
-            "Soniya Basnet": "https://i.pravatar.cc/150?u=soniya",
-            "Alzeena Limbu": "https://i.pravatar.cc/150?u=alzeena",
-            "Ram Shah": "https://i.pravatar.cc/150?u=ram",
-            "Namsang Limbu": "https://i.pravatar.cc/150?u=namsang",
-            "Hema Rai": "https://i.pravatar.cc/150?u=hema"
-        };
-        if (user) return { ...user, image: imageMap[userName] || `https://i.pravatar.cc/150?u=${encodeURIComponent(userName)}` };
-        return { initials: userName ? userName.substring(0, 1).toUpperCase() : '?', avatarClass: "avatar-bg-blue", image: imageMap[userName] || `https://i.pravatar.cc/150?u=default` };
+        if (user) return user;
+        return { initials: userName ? userName.substring(0, 1).toUpperCase() : '?', avatarClass: "avatar-bg-blue" };
     };
     const scrollToBottom = (element) => { if (element) { element.scrollTop = element.scrollHeight; } };
     const updateSendButtonState = () => { if (sendButton) { const hasFile = fileInput && fileInput.files.length > 0; sendButton.disabled = connection.state !== "Connected" || (messageInput && messageInput.value.trim() === "" && !hasFile); } };
@@ -206,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 item.innerHTML = `
                     <div class="notification-avatar">
-                        <img src="${avatar.image}" alt="${avatar.initials}">
+                         <div class="avatar-initials ${avatar.avatarClass}">${avatar.initials}</div>
                     </div>
                     <div class="notification-content">
                         ${textHtml}
@@ -230,9 +237,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (unreadCount > 0) {
             badge.textContent = unreadCount;
             badge.classList.add('show');
+            document.title = `(${unreadCount}) ${originalPageTitle}`;
         } else {
             badge.textContent = '';
             badge.classList.remove('show');
+            document.title = originalPageTitle;
         }
     }
 
@@ -258,6 +267,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (notifications.length > 50) notifications.pop();
         localStorage.setItem(notificationLocalStorageKey, JSON.stringify(notifications));
         renderNotifications();
+
+        if (newNotification.type !== 'created') {
+            showNotificationPopup(newNotification);
+        }
     }
 
     function markNotificationsAsRead() {
@@ -306,6 +319,69 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // --- TOAST POPUP LOGIC ---
+    let toastTimeout;
+    function showNotificationPopup(notification) {
+        clearTimeout(toastTimeout);
+
+        const avatar = getAvatarDetails(notification.sender);
+        toastAvatar.className = `avatar-initials ${avatar.avatarClass}`;
+        toastAvatar.textContent = avatar.initials;
+        toastSender.textContent = notification.sender;
+        toastMessage.textContent = notification.message;
+
+        currentPopupContext = {
+            sourceType: notification.sourceType,
+            sourceId: notification.sourceId,
+            sender: notification.sender
+        };
+
+        toastPopup.classList.add('show');
+
+        toastTimeout = setTimeout(() => {
+            hideNotificationPopup();
+        }, 8000);
+    }
+
+    function hideNotificationPopup() {
+        toastPopup.classList.remove('show');
+        currentPopupContext = null;
+    }
+
+    function sendToastReply() {
+        const text = toastReplyInput.value.trim();
+        if (!text || !currentPopupContext) return;
+
+        const messageData = { sender: adminUserIdentity, text: text, timestamp: new Date().toISOString() };
+
+        if (currentPopupContext.sourceType === 'Ticket') {
+            const ticketId = currentPopupContext.sourceId.replace('#', '');
+            saveTicketChatMessage(ticketId, messageData);
+            const chatBox = document.getElementById(`chatbox-${ticketId}`);
+            if (chatBox) {
+                renderChatMessagesInPopup(ticketId, chatBox.querySelector('.chat-box-body'));
+            }
+        } else if (currentPopupContext.sourceType === 'Inquiry') {
+            const inquiryId = currentPopupContext.sourceId;
+            saveInquiryChatMessage(inquiryId, messageData);
+            const chatBox = document.getElementById(`chatbox-inq-${inquiryId}`);
+            if (chatBox) {
+                renderInquiryMessagesInPopup(inquiryId, chatBox.querySelector('.chat-box-body'));
+            }
+        }
+
+        toastReplyInput.value = '';
+        hideNotificationPopup();
+    }
+
+    toastCloseBtn.addEventListener('click', hideNotificationPopup);
+    toastSendBtn.addEventListener('click', sendToastReply);
+    toastReplyInput.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') {
+            sendToastReply();
+        }
+    });
 
     // --- PAGE INITIALIZERS ---
     const initializedPages = {};
@@ -455,77 +531,95 @@ document.addEventListener('DOMContentLoaded', () => {
             const allTickets = getTickets(); if (allTickets.length > 0) { const firstTicketId = allTickets.sort((a, b) => new Date(b.lastUpdate || b.submissionTimestamp) - new Date(a.lastUpdate || a.submissionTimestamp))[0].id; populateTicketDetails(firstTicketId); ticketsTable.row(function (idx, data, node) { return data.id.toString() === firstTicketId.toString(); }).nodes().to$().addClass('table-active'); }
         },
         'inquiry-management': function () {
-            let currentActiveInquiryId = null;
-            const inquiryChatContent = document.getElementById('inquiry-chat-content');
-            const inquiryChatPlaceholder = document.getElementById('inquiry-chat-placeholder');
-            const inquiryChatConversation = document.getElementById('inquiry-chat-conversation');
-            const inquiryStatusFilter = document.getElementById('inquiry-status-filter');
-            const inquiryMessageInput = document.getElementById('inquiry-message-input');
-            const inquirySendBtn = document.getElementById('inquiry-send-btn');
+            const inquiriesTableElement = $('#inquiriesDataTable');
             const generateInquiryStatusBadge = (outcome) => { return outcome === 'Completed' ? `<span class="badge bg-success">Completed</span>` : `<span class="badge bg-warning text-dark">Pending</span>`; };
 
-            let inquiriesTable = $('#inquiriesDataTable').DataTable({
+            let inquiriesTable = inquiriesTableElement.DataTable({
                 destroy: true, data: getInquiries(),
-                columns: [{ data: 'id' }, { data: 'topic' }, { data: 'inquiredBy' }, { data: 'date', render: (d) => d ? new Date(d).toLocaleString() : 'N/A' }, { data: 'outcome', render: (d) => generateInquiryStatusBadge(d || 'Pending') }, { data: null, orderable: false, searchable: false, render: (data, type, row) => { return (row.outcome || 'Pending') !== 'Completed' ? `<div class="form-check d-flex justify-content-center"><input class="form-check-input mark-completed-checkbox" type="checkbox" data-inquiry-id="${row.id}"></div>` : '<div class="text-center text-success"><i class="fas fa-check-circle"></i></div>'; } }],
+                columns: [
+                    { data: 'id' }, { data: 'topic' }, { data: 'inquiredBy' },
+                    { data: 'date', render: (d) => d ? new Date(d).toLocaleString() : 'N/A' },
+                    { data: 'outcome', render: (d) => generateInquiryStatusBadge(d || 'Pending') },
+                    {
+                        data: null, orderable: false, searchable: false,
+                        render: (data, type, row) => {
+                            const chatButton = `<button class="btn btn-sm btn-primary start-inquiry-chat-btn" data-inquiry-id="${row.id}"><i class="fas fa-comments me-1"></i>Chat</button>`;
+                            const resolveControl = (row.outcome || 'Pending') !== 'Completed' ?
+                                `<div class="form-check d-flex justify-content-center ms-2"><input class="form-check-input mark-completed-checkbox" type="checkbox" data-inquiry-id="${row.id}"></div>`
+                                : '<div class="text-center text-success ms-2"><i class="fas fa-check-circle"></i></div>';
+                            return `<div class="d-flex align-items-center justify-content-center">${chatButton}${resolveControl}</div>`;
+                        }
+                    }
+                ],
                 order: [[3, 'desc']], pageLength: 10, lengthMenu: [[10, 20, 50, -1], ['10', '20', '50', 'All']],
                 dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>><'row'<'col-sm-12'tr>><'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
             });
 
-            inquiriesTable.on('draw.dt', function () {
-                if (currentActiveInquiryId) {
-                    $('#inquiriesDataTable tbody tr').each(function () {
-                        const rowData = inquiriesTable.row(this).data();
-                        if (rowData && rowData.id === currentActiveInquiryId) {
-                            $(this).addClass('table-active');
-                        }
+            function renderInquiryMessagesInPopup(inquiryId, container) {
+                container.innerHTML = ''; const history = getInquiryChatHistory(inquiryId);
+                if (history.length > 0) {
+                    history.forEach(msg => {
+                        const isAgentReply = msg.sender === adminUserIdentity || agents.includes(msg.sender);
+                        const messageClass = isAgentReply ? 'sent' : 'received';
+                        const messageHtml = `<div class="message-row ${messageClass}"><div class="message-content"><div class="message-bubble"><p class="message-text">${msg.text}</p></div><span class="message-timestamp">${msg.sender} - ${formatDateTime(msg.timestamp)}</span></div></div>`;
+                        container.innerHTML += messageHtml;
                     });
+                } else {
+                    container.innerHTML = `<p class="text-muted text-center small p-3">No conversation history. Start the conversation!</p>`;
+                }
+                scrollToBottom(container);
+            }
+
+            function openInquiryChatBox(inquiry) {
+                const existingChatBox = document.getElementById(`chatbox-inq-${inquiry.id}`);
+                if (existingChatBox) {
+                    existingChatBox.classList.remove('collapsed');
+                    existingChatBox.querySelector('textarea').focus();
+                    return;
+                }
+                const chatBox = document.createElement('div');
+                chatBox.className = 'floating-chat-box';
+                chatBox.id = `chatbox-inq-${inquiry.id}`;
+                chatBox.dataset.inquiryId = inquiry.id; // Use inquiry-id dataset
+                chatBox.innerHTML = ` <div class="chat-box-header"> <span class="chat-box-title">${inquiry.id} - ${inquiry.inquiredBy}</span> <div class="chat-box-actions"> <button class="action-minimize" title="Minimize"><i class="fas fa-minus"></i></button> <button class="action-close" title="Close"><i class="fas fa-times"></i></button> </div> </div> <div class="chat-box-body"></div> <div class="chat-box-footer"> <textarea class="form-control" rows="1" placeholder="Type your reply..."></textarea> <button class="btn btn-primary action-send" title="Send"><i class="fas fa-paper-plane"></i></button> </div> `;
+                floatingChatContainer.appendChild(chatBox);
+                const chatBody = chatBox.querySelector('.chat-box-body');
+                renderInquiryMessagesInPopup(inquiry.id, chatBody);
+            }
+
+            inquiriesTableElement.off('click', '.start-inquiry-chat-btn').on('click', '.start-inquiry-chat-btn', function (e) {
+                e.stopPropagation();
+                const inquiryId = $(this).data('inquiry-id').toString();
+                const inquiry = getInquiries().find(i => i.id === inquiryId);
+                if (inquiry) openInquiryChatBox(inquiry);
+            });
+
+            inquiriesTableElement.off('change', '.mark-completed-checkbox').on('change', '.mark-completed-checkbox', function () {
+                const inquiryId = $(this).data('inquiry-id');
+                if (confirm("Are you sure you want to mark this inquiry as completed?")) {
+                    let allInquiries = getInquiries();
+                    const inquiryIndex = allInquiries.findIndex(i => i.id === inquiryId);
+                    if (inquiryIndex > -1) {
+                        allInquiries[inquiryIndex].outcome = 'Completed';
+                        saveInquiries(allInquiries);
+                        inquiriesTable.row($(this).closest('tr')).data(allInquiries[inquiryIndex]).draw(false);
+                    }
+                } else {
+                    $(this).prop('checked', false);
                 }
             });
 
-            function populateInquiryChat(inquiryId) {
-                const inquiry = getInquiries().find(i => i.id === inquiryId); if (!inquiry) return;
-                currentActiveInquiryId = inquiryId;
-                inquiryChatContent.dataset.activeInquiryId = inquiryId;
-                inquiryChatPlaceholder.style.display = 'none'; inquiryChatContent.style.display = 'flex'; document.getElementById('inquiry-chat-header').textContent = `Inquiry: ${inquiry.topic}`;
-                inquiryChatConversation.innerHTML = ''; const chatHistory = getInquiryChatHistory(inquiryId);
-                if (chatHistory.length > 0) { chatHistory.forEach(msg => { const isAgentReply = msg.sender === adminUserIdentity; const messageClass = isAgentReply ? 'sent' : 'received'; inquiryChatConversation.innerHTML += `<div class="message-row ${messageClass}"><div class="message-content"><div class="message-bubble"><p>${msg.text}</p></div><div class="message-timestamp">${msg.sender} - ${formatDateTime(msg.timestamp)}</div></div></div>`; }); }
-                else { inquiryChatConversation.innerHTML = `<div class="p-3 text-muted text-center">No conversation history. Start the conversation!</div>`; }
-                scrollToBottom(inquiryChatConversation);
-            }
-
-            function handleInquiryReply() {
-                const activeId = inquiryChatContent.dataset.activeInquiryId;
-                const text = inquiryMessageInput.value.trim();
-                if (!text || !activeId) return;
-                const messageData = { sender: adminUserIdentity, text: text, timestamp: new Date().toISOString() };
-                const history = getInquiryChatHistory(activeId);
-                history.push(messageData);
-                localStorage.setItem(`inquiry-chat-${activeId}`, JSON.stringify(history));
-                populateInquiryChat(activeId);
-                inquiryMessageInput.value = '';
-                inquiryMessageInput.focus();
-            }
-
-            function markAsCompleted(inquiryId) {
-                let allInquiries = getInquiries(); const inquiryIndex = allInquiries.findIndex(i => i.id === inquiryId);
-                if (inquiryIndex > -1) { allInquiries[inquiryIndex].outcome = 'Completed'; localStorage.setItem(inquiriesLocalStorageKey, JSON.stringify(allInquiries)); inquiriesTable.row(function (idx, data, node) { return data.id === inquiryId; }).data(allInquiries[inquiryIndex]).draw(false); }
-            }
-
-            $.fn.dataTable.ext.search.pop(); $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) { if (settings.nTable.id !== 'inquiriesDataTable') return true; const selectedStatus = inquiryStatusFilter.value; if (selectedStatus === "") return true; const rowData = inquiriesTable.row(dataIndex).data(); return selectedStatus === (rowData.outcome || 'Pending'); });
-            $('#inquiriesDataTable tbody').off('click').on('click', 'tr', function (event) { if ($(event.target).is('input.mark-completed-checkbox')) { return; } inquiriesTable.$('tr.table-active').removeClass('table-active'); $(this).addClass('table-active'); const rowData = inquiriesTable.row(this).data(); if (rowData) { populateInquiryChat(rowData.id); } });
-            $('#inquiriesDataTable tbody').off('change').on('change', '.mark-completed-checkbox', function () { const inquiryId = $(this).data('inquiry-id'); if (confirm("Are you sure you want to mark this inquiry as completed?")) { markAsCompleted(inquiryId); } else { $(this).prop('checked', false); } });
-            inquiryStatusFilter.addEventListener('change', () => { inquiriesTable.draw(); });
-            inquirySendBtn.addEventListener('click', handleInquiryReply);
-            inquiryMessageInput.addEventListener('keyup', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleInquiryReply(); } });
-            const inquiries = getInquiries();
-            if (inquiries.length > 0) {
-                const firstInquiry = inquiries[0];
-                populateInquiryChat(firstInquiry.id);
-                setTimeout(() => {
-                    const firstRow = inquiriesTable.row(0).node();
-                    if (firstRow) $(firstRow).addClass('table-active');
-                }, 100);
-            }
+            $('#inquiry-status-filter').off('change').on('change', () => {
+                $.fn.dataTable.ext.search.pop();
+                $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                    if (settings.nTable.id !== 'inquiriesDataTable') return true;
+                    const selectedStatus = $('#inquiry-status-filter').val();
+                    if (selectedStatus === "") return true;
+                    const rowData = inquiriesTable.row(dataIndex).data();
+                    return selectedStatus === (rowData.outcome || 'Pending');
+                });
+                inquiriesTable.draw();
+            });
         }
     };
 
@@ -547,6 +641,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- GLOBAL EVENT LISTENERS ---
+    $(floatingChatContainer).off('click').on('click', e => {
+        const chatBox = e.target.closest('.floating-chat-box');
+        if (!chatBox) return;
+
+        const ticketId = chatBox.dataset.ticketId;
+        const inquiryId = chatBox.dataset.inquiryId;
+
+        if (e.target.closest('.chat-box-header') && !e.target.closest('.chat-box-actions')) { chatBox.classList.toggle('collapsed'); }
+        if (e.target.closest('.action-minimize')) { chatBox.classList.add('collapsed'); }
+        if (e.target.closest('.action-close')) { chatBox.remove(); }
+        if (e.target.closest('.action-send')) {
+            const textarea = chatBox.querySelector('textarea');
+            const text = textarea.value.trim();
+            if (!text) return;
+            const messageData = { sender: adminUserIdentity, text: text, timestamp: new Date().toISOString() };
+
+            if (ticketId) {
+                saveTicketChatMessage(ticketId, messageData);
+                renderChatMessagesInPopup(ticketId, chatBox.querySelector('.chat-box-body'));
+            } else if (inquiryId) {
+                saveInquiryChatMessage(inquiryId, messageData);
+                renderInquiryMessagesInPopup(inquiryId, chatBox.querySelector('.chat-box-body'));
+            }
+
+            textarea.value = '';
+            textarea.focus();
+        }
+    });
+
+    $(floatingChatContainer).off('keyup').on('keyup', 'textarea', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            $(this).closest('.chat-box-footer').find('.action-send').click();
+        }
+    });
+
     // --- REAL-TIME EVENT HANDLERS ---
     connection.on("ReceivePublicMessage", (messageId, sender, msg, time, initials, fileUrl, fileName, fileType) => {
         const data = { id: messageId, sender, message: msg, timestamp: time, fileUrl, fileName, fileType };
@@ -555,9 +686,8 @@ document.addEventListener('DOMContentLoaded', () => {
             pageInitializers.chats.displayChatMessage(data, false);
         }
 
-        // --- NOTIFICATION HOOK FOR GROUP CHAT ---
         if (sender !== adminUserIdentity) {
-            if (fileName) { // It's a file
+            if (fileName) {
                 addNotification({
                     sender: sender,
                     sourceType: 'the Public Group Chat',
@@ -565,7 +695,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     type: 'file',
                     message: fileName,
                 });
-            } else if (msg) { // It's a text message
+            } else if (msg) {
                 addNotification({
                     sender: sender,
                     sourceType: 'Group Chat',
@@ -589,7 +719,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.addEventListener('storage', (event) => {
-        // --- NOTIFICATION FOR NEW TICKET/INQUIRY CREATED ---
         if (event.key === ticketsLocalStorageKey || event.key === inquiriesLocalStorageKey) {
             const oldValue = JSON.parse(event.oldValue || '[]');
             const newValue = JSON.parse(event.newValue || '[]');
@@ -605,7 +734,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // --- NOTIFICATION FOR REPLIES ---
         if (event.key && event.key.startsWith('ticket-chat-') && event.newValue) {
             const ticketId = event.key.replace('ticket-chat-', '');
             const chatBox = document.getElementById(`chatbox-${ticketId}`);
@@ -620,10 +748,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (event.key && event.key.startsWith('inquiry-chat-') && event.newValue) {
             const inquiryId = event.key.replace('inquiry-chat-', '');
-            const activeId = document.getElementById('inquiry-chat-content').dataset.activeInquiryId;
-            if (activeId === inquiryId) {
-                const inquiry = getInquiries().find(i => i.id === inquiryId);
-                if (inquiry) populateInquiryChat(inquiryId);
+            const chatBox = document.getElementById(`chatbox-inq-${inquiryId}`);
+            if (chatBox) {
+                renderInquiryMessagesInPopup(inquiryId, chatBox.querySelector('.chat-box-body'));
             }
             const history = JSON.parse(event.newValue);
             const lastMessage = history[history.length - 1];

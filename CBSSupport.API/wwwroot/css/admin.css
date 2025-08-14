@@ -226,22 +226,6 @@ ADMIN CHAT PAGE UI STYLES
         flex-shrink: 0;
     }
 
-    #chats-page .avatar-bg-blue {
-        background-color: #0052cc;
-    }
-
-    #chats-page .avatar-bg-green {
-        background-color: #00875a;
-    }
-
-    #chats-page .avatar-bg-purple {
-        background-color: #5243aa;
-    }
-
-    #chats-page .avatar-bg-red {
-        background-color: #de350b;
-    }
-
     #chats-page #chat-panel .panel-header {
         display: flex;
         align-items: center;
@@ -397,6 +381,23 @@ ADMIN CHAT PAGE UI STYLES
         text-decoration: underline;
     }
 
+/* --- GLOBAL AVATAR STYLES --- */
+.avatar-bg-blue {
+    background-color: #0052cc;
+}
+
+.avatar-bg-green {
+    background-color: #00875a;
+}
+
+.avatar-bg-purple {
+    background-color: #5243aa;
+}
+
+.avatar-bg-red {
+    background-color: #de350b;
+}
+
 .file-preview-container {
     padding: 0 0 0.5rem 0;
     display: none;
@@ -544,6 +545,16 @@ ADMIN CHAT PAGE UI STYLES
 }
 
 /* --- TICKET & INQUIRY MANAGEMENT PAGE STYLES --- */
+.ticket-list-panel { /* This now applies to both ticket and inquiry pages */
+    background-color: #fff;
+    border-radius: 8px;
+    border: 1px solid var(--admin-border-color);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 1rem;
+}
+
 .ticket-management-layout {
     display: grid;
     grid-template-columns: 60% 40%;
@@ -552,7 +563,17 @@ ADMIN CHAT PAGE UI STYLES
     overflow: hidden;
 }
 
-.ticket-list-panel, .ticket-detail-panel {
+    .ticket-management-layout .ticket-list-panel {
+        padding: 0; /* Override padding for grid layout */
+    }
+
+.ticket-list-panel > .panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.ticket-detail-panel {
     background-color: #fff;
     border-radius: 8px;
     border: 1px solid var(--admin-border-color);
@@ -560,12 +581,6 @@ ADMIN CHAT PAGE UI STYLES
     flex-direction: column;
     overflow: hidden;
 }
-
-    .ticket-list-panel > .panel-body {
-        flex: 1;
-        overflow-y: auto;
-        padding: 1rem;
-    }
 
 .ticket-detail-header {
     padding: 1rem;
@@ -880,7 +895,7 @@ ADMIN CHAT PAGE UI STYLES
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid #fff;
+    border: 2px solid #f4f7fa; /* Match content background */
     transform: scale(0);
     transition: transform 0.2s ease-in-out;
     line-height: 1;
@@ -893,7 +908,7 @@ ADMIN CHAT PAGE UI STYLES
 .notification-dropdown {
     position: absolute;
     top: calc(100% + 10px);
-    right: -20px;
+    right: 0;
     width: 420px;
     max-height: 85vh;
     background-color: #fff;
@@ -1006,11 +1021,16 @@ ADMIN CHAT PAGE UI STYLES
         opacity: 1;
     }
 
-.notification-avatar img {
+.notification-avatar .avatar-initials {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    object-fit: cover;
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
 }
 
@@ -1091,3 +1111,120 @@ ADMIN CHAT PAGE UI STYLES
     text-align: center;
     color: var(--text-light);
 }
+
+/* --- TOAST NOTIFICATION POPUP STYLES --- */
+.toast-notification-popup {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 380px;
+    background-color: #2a3b4f; /* UPDATED COLOR */
+    color: #dfe6e9;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    visibility: hidden;
+}
+
+    .toast-notification-popup.show {
+        opacity: 1;
+        transform: translateY(0);
+        visibility: visible;
+    }
+
+.toast-header {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    gap: 8px;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #4a5a6a; /* UPDATED COLOR */
+}
+
+.toast-actions {
+    margin-left: auto;
+}
+
+    .toast-actions .btn-close {
+        background: none;
+        border: none;
+        color: #b2bec3;
+        font-size: 1rem;
+        opacity: 0.7;
+        cursor: pointer;
+        filter: invert(1);
+    }
+
+.toast-body {
+    display: flex;
+    padding: 12px;
+    gap: 12px;
+    align-items: center;
+}
+
+.toast-avatar .avatar-initials {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-content .toast-sender {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.toast-content .toast-message {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.toast-footer {
+    padding: 8px 12px;
+    display: flex;
+    gap: 8px;
+    background-color: rgba(0,0,0,0.2);
+}
+
+#toast-reply-input {
+    flex-grow: 1;
+    background-color: #4a5a6a; /* UPDATED COLOR */
+    border: 1px solid #6c7a8a; /* UPDATED COLOR */
+    border-radius: 18px;
+    padding: 6px 12px;
+    color: #dfe6e9;
+    outline: none;
+    font-size: 0.9rem;
+}
+
+    #toast-reply-input::placeholder {
+        color: #b2bec3;
+    }
+
+.toast-footer .btn-send {
+    background-color: #4a5a6a; /* UPDATED COLOR */
+    border: 1px solid #6c7a8a; /* UPDATED COLOR */
+    color: #dfe6e9;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+    .toast-footer .btn-send:hover {
+        background-color: #6c7a8a; /* UPDATED COLOR */
+    }
