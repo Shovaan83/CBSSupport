@@ -201,7 +201,7 @@ namespace CBSSupport.Shared.Services
 
             using (var connection = new NpgsqlConnection(_connectionString))
             {
-                // === 1. Get Private Chats ===
+                //1. Get Private Chats
                 var privateChatSql = @"
         SELECT DISTINCT ON (i.instruction_id)
             i.instruction_id AS ConversationId, -- Correctly aliased
@@ -215,7 +215,7 @@ namespace CBSSupport.Shared.Services
         ORDER BY i.instruction_id, i.datetime DESC;";
                 sidebar.PrivateChats.AddRange(await connection.QueryAsync<SidebarChatItem>(privateChatSql, new { ViewingClientId = viewingClientId }));
 
-                // === 2. Get Internal Chats ===
+                // 2. Get Internal Chats 
                 var internalChatSql = @"
         SELECT DISTINCT ON (i.instruction_id)
             i.instruction_id AS ConversationId, -- Correctly aliased
@@ -228,7 +228,7 @@ namespace CBSSupport.Shared.Services
         ORDER BY i.instruction_id, i.datetime DESC;";
                 sidebar.InternalChats.AddRange(await connection.QueryAsync<SidebarChatItem>(internalChatSql, new { FintechClientId = fintechCompanyClientId }));
 
-                // === 3. Get Ticket Chats ===
+                // 3. Get Ticket Chats 
                 var ticketTypeIds = Enumerable.Range(110, 8).ToArray();
                 var ticketSql = @"
         SELECT DISTINCT ON (i.instruction_id)
@@ -250,7 +250,7 @@ namespace CBSSupport.Shared.Services
                 foreach (var ticket in tickets) { ticket.DisplayName = $"#{ticket.ConversationId} - {ticket.DisplayName}"; }
                 sidebar.TicketChats.AddRange(tickets);
 
-                // === 4. Get Inquiry Chats ===
+                // 4. Get Inquiry Chats 
                 var inquiryTypeIds = new[] { 121, 122 };
                 var inquirySql = @"
          SELECT DISTINCT ON (i.instruction_id)
@@ -422,7 +422,6 @@ namespace CBSSupport.Shared.Services
         {
             var inquiryTypeIds = new[] { 121, 122 };
             
-            // First, let's check if there are any records with these type IDs
             var countSql = @"
         SELECT COUNT(*) 
         FROM digital.instructions i 
@@ -447,11 +446,9 @@ namespace CBSSupport.Shared.Services
     {
         try 
         {
-            // Debug: Check count first
             var count = await connection.ExecuteScalarAsync<int>(countSql, new { InquiryTypeIds = inquiryTypeIds });
             Console.WriteLine($"DEBUG: Found {count} records with inquiry type IDs 121 or 122");
             
-            // If no records found, let's check what inst_type_id values exist
             if (count == 0) 
             {
                 var existingTypesSql = "SELECT DISTINCT inst_type_id FROM digital.instructions ORDER BY inst_type_id;";

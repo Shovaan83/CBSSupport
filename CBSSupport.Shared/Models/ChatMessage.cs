@@ -1,4 +1,4 @@
-﻿// Located in CBSSupport.Shared/Models/ChatMessage.cs
+﻿
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
