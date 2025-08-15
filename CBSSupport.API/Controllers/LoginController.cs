@@ -57,14 +57,32 @@ namespace CBSSupport.API.Controllers
                 if (adminUser != null)
                 {
                     var claims = new List<Claim>
+                {
+                    // Use the standard claim type for the user's unique ID
+                    new Claim(ClaimTypes.NameIdentifier, adminUser.Id.ToString()), 
+                    new Claim(ClaimTypes.Name, adminUser.Username),
+                    new Claim(ClaimTypes.Role, "Admin"),
+                    new Claim("FullName", adminUser.FullName)
+                };
+
+                    // We can also simplify the SignInUser call slightly
+                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    var authProperties = new AuthenticationProperties
                     {
-                        new Claim(ClaimTypes.Name, adminUser.Username),
-                        new Claim("FullName", adminUser.FullName),
-                        new Claim(ClaimTypes.Role, "Admin"), // The role is "Admin"
-                        new Claim("UserId", adminUser.Id.ToString())
+                        IsPersistent = model.RememberMe,
+                        ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(60)
                     };
 
-                    await SignInUser(claims, model.RememberMe, "/AdminSupport");
+                    await HttpContext.SignInAsync(
+                        CookieAuthenticationDefaults.AuthenticationScheme,
+                        new ClaimsPrincipal(claimsIdentity),
+                        authProperties);
+
+                    // You can still set session variables if other parts of your app use them
+                    HttpContext.Session.SetString("UserId", adminUser.Id.ToString());
+                    HttpContext.Session.SetString("Username", adminUser.Username);
+                    _logger.LogInformation("Session set for Admin UserId: {UserId}", adminUser.Id);
+
                     return RedirectToAction("Index", "AdminSupport");
                 }
             }
@@ -88,14 +106,17 @@ namespace CBSSupport.API.Controllers
                 {
                     var claims = new List<Claim>
                     {
+                        new Claim(ClaimTypes.NameIdentifier, clientUser.Id.ToString()),
                         new Claim(ClaimTypes.Name, clientUser.Username),
+                        new Claim(ClaimTypes.Role, "Client"),
                         new Claim("FullName", clientUser.FullName),
-                        new Claim(ClaimTypes.Role, "Client"), // The role is "Client"
-                        new Claim("UserId", clientUser.Id.ToString()),
                         new Claim("ClientId", clientUser.ClientId.ToString())
                     };
 
                     await SignInUser(claims, model.RememberMe, "/Support");
+
+                    HttpContext.Session.SetString("ClientId", clientUser.ClientId.ToString());
+
                     return RedirectToAction("Index", "Support");
                 }
             }
@@ -103,8 +124,6 @@ namespace CBSSupport.API.Controllers
             ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             return View(model);
         }
-
-        // Helper method to create the auth cookie and set the session.
         private async Task SignInUser(List<Claim> claims, bool isPersistent, string redirectUri)
         {
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

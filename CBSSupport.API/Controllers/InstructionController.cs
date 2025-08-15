@@ -19,31 +19,24 @@ public class InstructionsController : ControllerBase
         _logger = logger;
     }
 
-    /// <summary>
-    /// A private helper to handle the core logic of saving an instruction.
-    /// </summary>
     private async Task<IActionResult> SaveInstruction(ChatMessage instruction, short instTypeId)
     {
-        // 1. Standard Model Validation
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        // 2. Custom Business Logic Validation
         if (instruction.UserId == null && instruction.ClientId == null)
         {
-            // Add a model error and return a bad request.
             ModelState.AddModelError("Identifier", "A UserId or ClientId must be provided.");
             return BadRequest(ModelState);
         }
 
         try
         {
-            // 3. Set server-side properties
             instruction.InstTypeId = instTypeId;
             instruction.DateTime = DateTime.UtcNow;
-            instruction.InsertDate = DateTime.UtcNow; // Assuming InsertDate is set on creation
+            instruction.InsertDate = DateTime.UtcNow;
             instruction.Status = true;
             instruction.InstChannel ??= "chat";
             instruction.IpAddress ??= HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -63,7 +56,6 @@ public class InstructionsController : ControllerBase
         }
     }
 
-    // --- POST Endpoints (No changes needed here) ---
     [HttpPost("support-group")]
     public Task<IActionResult> SaveSupportGroupChat([FromBody] ChatMessage instruction) => SaveInstruction(instruction, 100);
 
@@ -102,6 +94,13 @@ public class InstructionsController : ControllerBase
 
     [HttpPost("inquiry/sales")]
     public Task<IActionResult> SaveSalesInquiry([FromBody] ChatMessage instruction) => SaveInstruction(instruction, 122);
+
+    [HttpPost("reply")]
+    public Task<IActionResult> SaveReply([FromBody] ChatMessage instruction)
+    {
+        return SaveInstruction(instruction, 100);
+    }
+
     [HttpGet("by-type/{*chatType}")]
     public async Task<IActionResult> GetConversationsByChatType(string chatType)
     {
@@ -165,14 +164,74 @@ public class InstructionsController : ControllerBase
     {
         try
         {
-            // This reuses the exact same service method your SignalR hub was trying to use.
-            // We are just exposing it through a standard API endpoint now.
-            var sidebarData = await _service.GetSidebarForUserAsync(0, clientId); // Assuming fintechUserId can be 0 for now
+            var sidebarData = await _service.GetSidebarForUserAsync(0, clientId); 
             return Ok(sidebarData);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching sidebar data for client ID {ClientId}", clientId);
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpGet("tickets/{clientId}")]
+    [Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
+    public async Task<IActionResult> GetTicketsForClient(long clientId)
+    {
+        try
+        {
+            var tickets = await _service.GetTicketsByClientIdAsync(clientId);
+            return Ok(new { data = tickets });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching tickets for client ID {ClientId}", clientId);
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpGet("inquiries/{clientId}")]
+    [Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
+    public async Task<IActionResult> GetInquiriesForClient(long clientId)
+    {
+        try
+        {
+            var inquiries = await _service.GetInquiriesByClientIdAsync(clientId);
+            return Ok(new { data = inquiries });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching inquiries for client ID {ClientId}", clientId);
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpGet("tickets/all")]
+    public async Task<IActionResult> GetAllTickets()
+    {
+        try
+        {
+            var tickets = await _service.GetAllTicketsAsync();
+            return Ok(new { data = tickets });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching all tickets.");
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpGet("inquiries/all")]
+    public async Task<IActionResult> GetAllInquiries()
+    {
+        try
+        {
+            var inquiries = await _service.GetAllInquiriesAsync();
+            return Ok(new { data = inquiries });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching all inquiries.");
             return StatusCode(500, new { message = "An internal server error occurred." });
         }
     }

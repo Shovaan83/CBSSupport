@@ -39,5 +39,14 @@ namespace CBSSupport.Shared.Data
                 );
             }
         }
+
+        public async Task<AdminUser?> GetByIdAsync(long userId)
+        {
+            var sql = "SELECT * FROM admin.users WHERE id = @UserId";
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                return await connection.QuerySingleOrDefaultAsync<AdminUser>(sql, new { UserId = userId });
+            }
+        }
     }
 }

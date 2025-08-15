@@ -1,6 +1,7 @@
 ﻿using CBSSupport.Shared.Data;
 using CBSSupport.Shared.Helpers;
 using CBSSupport.Shared.Models;
+using Npgsql;
 using System.Threading.Tasks;
 
 namespace CBSSupport.Shared.Services
@@ -40,6 +41,24 @@ namespace CBSSupport.Shared.Services
 
             // 4. Return the user object if the password is valid, otherwise return null.
             return isPasswordValid ? clientUser : null;
+        }
+
+        public async Task<AdminUserDto?> GetAdminUserByIdAsync(long userId)
+        {
+            // It now correctly calls the repository
+            var user = await _userRepository.GetByIdAsync(userId);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            // Map the database model to the simple DTO for security
+            return new AdminUserDto
+            {
+                Id = user.Id,
+                Name = user.FullName
+            };
         }
     }
 }

@@ -12,8 +12,23 @@ namespace CBSSupport.Shared.Services
         Task<IEnumerable<ChatMessage>> GetConversationsByInstTypeAsync(short instTypeId);
 
         Task<ChatMessage> CreateInstructionTicketAsync(ChatMessage newTicket);
+
         Task<ChatMessage> GetInstructionByIdAsync(long instructionId);
+
         Task<IEnumerable<ChatMessage>> GetMessagesByConversationIdAsync(long conversationId);
+
         Task<SidebarViewModel> GetSidebarForUserAsync(long clientAuthUserId, long clientId);
+
+        Task<IEnumerable<TicketViewModel>> GetTicketsByClientIdAsync(long clientId);
+
+        Task<IEnumerable<InquiryViewModel>> GetInquiriesByClientIdAsync(long clientId);
+
+        Task<IEnumerable<ClientUser>> GetAllClientsAsync();
+
+        Task<IEnumerable<TicketViewModel>> GetAllTicketsAsync();
+
+        Task<IEnumerable<InquiryViewModel>> GetAllInquiriesAsync();
+
+        Task<DashboardStatsViewModel> GetDashboardStatsAsync();
     }
 }
