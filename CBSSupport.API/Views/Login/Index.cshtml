@@ -24,20 +24,20 @@
             <h2>Welcome Back</h2>
             <p class="text-muted mb-4">Please select your role and sign in.</p>
 
-            <div class="role-selector" id="roleSelectorContainer">
-                <div class="role-selector-slider"></div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="roleType" id="adminRole" value="admin" checked>
-                    <label class="form-check-label" for="adminRole">Admin</label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="roleType" id="clientRole" value="client">
-                    <label class="form-check-label" for="clientRole">Client</label>
-                </div>
-            </div>
-
             <form id="mainLoginForm" asp-controller="Login" asp-action="Index" method="post">
-                <input type="hidden" asp-for="RoleType" id="roleTypeHidden" />
+
+                <div class="role-selector" id="roleSelectorContainer">
+                    <div class="role-selector-slider"></div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="roleType" id="adminRole" value="admin" checked>
+                        <label class="form-check-label" for="adminRole">Admin</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="roleType" id="clientRole" value="client">
+                        <label class="form-check-label" for="clientRole">Client</label>
+                    </div>
+                </div>
+
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
                 <!-- ADMIN FORM (Initially visible) -->

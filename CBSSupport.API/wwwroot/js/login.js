@@ -15,8 +15,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function handleRoleChange() {
         if (clientRadio.checked) {
-            // --- Client is selected ---
-            roleTypeHidden.value = "client";
             roleSelectorSlider.classList.add('client');
 
             // Show client form and hide admin form
@@ -28,8 +26,6 @@ document.addEventListener("DOMContentLoaded", function () {
             clientInputs.forEach(input => input.disabled = false);
 
         } else {
-            // --- Admin is selected ---
-            roleTypeHidden.value = "admin";
             roleSelectorSlider.classList.remove('client');
 
             // Show admin form and hide client form

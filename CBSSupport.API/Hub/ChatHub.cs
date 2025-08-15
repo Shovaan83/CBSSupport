@@ -3,6 +3,7 @@ using CBSSupport.Shared.Services;
 using CBSSupport.Shared.Models;
 using System;
 using System.Threading.Tasks;
+using System.Linq.Expressions;
 
 namespace CBSSupport.API.Hubs
 {
@@ -34,14 +35,65 @@ namespace CBSSupport.API.Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
-        public async Task SendPrivateMessage(string groupName, string senderName, string message, string fileUrl = null, string fileName = null, string fileType = null)
-        {
-            long messageId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            string initials = !string.IsNullOrEmpty(senderName) ? senderName.Substring(0, 1).ToUpper() : "?";
+        //public async Task SendPrivateMessage(string groupName, string senderName, string message, string fileUrl = null, string fileName = null, string fileType = null)
+        //{
+        //    try
+        //    {
+        //        if (string.IsNullOrEmpty(groupName))
+        //        {
+        //            _logger.LogWarning("SendPrivateMessage was called with a null or empty groupName.");
+        //            return;
+        //        }
 
-            // Broadcast a message with all the new data ONLY to clients in the specified group.
-            await Clients.Group(groupName).SendAsync("ReceivePrivateMessage", messageId, groupName, senderName, message, DateTime.UtcNow, initials, fileUrl, fileName, fileType);
-        }
+        //        long messageId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        //        string initials = !string.IsNullOrEmpty(senderName) ? senderName.Substring(0, 1).ToUpper() : "?";
+
+        //        await Clients.Group(groupName).SendAsync("ReceivePrivateMessage", messageId, groupName, senderName, message, DateTime.UtcNow, initials, fileUrl, fileName, fileType);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error occured in SendPrivateMessage for group {GroupName}", groupName);
+        //        throw;
+        //    }
+        //}
+
+        // In your ChatHub class
+
+        //public async Task SendPrivateMessage(string groupName, string message)
+        //{
+        //    try
+        //    {
+        //        if (string.IsNullOrEmpty(groupName))
+        //        {
+        //            _logger.LogWarning("SendPrivateMessage called with empty groupName.");
+        //            return;
+        //        }
+
+        //        // --- NEW LOGIC: The Hub now gets the user info from the connection context ---
+        //        // This is more secure because the client can't fake who they are.
+        //        string senderName = Context.User.FindFirst("FullName")?.Value ?? "Unknown User";
+        //        string senderIdStr = Context.User.FindFirst("UserId")?.Value;
+
+        //        // The Hub is now responsible for creating the full message object to broadcast.
+        //        var messageToBroadcast = new
+        //        {
+        //            id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+        //            groupName = groupName,
+        //            senderName = senderName,
+        //            instruction = message,
+        //            datetime = DateTime.UtcNow,
+        //            insertUser = int.TryParse(senderIdStr, out var senderId) ? senderId : 0
+        //        };
+
+        //        // Broadcast the full object.
+        //        await Clients.Group(message.InstructionId.ToString()).SendAsync("ReceivePrivateMessage", message);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error occurred in SendPrivateMessage for group {GroupName}", groupName);
+        //        throw;
+        //    }
+        //}
 
         public async Task UserIsTyping(string groupName, string userName)
         {
@@ -72,7 +124,7 @@ namespace CBSSupport.API.Hubs
             var newTicket = new ChatMessage
             {
                 Instruction = subject,
-                InstTypeId = 100, // Default to support group
+                InstTypeId = 100, 
                 Status = true,
                 InstChannel = "chat",
                 IpAddress = Context.GetHttpContext()?.Connection.RemoteIpAddress?.ToString()
@@ -80,6 +132,46 @@ namespace CBSSupport.API.Hubs
 
             ChatMessage savedTicket = await _chatService.CreateInstructionTicketAsync(newTicket);
             await Clients.Caller.SendAsync("NewTicketCreated", savedTicket);
+        }
+
+        public async Task SendAdminMessage(ChatMessage message)
+        {
+            try
+            {
+                if (message == null || !message.InstructionId.HasValue)
+                {
+                    _logger.LogWarning("SendAdminMessage called with invalid message object");
+                    return;
+                }
+
+                _logger.LogInformation("HUB: Received Admin Message. Broadcasting to group {GroupId}", message.InstructionId.Value);
+
+                await Clients.Group(message.InstructionId.Value.ToString()).SendAsync("ReceivePrivateMessage", message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in SendAdminMessage for ConversationId {ConversationId}", message?.InstructionId);
+            }
+        }
+
+        public async Task SendClientMessage(ChatMessage message)
+        {
+            try
+            {
+                if (message == null || !message.InstructionId.HasValue)
+                {
+                    _logger.LogWarning("SendClientMessage called with invalid message object");
+                    return;
+                }
+
+                _logger.LogInformation("HUB: Received Client Message. Broadcasting to group {GroupId}", message.InstructionId.Value);
+
+                await Clients.Group(message.InstructionId.Value.ToString()).SendAsync("ReceivePrivateMessage", message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in SendClientMessage for ConversationId {ConversationId}", message?.InstructionId);
+            }
         }
     }
 }
