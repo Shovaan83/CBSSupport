@@ -8,5 +8,7 @@ namespace CBSSupport.Shared.Data
         Task<AdminUser?> GetByUsernameAsync(string username);
 
         Task<ClientUser?> GetClientUserAsync(long clientId, string username);
+
+        Task<AdminUser?> GetByIdAsync(long userId);
     }
 }

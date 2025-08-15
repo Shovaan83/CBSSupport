@@ -89,29 +89,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Ticket Chats Section -->
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingTickets">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTickets">Ticket Chats</button>
-                        </h2>
-                        <div id="collapseTickets" class="accordion-collapse collapse">
-                            <div class="list-group list-group-flush conversation-list" id="ticket-chat-list">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Inquiry Chats Section -->
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingInquiries">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInquiries">Inquiry Chats</button>
-                        </h2>
-                        <div id="collapseInquiries" class="accordion-collapse collapse">
-                            <div class="list-group list-group-flush conversation-list" id="inquiry-chat-list">
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
         </div>
@@ -141,16 +118,7 @@
                 <div class="history-table-container panel-body">
                     <table id="supportTicketsDataTable" class="table table-hover table-sm small" style="width:100%">
                         <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Subject</th>
-                                <th>Date</th>
-                                <th>Created By</th>
-                                <th>Resolved By</th>
-                                <th>Status</th>
-                                <th>Priority</th>
-                                <th>Actions</th>
-                            </tr>
+
                         </thead>
                         <tbody></tbody>
                     </table>
@@ -199,13 +167,21 @@
                             <label for="ticketSubject" class="form-label">Subject *</label>
                             <select id="ticketSubject" class="form-select" required>
                                 <option value="" disabled selected>Select a subject...</option>
+                                <option value="ticket/training">Training</option>
+                                <option value="ticket/migration">Migration</option>
+                                <option value="ticket/setup">Setup</option>
+                                <option value="ticket/correction">Correction</option>
+                                <option value="ticket/bug-fix">Bug Fix</option>
+                                <option value="ticket/new-feature">New Feature Request</option>
+                                <option value="ticket/feature-enhancement">Feature Enhancement</option>
+                                <option value="ticket/backend-workaround">Backend Workaround</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label for="ticketPriority" class="form-label">Priority *</label>
                             <select id="ticketPriority" class="form-select" required>
                                 <option value="Low" selected>Low</option>
-                                <option value="High">Medium</option>
+                                <option value="Normal">Medium</option>
                                 <option value="Urgent">High</option>
                             </select>
                         </div>
@@ -281,9 +257,9 @@
                         <div class="mb-3">
                             <label for="edit-ticketPriority" class="form-label">Priority *</label>
                             <select id="edit-ticketPriority" class="form-select" required>
-                                <option value="Low">Low</option>
-                                <option value="High">High</option>
-                                <option value="Urgent">Urgent</option>
+                                <option value="Low" selected>Low</option>
+                                <option value="Normal">Medium</option>
+                                <option value="Urgent">High</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -326,7 +302,11 @@
                         </div>
                         <div class="mb-3">
                             <label for="inquirySubject" class="form-label">Subject: *</label>
-                            <input type="text" class="form-control" id="inquirySubject" placeholder="Enter a brief subject for your inquiry" required>
+                            <select class="form-select" id="inquirySubject" required>
+                                <option value="" disabled selected>Select an inquiry type...</option>
+                                <option value="Account Inquiry">Account Inquiry</option>
+                                <option value="Sales and Management">Sales and Management</option>
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label for="inquiryMessage" class="form-label">Inquiry Details: *</label>
@@ -386,11 +366,68 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="viewTicketDetailsModal" tabindex="-1" aria-labelledby="viewTicketDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewTicketDetailsModalLabel">Ticket Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- This div shows the ticket details in read-only mode -->
+                    <div id="ticket-details-view">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label-sm">Ticket ID</label>
+                                <p class="fw-bold" id="details-id">#...</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-sm">Date Submitted</label>
+                                <p id="details-date">...</p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label-sm">Status</label>
+                                <div id="details-status"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-sm">Priority</label>
+                                <div id="details-priority"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label-sm">Subject</label>
+                            <p id="details-subject">...</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label-sm">Description</label>
+                            <p id="details-description" class="bg-light p-3 rounded" style="white-space: pre-wrap;">...</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label-sm">Your Remarks</label>
+                            <p id="details-remarks" class="bg-light p-3 rounded" style="white-space: pre-wrap;">...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <!-- The "Edit" button will be shown/hidden by JavaScript -->
+                    <button type="button" class="btn btn-outline-primary me-auto" id="editTicketBtn" style="display: none;">
+                        <i class="fas fa-pencil-alt me-2"></i>Edit Ticket
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- SCRIPT SECTION -->
     <script>
         const serverData = {
-            currentUserId: @(Context.Session.GetString("UserId") ?? "0"),
-            currentUserName: "@(Context.Session.GetString("Username") ?? "User")"
+        currentUserId: parseInt('@ViewBag.UserId', 10),
+        currentUserName: '@ViewBag.UserFullName',
+        currentClientId: parseInt('@ViewBag.ClientId', 10)
         };
     </script>
     <script src="https://code.jquery.com/jquery-3.7.0.js"></script>

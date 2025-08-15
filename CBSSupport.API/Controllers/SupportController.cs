@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace CBSSupport.API.Controllers
 {
-    [Authorize] 
+    [Authorize(Roles = "Client")]
     public class SupportController : Microsoft.AspNetCore.Mvc.Controller
     {
         private readonly ILogger<SupportController> _logger;
@@ -17,8 +17,9 @@ namespace CBSSupport.API.Controllers
         }
         public IActionResult Index()
         {
-            var userIdFromSession = HttpContext.Session.GetString("UserId");
-            _logger.LogInformation("--- NEW VERSION LOADED --- Session User ID is: {UserId}", userIdFromSession ?? "NULL");
+            var claimsIdentity = User.Identity as ClaimsIdentity;
+            ViewBag.UserFullName = claimsIdentity?.FindFirst("FullName")?.Value ?? "User";
+            ViewBag.ClientId = claimsIdentity?.FindFirst("ClientId")?.Value ?? "0";
             return View();
         }
     }
