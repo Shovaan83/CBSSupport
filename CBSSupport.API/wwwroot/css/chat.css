@@ -26,8 +26,8 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 var(--spacing-md); /* Reduced padding for compactness */
-    height: 60px; /* Slightly reduced header height */
+    padding: 0 var(--spacing-md);
+    height: 60px;
     background-color: #fff;
     border-bottom: 1px solid var(--border-color);
     position: fixed;
@@ -51,7 +51,7 @@ body {
 
 .header-brand-text {
     font-weight: 500;
-    font-size: 0.9rem; /* Slightly smaller for better fit */
+    font-size: 0.9rem;
 }
 
 .user-info {
@@ -85,12 +85,12 @@ body {
 
 .dashboard-container {
     display: grid;
-    grid-template-columns: 12fr 38fr 50fr; /* Adjusted for balanced layout */
+    grid-template-columns: 12fr 38fr 50fr;
     grid-template-rows: 100vh;
     width: 100vw;
     height: 100vh;
     gap: 0;
-    margin-top: 60px; /* Adjusted for smaller header */
+    margin-top: 60px;
 }
 
 /* --- BASE STYLES & ACCESSIBILITY --- */
@@ -103,12 +103,12 @@ body {
 }
 
 .panel-header {
-    padding: var(--spacing-sm) var(--spacing-md); /* Reduced padding */
+    padding: var(--spacing-sm) var(--spacing-md);
     font-weight: 600;
     color: var(--text-dark);
     border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
-    font-size: 0.9rem; /* Smaller for clarity */
+    font-size: 0.9rem;
 }
 
 .panel-body {
@@ -126,7 +126,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 /* --- AVATAR STYLE --- */
 .avatar-initials {
-    width: 36px; /* Smaller avatars for conversation list */
+    width: 36px;
     height: 36px;
     border-radius: 50%;
     color: #fff;
@@ -164,11 +164,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .conversation-item {
     display: flex;
     align-items: center;
-    padding: var(--spacing-sm) var(--spacing-md); /* Reduced padding */
+    padding: var(--spacing-sm) var(--spacing-md);
     cursor: pointer;
     border-bottom: 1px solid var(--border-color);
     transition: background-color 0.2s ease;
-    font-size: 0.85rem; /* Smaller font for compact list */
+    font-size: 0.85rem;
 }
 
     .conversation-item:hover {
@@ -215,7 +215,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .message-row {
     display: flex;
     gap: var(--spacing-sm);
-    max-width: 80%; /* Slightly increased for better text fit */
+    max-width: 80%;
     margin-bottom: var(--spacing-sm);
 }
 
@@ -233,7 +233,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 
 .message-bubble {
     padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: 14px; /* Smaller radius for compactness */
+    border-radius: 14px;
     margin-bottom: var(--spacing-xs);
 }
 
@@ -241,7 +241,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     margin: 0;
     word-wrap: break-word;
     line-height: 1.3;
-    font-size: 0.9rem; /* Smaller font for chat */
+    font-size: 0.9rem;
 }
 
 .message-row.received {
@@ -299,80 +299,18 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     gap: var(--spacing-xs);
 }
 
-.btn-icon {
-    color: var(--text-light);
-}
-
-/* MODIFICATION: Styles for Read Receipts & Date Separators */
+/* Date Separators & Read Receipts */
 .date-separator {
     text-align: center;
     margin: var(--spacing-lg) 0 var(--spacing-md);
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-light);
-    position: relative;
-    padding: 0 var(--spacing-md);
-}
-
-    .date-separator::before, .date-separator::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        width: calc(50% - 50px);
-        height: 1px;
-        background-color: var(--border-color);
-    }
-
-    .date-separator::before {
-        left: 0;
-    }
-
-    .date-separator::after {
-        right: 0;
-    }
-
-.message-meta {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    margin-top: var(--spacing-xs);
-    padding-top: var(--spacing-xs);
 }
 
 .message-timestamp {
     font-size: 0.7rem;
     color: #6c757d;
-}
-
-.read-receipt {
-    font-size: 0.9em;
-}
-
-.receipt-sent {
-    color: #adb5bd;
-}
-
-.receipt-delivered {
-    color: #adb5bd;
-}
-
-.receipt-seen {
-    color: var(--read-receipt-color);
-}
-
-.message-row.sent .message-meta {
-    justify-content: flex-end;
-}
-
-.typing-indicator {
-    position: absolute;
-    top: calc(-10px - var(--spacing-xs));
-    left: var(--spacing-md);
-    height: 18px;
-    font-size: 0.75rem;
-    color: var(--text-light);
-    font-style: italic;
-    transition: opacity 0.3s ease;
 }
 
 /* --- COLUMN 3: HISTORY --- */
@@ -397,284 +335,122 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-    .history-panel .panel-header {
-        padding: var(--spacing-md);
-        margin-bottom: 0;
-        border-radius: 8px 8px 0 0;
-    }
-
 .history-table-container {
     flex-grow: 1;
     overflow-y: auto;
     padding: var(--spacing-sm);
 }
 
-/* --- DATATABLES & Other styles --- */
-.dataTables_wrapper {
-    background-color: #fff;
-    border-radius: 8px;
-    padding: var(--spacing-sm);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.dataTables_filter {
-    margin-bottom: var(--spacing-md);
-    position: relative;
-}
-
-    .dataTables_filter label {
-        width: 100%;
-        font-weight: 500;
-        color: var(--text-dark);
-    }
-
-    .dataTables_filter input {
-        width: 100% !important;
-        padding: var(--spacing-xs) var(--spacing-sm) var(--spacing-xs) calc(2rem + var(--spacing-xs)) !important;
-        border-radius: 6px;
-        border: 1px solid var(--border-color);
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-
-        .dataTables_filter input:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.1);
-        }
-
-    .dataTables_filter .search-icon {
-        position: absolute;
-        top: 50%;
-        left: var(--spacing-sm);
-        transform: translateY(-50%);
-        color: var(--text-light);
-        pointer-events: none;
-        font-size: 0.9rem;
-    }
-
+/* --- DATATABLES & MODALS --- */
 .table {
-    font-size: 0.85rem;
     border-collapse: separate;
     border-spacing: 0;
+    margin-top: 1rem;
 }
 
     .table th {
-        background-color: var(--light-grey);
-        color: var(--text-dark);
         font-weight: 600;
-        text-transform: uppercase;
+        color: #505f79;
         font-size: 0.75rem;
-        padding: var(--spacing-sm) var(--spacing-md);
-        border-bottom: 2px solid var(--border-color);
-        position: sticky;
-        top: 0;
-        z-index: 10;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid #dfe1e6;
+        background-color: #f4f5f7;
+        padding: 0.75rem 1rem;
     }
 
     .table td {
-        padding: var(--spacing-sm) var(--spacing-md);
+        padding: 1rem;
         vertical-align: middle;
-        border-bottom: 1px solid var(--border-color);
-        color: var(--text-dark);
+        color: #172b4d;
     }
 
     .table tbody tr {
-        transition: background-color 0.2s ease;
+        transition: background-color 0.2s ease, box-shadow 0.2s ease;
     }
 
-        .table tbody tr:hover {
-            background-color: rgba(0, 82, 204, 0.05);
-        }
-
-    .table .status-badge, .table .priority-badge {
-        display: inline-block;
-        padding: var(--spacing-xs) var(--spacing-sm);
-        border-radius: 10px;
-        font-size: 0.7rem;
-        font-weight: 500;
-        text-align: center;
-        min-width: 60px;
-    }
-
-/* Status Badges */
-.status-badge.open {
-    background-color: rgba(0, 123, 255, 0.1);
-    color: var(--primary-color);
+.table-hover > tbody > tr:hover {
+    background-color: #fff !important;
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+    transform: translateY(-2px);
 }
 
-.status-badge.in-progress {
-    background-color: rgba(255, 193, 7, 0.1);
-    color: #ffc107;
+.badge {
+    display: inline-block;
+    padding: 0.3em 0.75em;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 99px;
 }
 
-.status-badge.resolved {
-    background-color: rgba(0, 135, 90, 0.1);
-    color: #00875a;
+.badge-status-resolved {
+    color: #065f46;
+    background-color: #d1fae5;
 }
 
-.status-badge.closed {
-    background-color: rgba(108, 117, 125, 0.1);
-    color: #6c757d;
+.badge-status-pending, .badge-status-open {
+    color: #92400e;
+    background-color: #fef3c7;
 }
 
-/* Priority Badges */
-.priority-badge.low {
-    background-color: rgba(0, 135, 90, 0.1);
-    color: #00875a;
+.badge-status-on-hold {
+    color: #374151;
+    background-color: #e5e7eb;
 }
 
-.priority-badge.medium {
-    background-color: rgba(255, 193, 7, 0.1);
-    color: #ffc107;
+.badge-priority-low {
+    color: #1d4ed8;
+    background-color: #dbeafe;
 }
 
-.priority-badge.high, .priority-badge.urgent {
-    background-color: rgba(222, 53, 11, 0.1);
-    color: #de350b;
+.badge-priority-normal, .badge-priority-medium {
+    color: #059669;
+    background-color: #a7f3d0;
 }
 
-/* Action Buttons */
-.table .action-btn {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: 0.8rem;
-    border-radius: 4px;
-    margin-right: var(--spacing-xs);
-    transition: background-color 0.2s ease;
+.badge-priority-high {
+    color: #b45309;
+    background-color: #fde68a;
 }
 
-    .table .action-btn i {
-        margin-right: var(--spacing-xs);
-    }
+.badge-priority-urgent {
+    color: #b91c1c;
+    background-color: #fee2e2;
+}
 
-    .table .action-btn.view-btn {
-        background-color: var(--primary-color);
-        color: #fff;
-    }
+.table .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-start;
+}
 
-    .table .action-btn.edit-btn {
-        background-color: var(--support-color);
-        color: #fff;
-    }
-
-    .table .action-btn.delete-btn {
-        background-color: #dc3545;
-        color: #fff;
-    }
-
-/* Pagination Styling */
-.dataTables_paginate .paginate_button {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    margin: 0 var(--spacing-xs);
-    border-radius: 4px;
-    color: var(--text-dark);
+.table .btn-icon-action {
+    background: transparent;
+    border: 1px solid #dfe1e6;
+    color: #505f79;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.2s ease;
 }
 
-    .dataTables_paginate .paginate_button.current,
-    .dataTables_paginate .paginate_button:hover {
-        background-color: var(--primary-color);
-        color: #fff;
-        border-color: var(--primary-color);
+    .table .btn-icon-action:hover {
+        color: #0052cc;
+        background-color: #e9f2ff;
+        border-color: #0052cc;
     }
-
-.dataTables_info {
-    font-size: 0.8rem;
-    color: var(--text-light);
-    padding-top: var(--spacing-sm);
-}
-
-::-webkit-scrollbar {
-    width: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 3px;
-}
 
 .accordion-item {
     border: none;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: var(--spacing-sm);
-}
-
-.accordion-button {
-    font-weight: 600;
-    color: var(--text-dark);
-    padding: var(--spacing-md);
-}
-
-.accordion-body {
-    padding: var(--spacing-sm);
-}
-
-.accordion .list-group-item {
-    border: none;
-    border-top: 1px solid var(--border-color);
-    padding: var(--spacing-sm) var(--spacing-md);
-}
-
-/* MODIFICATION: Styles for file attachments in chat bubbles */
-.message-attachment {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
-    background-color: rgba(0, 0, 0, 0.05);
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    max-width: 200px;
-    margin-top: var(--spacing-xs);
-}
-
-.message-row.sent .message-attachment {
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.attachment-icon {
-    font-size: 1.5rem;
-    color: var(--text-light);
-    margin-right: var(--spacing-xs);
-}
-
-.message-row.sent .attachment-icon {
-    color: #fff;
-}
-
-.attachment-info {
-    overflow: hidden;
-    flex-grow: 1;
-}
-
-.attachment-name {
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: block;
-    margin-bottom: var(--spacing-xs);
-}
-
-.attachment-link {
-    text-decoration: none;
-    color: var(--primary-color);
-}
-
-.message-row.sent .attachment-link {
-    color: #fff;
-    text-decoration: underline;
-}
-
-.attachment-preview-image {
-    max-width: 200px;
-    max-height: 150px;
-    border-radius: 6px;
-    margin-top: var(--spacing-xs);
-    cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* --- MOBILE RESPONSIVENESS --- */
@@ -694,47 +470,40 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
         border-bottom: 1px solid var(--border-color);
         margin-bottom: var(--spacing-md);
     }
+}
 
-    #history-column {
-        padding: var(--spacing-md);
-        gap: var(--spacing-md);
+
+/* === DEFINITIVE DATATABLE VISIBILITY FIX (NEW CODE) === */
+/*
+ * This block uses high specificity to ensure these styles are ALWAYS applied
+ * to the history tables, overriding any conflicting general styles.
+*/
+#history-column .table td {
+    color: #172b4d !important; /* Force dark, readable text color */
+}
+
+    #history-column .table td strong {
+        color: #172b4d !important; /* Ensure bolded text is also visible */
     }
 
-    .panel-body {
-        padding: var(--spacing-xs) var(--spacing-sm);
-    }
+#history-column .badge {
+    /* Ensure badge text is visible */
+    color: inherit !important;
+}
 
-    #chat-panel-body {
-        padding: var(--spacing-md);
-    }
+.modal-body .form-label-sm {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+}
 
-    .table {
-        font-size: 0.8rem;
-    }
+.modal-body p, .modal-body div[id^="details-"] {
+    font-size: 1rem;
+    color: var(--text-dark);
+}
 
-        .table th, .table td {
-            padding: var(--spacing-xs) var(--spacing-sm);
-        }
-
-        .table .status-badge, .table .priority-badge {
-            font-size: 0.65rem;
-            min-width: 50px;
-        }
-
-        .table .action-btn {
-            padding: var(--spacing-xs);
-            font-size: 0.75rem;
-        }
-
-    .conversation-item {
-        font-size: 0.8rem;
-    }
-
-    .message-text {
-        font-size: 0.85rem;
-    }
-
-    #message-input {
-        font-size: 0.85rem;
-    }
+.modal-body .bg-light {
+    background-color: var(--light-grey) !important;
 }

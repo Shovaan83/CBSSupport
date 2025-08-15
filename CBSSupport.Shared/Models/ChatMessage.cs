@@ -1,11 +1,11 @@
 ﻿// Located in CBSSupport.Shared/Models/ChatMessage.cs
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CBSSupport.Shared.Models
 {
     public class ChatMessage
     {
-        // Properties set by the database or server-side logic
         public long Id { get; set; }
         public DateTime DateTime { get; set; }
         public short InstTypeId { get; set; }
@@ -14,7 +14,8 @@ namespace CBSSupport.Shared.Models
         public string? InstChannel { get; set; }
         public string? IpAddress { get; set; }
 
-        // --- Properties likely sent from the client ---
+        [NotMapped]
+        public string? SenderName { get; set; }
 
         [Required(ErrorMessage = "Instruction text cannot be empty.")]
         [StringLength(4000, MinimumLength = 1, ErrorMessage = "Instruction must be between 1 and 4000 characters.")]
@@ -40,6 +41,8 @@ namespace CBSSupport.Shared.Models
         public int? CompletedBy { get; set; }
         public DateTime? CompletedOn { get; set; }
         public string? CompletedRemarks { get; set; }
+
+        public string? Priority { get; set; }
         public string? Remarks { get; set; }
         public int? EditUser { get; set; }
         public DateTime? EditDate { get; set; }

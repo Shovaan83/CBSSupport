@@ -1,17 +1,16 @@
-﻿/* --- GLOBAL ADMIN LAYOUT --- */
+﻿/* === DEFINITIVE ADMIN CSS === */
+
+/* --- 1. GLOBAL & LAYOUT --- */
 :root {
-    --admin-sidebar-bg: #1a2634; /* Darker blue-grey for depth */
-    --admin-content-bg: #f8fafc; /* Softer light grey */
-    --admin-accent: #3b82f6; /* Vibrant blue for accents */
-    --admin-text-light: #f1f5f9;
-    --admin-border-color: #d1d9e0;
-    --pending-bg: #facc15; /* Brighter pending yellow */
-    --resolved-bg: #22c55e; /* Vivid green for resolved */
-    --high-priority-bg: #ef4444; /* Stronger red for urgency */
-    --normal-priority-bg: #22c55e;
-    --low-priority-bg: #3b82f6;
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --admin-sidebar-bg: #2c3e50;
+    --admin-content-bg: #f4f7fa;
+    --admin-accent: #0d6efd; /* Standard Bootstrap Blue */
+    --admin-text-light: #ecf0f1;
+    --admin-border-color: #e1e8ed;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --border-radius: 0.5rem;
+    --transition: 150ms ease-in-out;
 }
 
 body {
@@ -19,81 +18,75 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background-color: var(--admin-content-bg);
     overflow: hidden;
-    font-size: 14px;
-    line-height: 1.5;
-}
-
-.stat-card {
-    background-color: #fff;
-    border-radius: 12px;
-    padding: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    border: none;
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-    }
-
-.stat-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 1.4rem;
-    background: linear-gradient(135deg, var(--admin-accent), #60a5fa);
-}
-
-.stat-title {
-    font-size: 0.85rem;
-    color: #6b7280;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-}
-
-.stat-value {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #1f2937;
 }
 
 .admin-container {
     display: grid;
-    grid-template-columns: 260px 1fr;
+    grid-template-columns: 240px 1fr;
     height: 100vh;
 }
 
-/* --- LEFT SIDEBAR --- */
-.admin-sidebar {
-    background: linear-gradient(180deg, var(--admin-sidebar-bg), #2c3e50);
-    color: var(--admin-text-light);
+.admin-content {
     display: flex;
     flex-direction: column;
-    padding: 1.5rem;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    position: relative;
 }
 
-.sidebar-header {
-    font-size: 1.6rem;
-    font-weight: 700;
-    padding: 1.25rem 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 1.5rem;
+.admin-page {
+    display: none;
+    height: 100%;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+    .admin-page.active {
+        display: flex;
+    }
+
+.page-header {
+    padding: 1.5rem;
+    background-color: #fff;
+    border-bottom: 1px solid var(--admin-border-color);
+    flex-shrink: 0;
     display: flex;
+    justify-content: space-between;
     align-items: center;
 }
 
+    .page-header h1 {
+        font-size: 1.5rem;
+        margin: 0;
+        font-weight: 600;
+    }
+
+.page-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+
+/* --- 2. SIDEBAR --- */
+.admin-sidebar {
+    background-color: var(--admin-sidebar-bg);
+    color: var(--admin-text-light);
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    border-right: 1px solid #3b4d61;
+}
+
+.sidebar-header {
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 1rem 0.5rem;
+    border-bottom: 1px solid #3b4d61;
+    margin-bottom: 1rem;
+}
+
     .sidebar-header .fa-shield-alt {
-        margin-right: 12px;
-        color: var(--admin-accent);
+        margin-right: 10px;
     }
 
 .sidebar-nav {
@@ -102,80 +95,122 @@ body {
     margin: 0;
 }
 
+    .sidebar-nav .nav-item {
+        margin-bottom: 0.25rem;
+    }
+
     .sidebar-nav a {
         display: flex;
         align-items: center;
-        padding: 0.9rem 1rem;
+        padding: 0.85rem 1rem;
         color: var(--admin-text-light);
         text-decoration: none;
-        border-radius: 8px;
-        transition: all 0.3s ease;
+        border-radius: 6px;
+        transition: background-color 0.2s ease;
         font-weight: 500;
-        margin-bottom: 0.5rem;
+        cursor: pointer;
     }
 
         .sidebar-nav a:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            transform: translateX(4px);
+            background-color: #3b4d61;
         }
 
         .sidebar-nav a.active {
-            background: var(--admin-accent);
+            background-color: var(--admin-accent);
             color: #fff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .sidebar-nav a .fa-fw {
-            margin-right: 14px;
-            font-size: 1.1rem;
+            margin-right: 12px;
         }
 
-/* --- MAIN CONTENT AREA --- */
-.admin-content {
+
+/* --- 3. DASHBOARD --- */
+.dashboard-card {
+    background-color: #fff;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--admin-border-color);
+    padding: 1.5rem;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
 }
 
-.admin-page {
-    display: none;
-    height: 100%;
-    flex-direction: column;
+.stat-card h6 {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
 }
 
-    .admin-page.active {
-        display: flex;
-    }
+.stat-card .stat-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
 
-.page-header {
-    padding: 1.5rem 2rem;
-    background-color: #fff;
-    border-bottom: 1px solid var(--admin-border-color);
-    flex-shrink: 0;
+.stat-card h2 {
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.stat-card i {
+    font-size: 1.5rem;
+    color: #adb5bd;
+}
+
+.list-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: var(--shadow-sm);
 }
 
-    .page-header h1 {
-        font-size: 1.9rem;
-        margin: 0;
-        color: #1f2937;
+    .list-card-header h6 {
+        font-size: 1rem;
         font-weight: 600;
+        margin-bottom: 1rem;
     }
 
-.page-content {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 2rem;
-    background: var(--admin-content-bg);
+    .list-card-header a {
+        text-decoration: none;
+        font-weight: 500;
+        color: #495057;
+    }
+
+.recent-ticket-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid var(--admin-border-color);
+    border-radius: 6px;
+    transition: background-color var(--transition);
 }
 
-/* --- TICKET MANAGEMENT PAGE LAYOUT --- */
+    .recent-ticket-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .recent-ticket-item:last-child {
+        border-bottom: none;
+    }
+
+.recent-ticket-info strong {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.recent-ticket-info small {
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+
+/* --- 4. TICKET MANAGEMENT LAYOUT --- */
 .ticket-management-layout {
     display: grid;
-    grid-template-columns: 58% 42%;
+    grid-template-columns: 60% 1fr;
     gap: 1.5rem;
     height: 100%;
     overflow: hidden;
@@ -183,162 +218,488 @@ body {
 
 .ticket-list-panel, .ticket-detail-panel {
     background-color: #fff;
-    border-radius: 12px;
-    border: none;
-    box-shadow: var(--shadow-sm);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--admin-border-color);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: box-shadow 0.2s ease;
 }
 
-    .ticket-list-panel:hover, .ticket-detail-panel:hover {
-        box-shadow: var(--shadow-md);
-    }
-
-.panel-body {
-    padding: 1.5rem;
-    overflow-y: auto;
-}
-
-.dataTables_wrapper .row:first-child {
-    display: none;
-}
-
-/* --- TICKET DETAIL PANEL --- */
 .ticket-detail-header {
-    padding: 1.25rem 1.5rem;
+    padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--admin-border-color);
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     font-weight: 600;
-    background: #f8fafc;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
 }
 
 .ticket-properties {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1.25rem;
+    gap: 1.5rem;
     padding: 1.5rem;
-    border-bottom: 1px solid var(--admin-border-color);
 }
 
     .ticket-properties .form-group label {
         font-weight: 500;
-        font-size: 0.9rem;
-        margin-bottom: 0.3rem;
-        color: #6b7280;
+        font-size: 0.8rem;
+        margin-bottom: 0.25rem;
+        color: #6c757d;
+        text-transform: uppercase;
     }
 
-    .ticket-properties .form-control[disabled] {
-        background-color: #f1f5f9;
-        border-radius: 6px;
+
+/* --- 5. CHAT PAGE & FLOATING CHAT --- */
+.chat-container-full {
+    display: grid;
+    grid-template-columns: 320px 1fr; /* Sidebar width + Main panel */
+    height: 100%;
+    overflow: hidden;
+}
+
+.chat-sidebar {
+    background-color: #fff;
+    border-right: 1px solid var(--admin-border-color);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chat-sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--admin-border-color);
+    flex-shrink: 0;
+}
+
+.chat-sidebar .panel-body {
+    padding: 0.5rem;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.conversation-item {
+    padding: 0.75rem 1rem !important;
+    border: none !important;
+    border-radius: var(--border-radius) !important;
+    margin-bottom: 0.25rem;
+    cursor: pointer;
+    transition: background-color var(--transition);
+    border-left: 3px solid transparent !important;
+}
+
+    .conversation-item:hover {
+        background-color: #f8f9fa;
     }
 
-.ticket-conversation {
+    .conversation-item.active {
+        background-color: #e0f3ff !important;
+        border-left-color: var(--admin-accent) !important;
+        font-weight: 600;
+    }
+
+/* Main Chat Panel */
+.chat-main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: #f0f2f5; /* A slightly different BG for the chat area */
+}
+
+.chat-main-header {
+    padding: 0.75rem 1.5rem;
+    background-color: #fff;
+    border-bottom: 1px solid var(--admin-border-color);
+    font-weight: 600;
+    color: var(--text-heading);
+    flex-shrink: 0;
+    min-height: 57px;
+    display: flex;
+    align-items: center;
+}
+
+#chat-panel-body {
     flex-grow: 1;
     padding: 1.5rem;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
-    background-color: #f1f5f9;
 }
 
-.ticket-reply {
-    padding: 1.5rem;
+.chat-footer {
+    padding: 1rem;
     border-top: 1px solid var(--admin-border-color);
-    background: #fff;
-    border-radius: 0 0 12px 12px;
+    background: #f8fafc;
+    display: flex;
+    gap: 1rem;
 }
 
-/* --- CONVERSATION & BADGE STYLES --- */
-.message-row {
-    display: flex;
-    gap: 12px;
-    max-width: 85%;
+    .chat-footer .form-control:focus {
+        border-color: var(--admin-accent);
+        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+    }
+
+/* Placeholder View */
+.placeholder-view {
+    margin: auto;
+    text-align: center;
+    color: #6c757d;
+}
+
+.placeholder-icon {
+    font-size: 4rem;
+    color: var(--admin-border-color);
     margin-bottom: 1rem;
 }
 
-.message-content {
+/* Premium Message Group & Avatar Styles */
+.message-group {
+    display: flex;
+    gap: 0.75rem;
+    max-width: 75%;
+    margin-bottom: 1rem;
+}
+
+    .message-group.sent {
+        flex-direction: row-reverse;
+        align-self: flex-end;
+    }
+
+    .message-group.received {
+        align-self: flex-start;
+    }
+
+.chat-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--admin-accent);
+    color: white;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    align-self: flex-end;
+}
+
+.message-group.received .chat-avatar {
+    background-color: #6c757d;
+}
+
+.message-cluster {
     display: flex;
     flex-direction: column;
+    gap: 0.25rem;
+    align-items: flex-start;
+}
+
+.message-group.sent .message-cluster {
+    align-items: flex-end;
 }
 
 .message-bubble {
-    padding: 12px 18px;
-    border-radius: 16px;
+    padding: 0.75rem 1rem;
+    border-radius: 1.125rem;
     box-shadow: var(--shadow-sm);
-    transition: transform 0.2s ease;
+    max-width: 100%;
+    width: fit-content;
 }
 
-    .message-bubble:hover {
-        transform: translateY(-2px);
-    }
+.message-group .message-sender {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: #6c757d;
+}
+
+.message-group.sent .message-sender {
+    text-align: right;
+}
+
+.message-group.received .message-bubble {
+    background-color: #fff;
+    border: 1px solid var(--admin-border-color);
+}
+
+.message-group.sent .message-bubble {
+    background-color: var(--admin-accent);
+    color: white;
+}
+
+.message-cluster > .message-bubble:first-child {
+    border-bottom-left-radius: 0.5rem;
+}
+
+.message-group.sent .message-cluster > .message-bubble:first-child {
+    border-bottom-right-radius: 0.5rem;
+    border-bottom-left-radius: 1.125rem;
+}
 
 .message-text {
     margin: 0;
     white-space: pre-wrap;
     word-wrap: break-word;
-    font-size: 0.95rem;
 }
 
 .message-timestamp {
-    font-size: 0.75rem;
-    color: #6b7280;
-    margin-top: 6px;
+    font-size: 0.7rem;
+    margin-top: 0.3rem;
+    text-align: right;
+    display: block;
+    color: #9ca3af;
 }
 
-.message-row.received .message-bubble {
-    background-color: #e5e7eb;
-    color: #1f2937;
-    border-top-left-radius: 4px;
+.message-group.sent .message-timestamp {
+    color: rgba(255, 255, 255, 0.7);
 }
 
-.message-row.sent .message-bubble {
-    background: linear-gradient(135deg, var(--admin-accent), #60a5fa);
-    color: #fff;
-    border-top-right-radius: 4px;
+#floating-chat-container {
+    position: fixed;
+    bottom: 0;
+    right: 20px;
+    display: flex;
+    gap: 15px;
+    z-index: 1050;
+    align-items: flex-end;
+    pointer-events: none;
 }
 
-.note-bubble {
-    border: 1px dashed #f97316;
-    background-color: #ffedd5;
-    border-radius: 12px;
+.floating-chat-box {
+    width: 340px;
+    background-color: #fff;
+    border: 1px solid var(--admin-border-color);
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    height: 420px;
+    transition: all 0.3s ease;
+    pointer-events: auto;
+}
+
+    .floating-chat-box.collapsed {
+        height: 48px;
+        overflow: hidden;
+    }
+
+.chat-box-header {
+    background-color: var(--admin-sidebar-bg);
+    color: var(--admin-text-light);
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.chat-box-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+}
+
+.chat-box-actions button {
+    background: none;
+    border: none;
+    color: var(--admin-text-light);
+    font-size: 1rem;
+    padding: 0 5px;
+    opacity: 0.8;
+}
+
+    .chat-box-actions button:hover {
+        opacity: 1;
+    }
+
+.chat-box-body {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.chat-box-footer {
+    padding: 0.75rem;
+    border-top: 1px solid var(--admin-border-color);
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+    .chat-box-footer textarea {
+        flex-grow: 1;
+        border-radius: 6px;
+        resize: none;
+        height: 40px;
+        font-size: 0.9rem;
+    }
+
+    .chat-box-footer .btn {
+        flex-shrink: 0;
+    }
+
+
+/* --- 6. DATATABLES & BADGES (FINAL VERSION) --- */
+.table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+    .table th {
+        font-weight: 600;
+        color: #6c757d;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid var(--admin-border-color);
+        background-color: #f8f9fa;
+        padding: 0.75rem 1rem;
+    }
+
+    .table td {
+        padding: 1rem;
+        vertical-align: middle;
+    }
+
+    .table tbody tr {
+        transition: background-color var(--transition), box-shadow var(--transition);
+    }
+
+.table-hover > tbody > tr:hover {
+    background-color: #fff !important;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.table-hover > tbody > tr.table-active {
+    background-color: #e0f3ff !important;
 }
 
 .badge {
+    display: inline-block;
+    padding: 0.3em 0.75em;
+    font-size: 0.75rem;
     font-weight: 600;
-    padding: 0.5em 1em;
-    border-radius: 6px;
-    font-size: 0.85rem;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 99px;
 }
 
-    .badge.bg-pending {
-        background-color: var(--pending-bg) !important;
-        color: #1f2937;
-    }
+.badge-status-resolved {
+    color: #065f46;
+    background-color: #d1fae5;
+}
 
-    .badge.bg-resolved {
-        background-color: var(--resolved-bg) !important;
-        color: #fff;
-    }
+.badge-status-pending, .badge-status-open {
+    color: #92400e;
+    background-color: #fef3c7;
+}
 
-    .badge.bg-low {
-        background-color: var(--low-priority-bg) !important;
-        color: #fff;
-    }
+.badge-status-on-hold {
+    color: #374151;
+    background-color: #e5e7eb;
+}
 
-    .badge.bg-normal {
-        background-color: var(--normal-priority-bg) !important;
-        color: #fff;
-    }
-
-    .badge.bg-high {
-        background-color: var(--high-priority-bg) !important;
-        color: #fff;
-    }
-
-.table-hover > tbody > tr.table-active {
+.badge-priority-low {
+    color: #1d4ed8;
     background-color: #dbeafe;
-    transition: background-color 0.2s ease;
 }
+
+.badge-priority-normal {
+    color: #059669;
+    background-color: #a7f3d0;
+}
+
+.badge-priority-high {
+    color: #b45309;
+    background-color: #fde68a;
+}
+
+.badge-priority-urgent {
+    color: #b91c1c;
+    background-color: #fee2e2;
+}
+
+.table .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.table .btn-icon-action {
+    background: transparent;
+    border: 1px solid var(--admin-border-color);
+    color: #6c757d;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition);
+}
+
+    .table .btn-icon-action:hover {
+        color: var(--admin-accent);
+        background-color: #e0f3ff;
+        border-color: var(--admin-accent);
+    }
+
+.chart-card {
+    min-height: 350px; /* Ensure the card has enough height for the chart */
+}
+
+    .chart-card h6 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+    }
+
+.chart-container {
+    position: relative;
+    flex-grow: 1; /* Allow the chart to fill the available space */
+}
+
+.sidebar-footer {
+    margin-top: auto; /* This pushes the footer to the bottom of the sidebar */
+    padding-top: 1rem;
+    border-top: 1px solid #3b4d61;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+    .sidebar-footer .user-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 500;
+    }
+
+        .sidebar-footer .user-info .fa-user-circle {
+            font-size: 1.5rem;
+        }
+
+    .sidebar-footer .logout-link {
+        color: var(--admin-text-light);
+        text-decoration: none;
+        font-size: 1.25rem;
+        padding: 0.5rem;
+        border-radius: 6px;
+        transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+        .sidebar-footer .logout-link:hover {
+            background-color: #dc3545; /* A red color on hover for emphasis */
+            color: #fff;
+        }
