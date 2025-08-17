@@ -28,19 +28,19 @@ builder.Services.AddSession(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
-// --- 2. Get Connection String (No changes here) ---
+// --- 2. Get Connection String ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(connectionString))
 {
     throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 }
 
-// --- 3. Register your custom services (No changes here) ---
+// --- 3. Register your custom services---
 builder.Services.AddSingleton<IChatService>(provider => new ChatService(connectionString));
 builder.Services.AddSingleton<IUserRepository>(provider => new UserRepository(connectionString));
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// --- 4. CONFIGURE AUTHENTICATION (No changes here) ---
+// --- 4. CONFIGURE AUTHENTICATION ---
 builder.Services.AddAuthentication(options => {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -104,5 +104,5 @@ app.MapControllerRoute(
     pattern: "{controller=Login}/{action=Index}/{id?}");
 
 app.MapControllers();
-app.MapHub<ChatHub>("/chathub").RequireAuthorization();
+app.MapHub<ChatHub>("/chathub");
 app.Run();

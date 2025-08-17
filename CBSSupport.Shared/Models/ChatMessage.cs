@@ -44,8 +44,8 @@ namespace CBSSupport.Shared.Models
 
         public string? Priority { get; set; }
         public string? Remarks { get; set; }
-        public int? EditUser { get; set; }
         public DateTime? EditDate { get; set; }
+        public long? EditUser { get; set; }
         public long? ServiceId { get; set; }
         public string? AttachmentId { get; set; }
         public string? GeoLocation { get; set; }
