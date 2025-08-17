@@ -24,16 +24,12 @@ namespace CBSSupport.API.Controllers
         [HttpGet]
         public IActionResult Index()
         {
-            // Handles users who are already logged in and try to visit the login page.
             if (User.Identity is { IsAuthenticated: true })
             {
-                // If the logged-in user has the "Client" role, send them to the Support page.
                 if (User.IsInRole("Client"))
                 {
                     return RedirectToAction("Index", "Support");
                 }
-
-                // Otherwise, assume they are an Admin and send them to the AdminSupport page.
                 return RedirectToAction("Index", "AdminSupport");
             }
             return View(new LoginViewModel());
@@ -46,7 +42,6 @@ namespace CBSSupport.API.Controllers
 
             if (model.RoleType == "admin")
             {
-                // --- ADMIN LOGIN LOGIC ---
                 if (string.IsNullOrEmpty(model.Username) || string.IsNullOrEmpty(model.Password))
                 {
                     ModelState.AddModelError(string.Empty, "Username and Password are required for admin login.");
@@ -58,14 +53,12 @@ namespace CBSSupport.API.Controllers
                 {
                     var claims = new List<Claim>
                 {
-                    // Use the standard claim type for the user's unique ID
                     new Claim(ClaimTypes.NameIdentifier, adminUser.Id.ToString()), 
                     new Claim(ClaimTypes.Name, adminUser.Username),
                     new Claim(ClaimTypes.Role, "Admin"),
                     new Claim("FullName", adminUser.FullName)
                 };
 
-                    // We can also simplify the SignInUser call slightly
                     var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                     var authProperties = new AuthenticationProperties
                     {
@@ -78,7 +71,6 @@ namespace CBSSupport.API.Controllers
                         new ClaimsPrincipal(claimsIdentity),
                         authProperties);
 
-                    // You can still set session variables if other parts of your app use them
                     HttpContext.Session.SetString("UserId", adminUser.Id.ToString());
                     HttpContext.Session.SetString("Username", adminUser.Username);
                     _logger.LogInformation("Session set for Admin UserId: {UserId}", adminUser.Id);
@@ -94,8 +86,6 @@ namespace CBSSupport.API.Controllers
                     ModelState.AddModelError(string.Empty, "Client Code, Username, and Password are required.");
                     return View(model);
                 }
-
-                // --- CLIENT LOGIN LOGIC ---
                 var clientUser = await _authService.ValidateClientUserAsync(
                     model.ClientLogin.ClientCode.Value,
                     model.ClientLogin.Username,

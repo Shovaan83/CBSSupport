@@ -17,7 +17,7 @@ namespace CBSSupport.Shared.Models
         public long? DemandId { get; set; }
         public short InstCategoryId { get; set; }
         public short InstTypeId { get; set; }
-        public string InstructionText { get; set; } // Rename to avoid conflict
+        public string InstructionText { get; set; } 
         public DateTime? AlertDate { get; set; }
         public DateTime? ExpiryDate { get; set; }
         public long? InstructionId { get; set; }

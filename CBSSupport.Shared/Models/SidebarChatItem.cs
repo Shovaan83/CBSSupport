@@ -9,11 +9,11 @@ namespace CBSSupport.Shared.Models
 {
     public class SidebarChatItem
     {
-        public string ConversationId { get; set; } // The instruction_id that groups the messages.
-        public string DisplayName { get; set; }    // e.g., "Ticket #12345" or "John Doe"
-        public string Subtitle { get; set; }       // e.g., "Status: Open" or the last message text.
+        public string ConversationId { get; set; } 
+        public string DisplayName { get; set; }   
+        public string Subtitle { get; set; }      
         public string AvatarInitials { get; set; }
-        public string AvatarClass { get; set; }    // e.g., "avatar-bg-red"
+        public string AvatarClass { get; set; }    
 
         public string Route { get; set; }
     }

@@ -34,31 +34,35 @@ namespace CBSSupport.API.Hubs
 
         public async Task JoinPrivateChat(string groupName)
         {
-            if (!string.IsNullOrEmpty(groupName))
+            try
             {
-                try
+                if (string.IsNullOrEmpty(groupName))
                 {
-                    var userName = Context.User?.Identity?.Name ?? "Anonymous";
-                    _logger.LogInformation("Attempting to join group '{GroupName}' for user '{UserName}' with connection ID {ConnectionId}", groupName, userName, Context.ConnectionId);
-
-                    if (string.IsNullOrEmpty(groupName))
-                    {
-                        _logger.LogWarning("JoinPrivateChat failed: groupName was null or empty.");
-                        return;
-                    }
-
-                    await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-                    _logger.LogInformation("SUCCESS: User '{UserName}' joined group '{GroupName}'.", userName, groupName);
+                    _logger.LogWarning("JoinPrivateChat called with empty groupName by connection {ConnectionId}", Context.ConnectionId);
+                    throw new HubException("Group name cannot be empty");
                 }
-                catch (Exception ex)
+
+                if (!System.Text.RegularExpressions.Regex.IsMatch(groupName, @"^[a-zA-Z0-9\-_]+$"))
                 {
-                    _logger.LogError(ex, "CRITICAL ERROR in JoinPrivateChat for group {GroupName}", groupName);
-                    throw;
+                    throw new HubException("Invalid group name format");
                 }
+
+                if (Context.User?.Identity == null || !Context.User.Identity.IsAuthenticated)
+                {
+                    _logger.LogWarning("JoinPrivateChat called by unauthenticated user with connection {ConnectionId}", Context.ConnectionId);
+                    throw new HubException("User must be authenticated to join private chat");
+                }
+
+                var userName = Context.User.Identity.Name ?? "Anonymous";
+                _logger.LogInformation("User '{UserName}' attempting to join group '{GroupName}' with connection ID {ConnectionId}", userName, groupName, Context.ConnectionId);
+
+                await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+                _logger.LogInformation("SUCCESS: User '{UserName}' joined group '{GroupName}'", userName, groupName);
             }
-            else
+            catch (Exception ex)
             {
-                _logger.LogWarning("JoinPrivateChat was called with a null or empty groupName by connection {ConnectionId}", Context.ConnectionId);
+                _logger.LogError(ex, "CRITICAL ERROR in JoinPrivateChat for group {GroupName} and connection {ConnectionId}", groupName, Context.ConnectionId);
+                throw new HubException($"Failed to join chat: {ex.Message}");
             }
         }
 

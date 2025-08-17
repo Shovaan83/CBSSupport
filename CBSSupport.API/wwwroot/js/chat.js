@@ -9,28 +9,32 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     let currentClient = {
-            id: serverData.currentClientId,
-            name: serverData.currentUserName
-     };
+        id: serverData.currentClientId,
+        name: serverData.currentUserName
+    };
 
     let currentChatContext = {};
     let lastMessageDate = null;
+    let currentTicketData = null;
 
     // --- DOM References ---
     const fullscreenBtn = document.getElementById("fullscreen-btn");
-    //const clientSwitcher = document.getElementById("client-switcher");
     const messageInput = document.getElementById("message-input");
     const sendButton = document.getElementById("send-button");
     const chatPanelBody = document.getElementById("chat-panel-body");
     const chatHeader = document.getElementById("chat-header");
     const fileInput = document.getElementById("file-input");
 
-    const supportTicketsTableE1 = $('#supportTicketsDataTable'); 
+    const supportTicketsTableE1 = $('#supportTicketsDataTable');
     const inquiriesTableE1 = $('#inquiriesDataTable');
 
     // --- SignalR Connection ---
     const connection = new signalR.HubConnectionBuilder()
-        .withUrl("/chathub")
+        .withUrl("/chathub", {
+            accessTokenFactory: () => {
+                return localStorage.getItem("accessToken") || "";
+            }
+        })
         .withAutomaticReconnect()
         .build();
 
@@ -70,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     function addDateSeparatorIfNeeded(msgDateStr) {
-        if (!chatPanelBody) return; 
+        if (!chatPanelBody) return;
         const dateStr = new Date(msgDateStr).toDateString();
         if (lastMessageDate !== dateStr) {
             lastMessageDate = dateStr;
@@ -78,6 +82,187 @@ document.addEventListener("DOMContentLoaded", () => {
             ds.className = "date-separator";
             ds.textContent = formatDateForSeparator(msgDateStr);
             chatPanelBody.appendChild(ds);
+        }
+    }
+
+    function populateEditTicketForm(ticketData) {
+        currentTicketData = ticketData;
+
+        $('#edit-ticketId').val(ticketData.id);
+        $('#edit-fullName').val(ticketData.createdBy || ''); 
+
+        let priority = 'Normal';
+        try {
+            if (ticketData.remarks) {
+                const remarksObj = JSON.parse(ticketData.remarks);
+                priority = remarksObj.priority || 'Normal';
+            }
+        } catch (e) {
+            priority = ticketData.priority || 'Normal';
+        }
+
+        $('#edit-ticketPriority').val(priority); // Fixed: added #
+        $('#edit-ticketDescription').val(ticketData.instruction || ''); // Fixed: added #
+
+        let userRemarks = '';
+        try {
+            if (ticketData.remarks) {
+                const remarksObj = JSON.parse(ticketData.remarks);
+                userRemarks = remarksObj.userremarks || '';
+            }
+        } catch (e) {
+            userRemarks = ticketData.remarks || '';
+        }
+
+        $('#edit-ticketRemarks').val(userRemarks);
+
+        if (ticketData.expiryDate) {
+            const expiryDate = new Date(ticketData.expiryDate);
+            const formattedDate = expiryDate.toISOString().slice(0, 16);
+            $('#edit-ticketExpiryDate').val(formattedDate);
+        }
+
+        const subjectMap = {
+            110: 'ticket/training',
+            111: 'ticket/migration',
+            112: 'ticket/setup',
+            113: 'ticket/correction',
+            114: 'ticket/bug-fix',
+            115: 'ticket/new-feature',
+            116: 'ticket/feature-enhancement',
+            117: 'ticket/backend-workaround'
+        };
+
+        const subjectOptions = `
+            <option value="" disabled>Select a subject...</option>
+            <option value="ticket/training">Training</option>
+            <option value="ticket/migration">Migration</option>
+            <option value="ticket/setup">Setup</option>
+            <option value="ticket/correction">Correction</option>
+            <option value="ticket/bug-fix">Bug Fix</option>
+            <option value="ticket/new-feature">New Feature Request</option>
+            <option value="ticket/feature-enhancement">Feature Enhancement</option>
+            <option value="ticket/backend-workaround">Backend Workaround</option>
+        `;
+
+        $('#edit-ticketSubject').html(subjectOptions);
+
+        const selectedSubject = subjectMap[ticketData.instTypeId] || '';
+        if (selectedSubject) {
+            $('#edit-ticketSubject').val(selectedSubject);
+        }
+    } 
+
+    async function saveTicketChanges() {
+        if (!currentTicketData) {
+            alert('No ticket data available for editing.');
+            return;
+        }
+
+        const form = document.getElementById('editTicketForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const ticketId = $('#edit-ticketId').val();
+
+        let expiryDate = $('#edit-ticketExpiryDate').val();
+        if (expiryDate) {
+            expiryDate = new Date(expiryDate).toISOString();
+        }
+
+        const updatedTicket = {
+            Id: parseInt(ticketId, 10),
+            Instruction: $('#edit-ticketDescription').val(),
+            Priority: $('#edit-ticketPriority').val(),
+            Remarks: $('#edit-ticketRemarks').val(),
+            ExpiryDate: expiryDate,
+            EditUser: currentUser.id,
+            EditDate: new Date().toISOString(),
+            ClientId: currentClient.id,
+            ClientAuthUserId: currentUser.id,
+            InsertUser: currentUser.id,
+            InstCategoryId: 101,
+            ServiceId: 3
+        };
+
+        console.log("UPDATE PAYLOAD:", JSON.stringify(updatedTicket, null, 2));
+
+        try {
+            const response = await fetch(`/v1/api/instructions/update/${ticketId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedTicket)
+            });
+
+            const responseText = await response.text();
+            console.log("Server response:", responseText);
+
+            if (!response.ok) {
+                let errorData;
+                try {
+                    errorData = JSON.parse(responseText);
+                } catch (e) {
+                    errorData = { message: responseText || 'Unknown server error' };
+                }
+                console.error("Server validation errors:", errorData);
+                throw new Error(errorData.message || 'Failed to update ticket.');
+            }
+
+            alert('Ticket updated successfully!');
+            toggleEditMode(false);
+
+            const tables = $.fn.dataTable.tables(true);
+            if (tables.length > 0) {
+                $(tables).DataTable().ajax.reload(null, false);
+            }
+
+            closeTicketModal();
+
+        } catch (error) {
+            console.error('Error updating ticket:', error);
+            alert(`Error: ${error.message}`);
+        }
+    }
+
+    function closeTicketModal() {
+        const modalElement = document.getElementById('viewTicketDetailsModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+
+        if (modalInstance) {
+            modalInstance.hide();
+        }
+
+        setTimeout(() => {
+
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+
+            document.body.classList.remove('modal-open');
+
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }, 150); 
+    }
+
+    function toggleEditMode(isEditMode) {
+        if (isEditMode) {
+            $('#ticket-details-view').hide();
+            $('#editTicketForm').show();
+
+            $('#editTicketBtn').hide();
+            $('#saveChangesBtn').show();
+            $('#cancelEditBtn').show();
+            $('#closeModalBtn').text('Cancel');
+        } else {
+            $('#ticket-details-view').show();
+            $('#editTicketForm').hide();
+
+            $('#editTicketBtn').show();
+            $('#saveChangesBtn').hide();
+            $('#cancelEditBtn').hide();
+            $('#closeModalBtn').text('Close');
         }
     }
 
@@ -113,20 +298,12 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Invalid message object received:", msg);
             return;
         }
-        //const messageDate = new Date(msg.dateTime).toDateString();
-        //if (lastMessageDate !== messageDate) {
-        //    lastMessageDate = messageDate;
-        //    const ds = document.createElement("div");
-        //    ds.className = "date-separator";
-        //    ds.textContent = formatDateForSeparator(msg.dateTime);
-        //    chatPanelBody.appendChild(ds);
-        //}
 
         addDateSeparatorIfNeeded(msg.dateTime);
 
         const isSent = msg.clientAuthUserId != null && msg.clientAuthUserId === currentUser.id;
         const senderName = msg.senderName || "Support";
-        
+
         const row = document.createElement('div');
         row.className = `message-row ${isSent ? 'sent' : 'received'}`;
 
@@ -203,8 +380,18 @@ document.addEventListener("DOMContentLoaded", () => {
         if (activeItem) activeItem.classList.add("active");
 
         chatHeader.innerHTML = `<div><div class="fw-bold">${escapeHtml(currentChatContext.name)}</div></div>`;
-        await connection.invoke("JoinPrivateChat", currentChatContext.id).catch(err => console.error(err));
-        await loadMessagesForConversation(currentChatContext.id);
+        if (connection.state !== signalR.HubConnectionState.Connected) {
+            console.warn("SignalR connection not ready, waiting...");
+            await connection.start();
+        }
+
+        try {
+            await connection.invoke("JoinPrivateChat", currentChatContext.id.toString());
+            await loadMessagesForConversation(currentChatContext.id);
+        } catch (error) {
+            console.error("Failed to join private chat:", error);
+            alert("Failed to join chat. Please try again.");
+        }
     }
 
     async function loadMessagesForConversation(conversationId) {
@@ -225,34 +412,53 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // --- Core Chat Logic (Sending Messages) ---
-    async function handleSendMessage() {
-        const messageText = messageInput.value.trim();
-        if (messageText) {
-            await sendMessage();
-        }
-    }
-
     async function sendMessage() {
         if (!messageInput || !currentChatContext.route) return;
         const messageText = messageInput.value.trim();
-        if (!messageText) return;
+        if (!messageText) {
+            alert("Please enter a message.");
+            return;
+        }
 
         if (!currentChatContext.route) {
             alert("Please select a conversation to send a message.");
             return;
         }
 
+        // Validate that we have the required data
+        if (!currentUser.id || currentUser.id <= 0) {
+            console.error("Invalid currentUser.id:", currentUser.id);
+            alert("User authentication error. Please refresh and try again.");
+            return;
+        }
+
+        if (!currentClient.id || currentClient.id <= 0) {
+            console.error("Invalid currentClient.id:", currentClient.id);
+            alert("Client information error. Please refresh and try again.");
+            return;
+        }
+
+        console.log("DEBUG: Sending message with:", {
+            messageText,
+            userId: currentUser.id,
+            clientId: currentClient.id,
+            instructionId: currentChatContext.id
+        });
+
         const postUrl = `/v1/api/instructions/reply`;
 
         const chatMessage = {
             Instruction: messageText,
-            ClientId: currentClient.id,
-            ClientAuthUserId: currentUser.id,
+            ClientId: parseInt(currentClient.id, 10),
+            ClientAuthUserId: parseInt(currentUser.id, 10),
             InsertUser: 1,
             InstructionId: parseInt(currentChatContext.id, 10),
             InstCategoryId: 100,
-            ServiceId: 3,        
+            ServiceId: 3,
             Remarks: "Message from web chat",
+            DateTime: new Date().toISOString(),
+            Status: true,
+            InstChannel: "chat"
         };
 
         console.log("SENDING THIS OBJECT:", JSON.stringify(chatMessage, null, 2));
@@ -266,7 +472,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || "Failed to send message.");
+                console.error("Server validation errors:", errorData);
+
+                if (errorData.errors) {
+                    const errorMessages = Object.entries(errorData.errors)
+                        .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+                        .join('\n');
+                    throw new Error(`Validation errors:\n${errorMessages}`);
+                }
+
+                throw new Error(errorData.message || errorData.title || "Failed to send message.");
             }
 
             const savedMessage = await response.json();
@@ -283,7 +498,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // --- Ticket & Inquiry System ---
-
     function initializeTicketSystem() {
         const newTicketBtn = document.getElementById("newSupportTicketBtn");
         const newInquiryBtn = document.getElementById("newInquiryBtn");
@@ -372,8 +586,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        // In initializeTicketSystem()
-
         if (createInquiryForm) {
             createInquiryForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
@@ -381,8 +593,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const subjectSelect = document.getElementById("inquirySubject");
                 const messageInput = document.getElementById("inquiryMessage");
 
-                // Note: The previous code had a logic error trying to find 'ticketSubject'
-                // This is now corrected to look for 'inquirySubject'.
                 if (!subjectSelect) {
                     console.error("Could not find element with ID 'inquirySubject'.");
                     alert("An error occurred. Could not find the subject field.");
@@ -392,7 +602,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const inquiryType = subjectSelect.value;
                 const message = messageInput.value;
 
-                // --- FIX #1: Declare the variable with 'let' ---
                 let inquiryRoute;
 
                 if (inquiryType === "Account Inquiry") {
@@ -409,8 +618,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     InstructionId: null,
                     ClientId: currentClient.id,
                     ClientAuthUserId: currentUser.id,
-                    InsertUser: 1, 
-                    InstCategoryId: 102, 
+                    InsertUser: currentClient.id,
+                    InstCategoryId: 102,
                     ServiceId: 3,
                 };
 
@@ -442,7 +651,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- SignalR Event Handlers ---
     connection.on("ReceivePrivateMessage", (message) => {
-
         console.log("CLIENT SIDE: 'ReceivePrivateMessage' event fired. Message received:", message);
 
         const conversationId = message.instructionId;
@@ -456,16 +664,15 @@ document.addEventListener("DOMContentLoaded", () => {
             const convItem = document.querySelector(`.conversation-item[data-id="${conversationId}"]`);
             if (convItem) {
                 convItem.classList.add('has-unread');
-                const subtitle = convItem.querySelector('.text-muted'); 
+                const subtitle = convItem.querySelector('.text-muted');
                 if (subtitle) {
-                    subtitle.textContent = message.instruction; 
+                    subtitle.textContent = message.instruction;
                 }
-            }   
+            }
         }
     });
 
     async function init() {
-
         try {
             await connection.start();
             console.log("SignalR Connected.");
@@ -510,9 +717,10 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             ticketsDataTable.on('click', '.view-details-btn', function () {
-                const dt = supportTicketsTable.DataTable();
-                const rowData = dt.row($(this).parents('tr')).data();
+                const rowData = ticketsDataTable.row($(this).parents('tr')).data();
                 if (!rowData) return;
+
+                currentTicketData = rowData;
 
                 const context = {
                     id: rowData.id,
@@ -534,7 +742,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 try {
                     const remarksObj = JSON.parse(rowData.remarks);
-                    $('#details-remarks').text(remarksObj.message || 'N/A');
+                    $('#details-remarks').text(remarksObj.userremarks || 'N/A');
                 } catch (e) {
                     $('#details-remarks').text(rowData.remarks || 'N/A');
                 }
@@ -547,13 +755,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     editButton.hide();
                 }
 
+                toggleEditMode(false);
+
                 new bootstrap.Modal(document.getElementById('viewTicketDetailsModal')).show();
             });
         }
 
-        let inquiriesTable = null;
+        let inquiriesDataTable = null;
         if (inquiriesTableE1.length) {
-           inquiriesTable = inquiriesTableE1.DataTable({
+            inquiriesDataTable = inquiriesTableE1.DataTable({
                 "ajax": {
                     "url": `/v1/api/instructions/inquiries/${currentClient.id}`,
                     "dataSrc": "data"
@@ -576,10 +786,63 @@ document.addEventListener("DOMContentLoaded", () => {
                 ]
             });
 
+            inquiriesDataTable.on('click', '.start-chat-btn', function () {
+                const rowData = inquiriesDataTable.row($(this).parents('tr')).data();
+                if (!rowData) return;
+
+                const route = `inquiry/${rowData.topic.toLowerCase().replace(/\s+/g, '-')}`;
+
+                switchChatContext({
+                    id: rowData.id,
+                    name: `#${rowData.id} - ${rowData.topic}`,
+                    route: route
+                });
+            });
         }
 
-
         initializeTicketSystem();
+
+        $(document).on('click', '#editTicketBtn', function () {
+            if (currentTicketData) {
+                populateEditTicketForm(currentTicketData);
+                toggleEditMode(true);
+            }
+        });
+
+        $(document).on('click', '#saveChangesBtn', function () {
+            saveTicketChanges();
+        });
+
+        $(document).on('click', '#cancelEditBtn', function () {
+            toggleEditMode(false);
+        });
+
+        $(document).on('click', '#closeModalBtn', function () {
+            if ($('#editTicketForm').is(':visible')) {
+                toggleEditMode(false);
+            }
+            closeTicketModal();
+        });
+
+        $(document).on('submit', '#editTicketForm', function (e) {
+            e.preventDefault();
+            saveTicketChanges();
+        });
+
+        const ticketModal = document.getElementById('viewTicketDetailsModal');
+        if (ticketModal) {
+            ticketModal.addEventListener('hidden.bs.modal', function () {
+                toggleEditMode(false);
+
+                setTimeout(() => {
+                    const backdrops = document.querySelectorAll('.modal-backdrop');
+                    backdrops.forEach(backdrop => backdrop.remove());
+                    document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                }, 50);
+            });
+        }
 
         const conversationListPanel = document.getElementById("conversation-list-panel");
         if (conversationListPanel) {
@@ -643,7 +906,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
     }
-
 
     init();
 });

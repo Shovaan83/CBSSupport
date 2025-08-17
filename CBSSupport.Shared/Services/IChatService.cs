@@ -30,5 +30,7 @@ namespace CBSSupport.Shared.Services
         Task<IEnumerable<InquiryViewModel>> GetAllInquiriesAsync();
 
         Task<DashboardStatsViewModel> GetDashboardStatsAsync();
+
+        Task<bool> UpdateInstructionAsync(ChatMessage instruction);
     }
 }

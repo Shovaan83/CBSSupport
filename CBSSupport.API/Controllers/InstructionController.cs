@@ -235,4 +235,74 @@ public class InstructionsController : ControllerBase
             return StatusCode(500, new { message = "An internal server error occurred." });
         }
     }
+
+    [HttpPut("update/{ticketId}")]
+    [Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
+    public async Task<IActionResult> UpdateTicket(long ticketId, [FromBody] ChatMessage updatedTicket)
+    {
+        try
+        {
+            _logger.LogInformation("=== UpdateTicket START ===");
+            _logger.LogInformation("Ticket ID: {TicketId}", ticketId);
+            _logger.LogInformation("Request payload: {Payload}", System.Text.Json.JsonSerializer.Serialize(updatedTicket));
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                _logger.LogWarning("Model validation failed: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            // Get existing ticket to check its current state
+            var existingTicket = await _service.GetInstructionByIdAsync(ticketId);
+            if (existingTicket == null)
+            {
+                _logger.LogWarning("Ticket {TicketId} not found", ticketId);
+                return NotFound(new { message = "Ticket not found." });
+            }
+
+            _logger.LogInformation("Existing ticket found - Completed: {Completed}", existingTicket.Completed);
+
+            if (existingTicket.Completed == true)
+            {
+                _logger.LogWarning("Attempt to edit resolved ticket {TicketId}", ticketId);
+                return BadRequest(new { message = "Cannot edit resolved tickets." });
+            }
+
+            // Set the required properties
+            updatedTicket.Id = ticketId;
+            updatedTicket.EditDate = DateTime.UtcNow;
+
+            // Format remarks as JSON if needed
+            if (!string.IsNullOrEmpty(updatedTicket.Priority) || !string.IsNullOrEmpty(updatedTicket.Remarks))
+            {
+                var remarksJson = new
+                {
+                    priority = updatedTicket.Priority ?? "Normal",
+                    userremarks = updatedTicket.Remarks ?? ""
+                };
+                updatedTicket.Remarks = System.Text.Json.JsonSerializer.Serialize(remarksJson);
+                _logger.LogInformation("Formatted remarks as JSON: {Remarks}", updatedTicket.Remarks);
+            }
+
+            _logger.LogInformation("Calling UpdateInstructionAsync with: {UpdatedTicket}",
+                System.Text.Json.JsonSerializer.Serialize(updatedTicket));
+
+            var result = await _service.UpdateInstructionAsync(updatedTicket);
+
+            if (result)
+            {
+                _logger.LogInformation("Ticket {TicketId} updated successfully", ticketId);
+                return Ok(new { message = "Ticket updated successfully." });
+            }
+
+            _logger.LogWarning("UpdateInstructionAsync returned false for ticket {TicketId} - no rows affected", ticketId);
+            return BadRequest(new { message = "Failed to update ticket - no rows affected." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating ticket {TicketId}", ticketId);
+            return StatusCode(500, new { message = "An internal server error occurred.", detail = ex.Message });
+        }
+    }
 }
