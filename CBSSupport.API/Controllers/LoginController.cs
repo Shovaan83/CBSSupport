@@ -59,7 +59,7 @@ namespace CBSSupport.API.Controllers
                     var claims = new List<Claim>
                 {
                     // Use the standard claim type for the user's unique ID
-                    new Claim(ClaimTypes.NameIdentifier, adminUser.Id.ToString()), 
+                    new Claim(ClaimTypes.NameIdentifier, adminUser.Id.ToString()),
                     new Claim(ClaimTypes.Name, adminUser.Username),
                     new Claim(ClaimTypes.Role, "Admin"),
                     new Claim("FullName", adminUser.FullName)
@@ -155,4 +155,4 @@ namespace CBSSupport.API.Controllers
             return RedirectToAction("Index", "Login");
         }
     }
-}   
+}

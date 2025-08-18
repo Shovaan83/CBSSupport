@@ -4,6 +4,7 @@ using CBSSupport.Shared.Models;
 using System;
 using System.Threading.Tasks;
 using System.Linq.Expressions;
+using Microsoft.Extensions.Logging;
 
 namespace CBSSupport.API.Hubs
 {
@@ -33,67 +34,44 @@ namespace CBSSupport.API.Hubs
         public async Task JoinPrivateChat(string groupName)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+            _logger.LogInformation("Connection {ConnectionId} joined group {GroupName}", Context.ConnectionId, groupName);
         }
 
-        //public async Task SendPrivateMessage(string groupName, string senderName, string message, string fileUrl = null, string fileName = null, string fileType = null)
-        //{
-        //    try
-        //    {
-        //        if (string.IsNullOrEmpty(groupName))
-        //        {
-        //            _logger.LogWarning("SendPrivateMessage was called with a null or empty groupName.");
-        //            return;
-        //        }
+        // NEW: Method for admins to join admin notification group
+        public async Task JoinAdminNotifications()
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, "AdminNotifications");
+            _logger.LogInformation("Admin connection {ConnectionId} joined admin notifications group", Context.ConnectionId);
+        }
 
-        //        long messageId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        //        string initials = !string.IsNullOrEmpty(senderName) ? senderName.Substring(0, 1).ToUpper() : "?";
+        // NEW: Method for admins to join all conversation groups they need to monitor
+        public async Task JoinAllAdminGroups()
+        {
+            try
+            {
+                // Join the general admin notifications group
+                await Groups.AddToGroupAsync(Context.ConnectionId, "AdminNotifications");
 
-        //        await Clients.Group(groupName).SendAsync("ReceivePrivateMessage", messageId, groupName, senderName, message, DateTime.UtcNow, initials, fileUrl, fileName, fileType);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error occured in SendPrivateMessage for group {GroupName}", groupName);
-        //        throw;
-        //    }
-        //}
+                // Get all active conversations and join their groups
+                var allTickets = await _chatService.GetAllTicketsAsync();
+                foreach (var ticket in allTickets)
+                {
+                    await Groups.AddToGroupAsync(Context.ConnectionId, ticket.Id.ToString());
+                }
 
-        // In your ChatHub class
+                var allInquiries = await _chatService.GetAllInquiriesAsync();
+                foreach (var inquiry in allInquiries)
+                {
+                    await Groups.AddToGroupAsync(Context.ConnectionId, inquiry.Id.ToString());
+                }
 
-        //public async Task SendPrivateMessage(string groupName, string message)
-        //{
-        //    try
-        //    {
-        //        if (string.IsNullOrEmpty(groupName))
-        //        {
-        //            _logger.LogWarning("SendPrivateMessage called with empty groupName.");
-        //            return;
-        //        }
-
-        //        // --- NEW LOGIC: The Hub now gets the user info from the connection context ---
-        //        // This is more secure because the client can't fake who they are.
-        //        string senderName = Context.User.FindFirst("FullName")?.Value ?? "Unknown User";
-        //        string senderIdStr = Context.User.FindFirst("UserId")?.Value;
-
-        //        // The Hub is now responsible for creating the full message object to broadcast.
-        //        var messageToBroadcast = new
-        //        {
-        //            id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-        //            groupName = groupName,
-        //            senderName = senderName,
-        //            instruction = message,
-        //            datetime = DateTime.UtcNow,
-        //            insertUser = int.TryParse(senderIdStr, out var senderId) ? senderId : 0
-        //        };
-
-        //        // Broadcast the full object.
-        //        await Clients.Group(message.InstructionId.ToString()).SendAsync("ReceivePrivateMessage", message);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error occurred in SendPrivateMessage for group {GroupName}", groupName);
-        //        throw;
-        //    }
-        //}
+                _logger.LogInformation("Admin connection {ConnectionId} joined all monitoring groups", Context.ConnectionId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error joining admin groups for connection {ConnectionId}", Context.ConnectionId);
+            }
+        }
 
         public async Task UserIsTyping(string groupName, string userName)
         {
@@ -124,7 +102,7 @@ namespace CBSSupport.API.Hubs
             var newTicket = new ChatMessage
             {
                 Instruction = subject,
-                InstTypeId = 100, 
+                InstTypeId = 100,
                 Status = true,
                 InstChannel = "chat",
                 IpAddress = Context.GetHttpContext()?.Connection.RemoteIpAddress?.ToString()
@@ -132,6 +110,12 @@ namespace CBSSupport.API.Hubs
 
             ChatMessage savedTicket = await _chatService.CreateInstructionTicketAsync(newTicket);
             await Clients.Caller.SendAsync("NewTicketCreated", savedTicket);
+
+            // NEW: Add admin to the new ticket's group
+            if (savedTicket.InstructionId.HasValue)
+            {
+                await Clients.Group("AdminNotifications").SendAsync("NewTicketGroup", savedTicket.InstructionId.Value.ToString());
+            }
         }
 
         public async Task SendAdminMessage(ChatMessage message)
@@ -154,7 +138,7 @@ namespace CBSSupport.API.Hubs
             }
         }
 
-        public async Task SendClientMessage(ChatMessage message)
+        public async Task SendClientMessage(ChatMessage message, bool isNewConversation)
         {
             try
             {
@@ -164,14 +148,53 @@ namespace CBSSupport.API.Hubs
                     return;
                 }
 
-                _logger.LogInformation("HUB: Received Client Message. Broadcasting to group {GroupId}", message.InstructionId.Value);
+                _logger.LogInformation("HUB: Received Client Message for conversation {GroupId}. Is new: {isNew}", message.InstructionId.Value, isNewConversation);
 
                 await Clients.Group(message.InstructionId.Value.ToString()).SendAsync("ReceivePrivateMessage", message);
+
+                // --- FIXED NOTIFICATION LOGIC ---
+                string notificationType = isNewConversation ? "new_ticket" : "new_message";
+                string title = isNewConversation ?
+                    $"New Request #{message.InstructionId}" :
+                    $"Reply in #{message.InstructionId}";
+
+                var notification = new
+                {
+                    type = notificationType,
+                    senderName = message.SenderName ?? "A client",
+                    message = message.Instruction,
+                    timestamp = DateTime.UtcNow,
+                    conversationId = message.InstructionId,
+                    title = title
+                };
+
+                // Send notification to AdminNotifications group instead of all clients
+                await Clients.Group("AdminNotifications").SendAsync("ReceiveAdminNotification", notification);
+                _logger.LogInformation("HUB: Admin notification sent to AdminNotifications group for conversation {GroupId}.", message.InstructionId.Value);
+
+                // If it's a new conversation, ensure admins join the new conversation group
+                if (isNewConversation)
+                {
+                    await Clients.Group("AdminNotifications").SendAsync("JoinNewConversationGroup", message.InstructionId.Value.ToString());
+                }
+                // --- END FIXED NOTIFICATION LOGIC ---
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in SendClientMessage for ConversationId {ConversationId}", message?.InstructionId);
             }
+        }
+
+        public override async Task OnConnectedAsync()
+        {
+            _logger.LogInformation("Client connected: {ConnectionId}", Context.ConnectionId);
+            await base.OnConnectedAsync();
+        }
+
+        public override async Task OnDisconnectedAsync(Exception exception)
+        {
+            _logger.LogInformation("Client disconnected: {ConnectionId}", Context.ConnectionId);
+            await base.OnDisconnectedAsync(exception);
         }
     }
 }

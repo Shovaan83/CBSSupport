@@ -14,7 +14,6 @@
 </head>
 <body>
 
-    <!--Nav Bar-->
     <header class="app-header">
         <div class="header-left">
             <img src="~/images/infobrain-logo.jpg" alt="Balance Logo" class="header-logo" />
@@ -39,7 +38,6 @@
     </header>
 
     <div class="dashboard-container">
-        <!-- SECTION 1: CONVERSATION LIST  -->
         <div id="conversation-list-panel" class="dashboard-panel">
 
             <div class="panel-header d-flex justify-content-between align-items-center">
@@ -67,7 +65,6 @@
 
                 <div class="accordion" id="sidebarAccordion">
 
-                    <!-- Private Chats Section -->
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="headingPrivate">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePrivate">Private</button>
@@ -78,19 +75,18 @@
                         </div>
                     </div>
 
-                    <!-- Internal Chats Section -->
+
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="headingInternal">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInternal">Internal</button>
                         </h2>
                         <div id="collapseInternal" class="accordion-collapse collapse">
-                            <!-- Added 'conversation-list' class -->
+
                             <div class="list-group list-group-flush conversation-list" id="internal-chat-list">
                             </div>
                         </div>
                     </div>
 
-                    <!-- Ticket Chats Section -->
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="headingTickets">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTickets">Ticket Chats</button>
@@ -101,7 +97,6 @@
                         </div>
                     </div>
 
-                    <!-- Inquiry Chats Section -->
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="headingInquiries">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInquiries">Inquiry Chats</button>
@@ -116,7 +111,6 @@
             </div>
         </div>
 
-        <!-- SECTION 2: CHAT AREA (35%) -->
         <div id="chat-panel" class="dashboard-panel">
             <div class="panel-header" id="chat-header"></div>
             <div id="chat-panel-body" class="panel-body"></div>
@@ -134,7 +128,6 @@
             </div>
         </div>
 
-        <!-- SECTION 3: MY HISTORY -->
         <div id="history-column">
             <div class="history-panel">
                 <div class="panel-header d-flex justify-content-between align-items-center"><span>My Support Tickets</span><button id="newSupportTicketBtn" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newSupportTicketModal">New Support Ticket</button></div>
@@ -170,7 +163,6 @@
         </div>
     </div>
 
-    <!-- Modals -->
     <div class="modal fade" id="newSupportTicketModal" tabindex="-1" aria-labelledby="newSupportTicketModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -352,7 +344,7 @@
         </div>
     </div>
 
-    <!-- Notification Modal -->
+    
     <div class="modal fade" id="notificationsModal" tabindex="-1" aria-labelledby="notificationsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-scrollable">
             <div class="modal-content">
@@ -371,7 +363,7 @@
         </div>
     </div>
 
-    <!-- User/Logout Modal -->
+   
     <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
@@ -398,7 +390,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- This div shows the ticket details in read-only mode -->
+                   
                     <div id="ticket-details-view">
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -435,7 +427,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <!-- The "Edit" button will be shown/hidden by JavaScript -->
+                
                     <button type="button" class="btn btn-outline-primary me-auto" id="editTicketBtn" style="display: none;">
                         <i class="fas fa-pencil-alt me-2"></i>Edit Ticket
                     </button>
@@ -445,7 +437,6 @@
         </div>
     </div>
 
-    <!-- SCRIPT SECTION -->
     <script>
         const serverData = {
         currentUserId: parseInt('@ViewBag.UserId', 10),

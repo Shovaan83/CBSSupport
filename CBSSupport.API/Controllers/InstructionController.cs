@@ -1,9 +1,11 @@
-﻿using CBSSupport.Shared.Models;
+﻿using CBSSupport.API.Hubs;
+using CBSSupport.Shared.Models;
 using CBSSupport.Shared.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 [ApiController]
 [Route("v1/api/instructions")]
@@ -12,11 +14,13 @@ public class InstructionsController : ControllerBase
 {
     private readonly IChatService _service;
     private readonly ILogger<InstructionsController> _logger;
+    private readonly IHubContext<ChatHub> _hubContext;
 
-    public InstructionsController(IChatService service, ILogger<InstructionsController> logger)
+    public InstructionsController(IChatService service, ILogger<InstructionsController> logger, IHubContext<ChatHub> hubContext)
     {
         _service = service;
         _logger = logger;
+        _hubContext = hubContext;
     }
 
     private async Task<IActionResult> SaveInstruction(ChatMessage instruction, short instTypeId)
@@ -34,6 +38,8 @@ public class InstructionsController : ControllerBase
 
         try
         {
+            var isNewConversation = instruction.InstructionId == null || instruction.InstructionId == 0;
+
             instruction.InstTypeId = instTypeId;
             instruction.DateTime = DateTime.UtcNow;
             instruction.InsertDate = DateTime.UtcNow;
@@ -45,6 +51,22 @@ public class InstructionsController : ControllerBase
 
             if (savedMessage != null)
             {
+                string notificationType = isNewConversation ? "new_ticket" : "new_message";
+                string title = isNewConversation ?
+                    (instTypeId >= 110 && instTypeId <= 117 ? $"New Ticket #{savedMessage.InstructionId}" : $"New Inquiry #{savedMessage.InstructionId}") :
+                    $"Reply in #{savedMessage.InstructionId}";
+
+                var notification = new
+                {
+                    type = notificationType,
+                    senderName = savedMessage.SenderName ?? "A client",
+                    message = savedMessage.Instruction,
+                    timestamp = DateTime.UtcNow,
+                    conversationId = savedMessage.InstructionId,
+                    title = title
+                };
+                await _hubContext.Clients.All.SendAsync("ReceiveAdminNotification", notification);
+
                 return Ok(savedMessage);
             }
             return BadRequest(new { message = "Failed to create the instruction." });
@@ -112,7 +134,7 @@ public class InstructionsController : ControllerBase
                 "support-private" => 101,
                 "internal-team-chat" => 105,
                 "ticket/training" => 110,
-                "ticket/migration" => 111,  
+                "ticket/migration" => 111,
                 "ticket/setup" => 112,
                 "ticket/correction" => 113,
                 "ticket/bug-fix" => 114,
@@ -164,7 +186,7 @@ public class InstructionsController : ControllerBase
     {
         try
         {
-            var sidebarData = await _service.GetSidebarForUserAsync(0, clientId); 
+            var sidebarData = await _service.GetSidebarForUserAsync(0, clientId);
             return Ok(sidebarData);
         }
         catch (Exception ex)

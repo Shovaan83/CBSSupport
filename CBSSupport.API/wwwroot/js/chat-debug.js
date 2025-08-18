@@ -12,7 +12,7 @@ async function sendMessageDebug(fileInfo = null) {
         currentChatContext.route = 'support-group';
     }
 
-    if(!currentChatContext.route) {
+    if (!currentChatContext.route) {
         alert("Unsupported chat type for sending messages.");
         return;
     }
@@ -21,10 +21,10 @@ async function sendMessageDebug(fileInfo = null) {
 
     const chatMessage = {
         Instruction: messageText,
-        ClientId: currentClient.id,           
-        ClientAuthUserId: currentUser.id,     
+        ClientId: currentClient.id,
+        ClientAuthUserId: currentUser.id,
         InsertUser: currentUser.id,
-        InstructionId: parseInt(currentChatContext.id, 10), 
+        InstructionId: parseInt(currentChatContext.id, 10),
         InstCategoryId: 100,
         ServiceId: 3,
         Remarks: "Hello",
@@ -41,7 +41,7 @@ async function sendMessageDebug(fileInfo = null) {
     try {
         const response = await fetch(postUrl, {
             method: "POST",
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
@@ -62,7 +62,7 @@ async function sendMessageDebug(fileInfo = null) {
             } catch {
                 errorData = { message: responseText || `HTTP ${response.status}: ${response.statusText}` };
             }
-            
+
             console.error("10. Error Details:", errorData);
             throw new Error(errorData.message || "Failed to send Message.");
         }
