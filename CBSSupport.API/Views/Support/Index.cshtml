@@ -42,17 +42,9 @@
         <!-- SECTION 1: CONVERSATION LIST  -->
         <div id="conversation-list-panel" class="dashboard-panel">
 
-            <div class="panel-header d-flex justify-content-between align-items-center">
-                <span>Conversations</span>
-                <select id="client-switcher" class="form-select form-select-sm" style="width: auto;">
-                    <option value="3" selected>Defaulty Client</option>
-                    <option value="4">Another Client</option>
-                </select>
-            </div>
-
             <div class="panel-body" id="conversation-list-container">
                 <a href="#" class="list-group-item list-group-item-action conversation-item"
-                   data-id="20"
+                   data-id="@ViewBag.GroupChatId"
                    data-name="Group Chat"
                    data-type="group"
                    data-route="support-group">
@@ -103,7 +95,6 @@
                     <input type="file" id="file-input" style="display: none;" />
                     <div class="chat-input-actions">
                         <button class="btn btn-icon" id="attachment-button" aria-label="Attach file"><i class="fas fa-paperclip"></i></button>
-                        <button class="btn btn-icon" aria-label="Insert emoji"><i class="far fa-smile"></i></button>
                     </div>
                     <input type="text" class="form-control" placeholder="Type a message..." id="message-input">
                     <button class="btn btn-primary" type="button" id="send-button" aria-label="Send Message"><i class="fas fa-paper-plane"></i></button>

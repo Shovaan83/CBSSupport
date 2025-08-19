@@ -32,5 +32,9 @@ namespace CBSSupport.Shared.Services
         Task<DashboardStatsViewModel> GetDashboardStatsAsync();
 
         Task<bool> UpdateInstructionAsync(ChatMessage instruction);
+
+        Task<long> GetOrCreateGroupChatConversationIdAsync(long clientId, int loggedInUserId);
+
+        Task<ChatMessage> CreateGroupChatMessageAsync(ChatMessage newMessage);
     }
 }

@@ -17,6 +17,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let lastMessageDate = null;
     let currentTicketData = null;
 
+    let ticketsDataTable = null;
+    let inquiriesDataTable = null;
+
     // --- DOM References ---
     const fullscreenBtn = document.getElementById("fullscreen-btn");
     const messageInput = document.getElementById("message-input");
@@ -60,7 +63,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const generatePriorityBadge = (priority) => {
         const p = priority ? priority.toLowerCase() : 'normal';
         const badgeClass = `badge-priority-${p}`;
-        return `<span class="badge ${badgeClass}">${escapeHtml(priority || 'Normal')}</span>`;
+        const icon = p === 'urgent' ? 'fas fa-exclamation-triangle' :
+            p === 'high' ? 'fas fa-exclamation' :
+                p === 'normal' || p === 'medium' ? 'fas fa-minus' : 'fas fa-arrow-down';
+
+        return `<span class="badge ${badgeClass}">
+        <i class="${icon} me-1" style="font-size: 0.7rem"></i>${escapeHtml(priority || 'Normal')}
+    </span>`;
     };
 
     const formatDateForSeparator = (dStr) => {
@@ -84,145 +93,47 @@ document.addEventListener("DOMContentLoaded", () => {
             chatPanelBody.appendChild(ds);
         }
     }
+    function populateTicketDetailsModal(ticketData) {
+        console.log('Populating modal with:', ticketData);
 
-    function populateEditTicketForm(ticketData) {
-        currentTicketData = ticketData;
+        $('#details-id').text(`#${ticketData.id || 'N/A'}`);
+        $('#details-subject').text(ticketData.subject || 'N/A');
 
-        $('#edit-ticketId').val(ticketData.id);
-        $('#edit-fullName').val(ticketData.createdBy || ''); 
+        if (ticketData.date) {
+            const date = new Date(ticketData.date);
+            $('#details-date').text(date.toLocaleString());
+        } else {
+            $('#details-date').text('N/A');
+        }
 
-        let priority = 'Normal';
+        $('#details-createdBy').text(ticketData.createdBy || 'N/A');
+
+        $('#details-resolvedBy').text(ticketData.resolvedBy || 'N/A');
+
+        const status = ticketData.status || 'Pending';
+        const statusClass = `badge-status-${status.toLowerCase()}`;
+        $('#details-status').html(`<span class="badge ${statusClass}">${escapeHtml(status)}</span>`);
+
+        $('#details-priority').html(generatePriorityBadge(ticketData.priority));
+
+        $('#details-description').text(ticketData.instruction || ticketData.description || 'No description provided.');
+
+        let remarksText = 'N/A';
         try {
             if (ticketData.remarks) {
                 const remarksObj = JSON.parse(ticketData.remarks);
-                priority = remarksObj.priority || 'Normal';
+                remarksText = remarksObj.userremarks || remarksObj.remarks || ticketData.remarks;
             }
         } catch (e) {
-            priority = ticketData.priority || 'Normal';
+            remarksText = ticketData.remarks || 'N/A';
         }
-
-        $('#edit-ticketPriority').val(priority); // Fixed: added #
-        $('#edit-ticketDescription').val(ticketData.instruction || ''); // Fixed: added #
-
-        let userRemarks = '';
-        try {
-            if (ticketData.remarks) {
-                const remarksObj = JSON.parse(ticketData.remarks);
-                userRemarks = remarksObj.userremarks || '';
-            }
-        } catch (e) {
-            userRemarks = ticketData.remarks || '';
-        }
-
-        $('#edit-ticketRemarks').val(userRemarks);
+        $('#details-remarks').text(remarksText);
 
         if (ticketData.expiryDate) {
             const expiryDate = new Date(ticketData.expiryDate);
-            const formattedDate = expiryDate.toISOString().slice(0, 16);
-            $('#edit-ticketExpiryDate').val(formattedDate);
-        }
-
-        const subjectMap = {
-            110: 'ticket/training',
-            111: 'ticket/migration',
-            112: 'ticket/setup',
-            113: 'ticket/correction',
-            114: 'ticket/bug-fix',
-            115: 'ticket/new-feature',
-            116: 'ticket/feature-enhancement',
-            117: 'ticket/backend-workaround'
-        };
-
-        const subjectOptions = `
-            <option value="" disabled>Select a subject...</option>
-            <option value="ticket/training">Training</option>
-            <option value="ticket/migration">Migration</option>
-            <option value="ticket/setup">Setup</option>
-            <option value="ticket/correction">Correction</option>
-            <option value="ticket/bug-fix">Bug Fix</option>
-            <option value="ticket/new-feature">New Feature Request</option>
-            <option value="ticket/feature-enhancement">Feature Enhancement</option>
-            <option value="ticket/backend-workaround">Backend Workaround</option>
-        `;
-
-        $('#edit-ticketSubject').html(subjectOptions);
-
-        const selectedSubject = subjectMap[ticketData.instTypeId] || '';
-        if (selectedSubject) {
-            $('#edit-ticketSubject').val(selectedSubject);
-        }
-    } 
-
-    async function saveTicketChanges() {
-        if (!currentTicketData) {
-            alert('No ticket data available for editing.');
-            return;
-        }
-
-        const form = document.getElementById('editTicketForm');
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
-
-        const ticketId = $('#edit-ticketId').val();
-
-        let expiryDate = $('#edit-ticketExpiryDate').val();
-        if (expiryDate) {
-            expiryDate = new Date(expiryDate).toISOString();
-        }
-
-        const updatedTicket = {
-            Id: parseInt(ticketId, 10),
-            Instruction: $('#edit-ticketDescription').val(),
-            Priority: $('#edit-ticketPriority').val(),
-            Remarks: $('#edit-ticketRemarks').val(),
-            ExpiryDate: expiryDate,
-            EditUser: currentUser.id,
-            EditDate: new Date().toISOString(),
-            ClientId: currentClient.id,
-            ClientAuthUserId: currentUser.id,
-            InsertUser: currentUser.id,
-            InstCategoryId: 101,
-            ServiceId: 3
-        };
-
-        console.log("UPDATE PAYLOAD:", JSON.stringify(updatedTicket, null, 2));
-
-        try {
-            const response = await fetch(`/v1/api/instructions/update/${ticketId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedTicket)
-            });
-
-            const responseText = await response.text();
-            console.log("Server response:", responseText);
-
-            if (!response.ok) {
-                let errorData;
-                try {
-                    errorData = JSON.parse(responseText);
-                } catch (e) {
-                    errorData = { message: responseText || 'Unknown server error' };
-                }
-                console.error("Server validation errors:", errorData);
-                throw new Error(errorData.message || 'Failed to update ticket.');
-            }
-
-            alert('Ticket updated successfully!');
-            toggleEditMode(false);
-
-            const tables = $.fn.dataTable.tables(true);
-            if (tables.length > 0) {
-                $(tables).DataTable().ajax.reload(null, false);
-            }
-
-            closeTicketModal();
-
-        } catch (error) {
-            console.error('Error updating ticket:', error);
-            alert(`Error: ${error.message}`);
+            $('#details-expiryDate').text(expiryDate.toLocaleString());
+        } else {
+            $('#details-expiryDate').text('N/A');
         }
     }
 
@@ -244,26 +155,6 @@ document.addEventListener("DOMContentLoaded", () => {
             document.body.style.overflow = '';
             document.body.style.paddingRight = '';
         }, 150); 
-    }
-
-    function toggleEditMode(isEditMode) {
-        if (isEditMode) {
-            $('#ticket-details-view').hide();
-            $('#editTicketForm').show();
-
-            $('#editTicketBtn').hide();
-            $('#saveChangesBtn').show();
-            $('#cancelEditBtn').show();
-            $('#closeModalBtn').text('Cancel');
-        } else {
-            $('#ticket-details-view').show();
-            $('#editTicketForm').hide();
-
-            $('#editTicketBtn').show();
-            $('#saveChangesBtn').hide();
-            $('#cancelEditBtn').hide();
-            $('#closeModalBtn').text('Close');
-        }
     }
 
     // --- Fullscreen Toggle ---
@@ -425,7 +316,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Validate that we have the required data
         if (!currentUser.id || currentUser.id <= 0) {
             console.error("Invalid currentUser.id:", currentUser.id);
             alert("User authentication error. Please refresh and try again.");
@@ -442,16 +332,22 @@ document.addEventListener("DOMContentLoaded", () => {
             messageText,
             userId: currentUser.id,
             clientId: currentClient.id,
-            instructionId: currentChatContext.id
+            instructionId: currentChatContext.id,
+            route: currentChatContext.route
         });
 
-        const postUrl = `/v1/api/instructions/reply`;
+        let postUrl;
+        if (currentChatContext.route === 'support-group') {
+            postUrl = `/v1/api/instructions/support-group`;
+        } else {
+            postUrl = `/v1/api/instructions/reply`;
+        }
 
         const chatMessage = {
             Instruction: messageText,
             ClientId: parseInt(currentClient.id, 10),
             ClientAuthUserId: parseInt(currentUser.id, 10),
-            InsertUser: 1,
+            InsertUser: parseInt(currentUser.id, 10),
             InstructionId: parseInt(currentChatContext.id, 10),
             InstCategoryId: 100,
             ServiceId: 3,
@@ -486,6 +382,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const savedMessage = await response.json();
             console.log("CLIENT SIDE: Invoking 'SendClientMessage' with message object:", savedMessage);
+
+
+            displayMessage(savedMessage, false);
 
             await connection.invoke("SendClientMessage", savedMessage);
 
@@ -543,6 +442,19 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
+                const routeToSubject = {
+                    'ticket/training': 'Training',
+                    'ticket/migration': 'Migration',
+                    'ticket/setup': 'Setup',
+                    'ticket/correction': 'Correction',
+                    'ticket/bug-fix': 'Bug Fix',
+                    'ticket/new-feature': 'New Feature Request',
+                    'ticket/feature-enhancement': 'Feature Enhancement',
+                    'ticket/backend-workaround': 'Backend Workaround'
+                };
+
+                const properSubject = routeToSubject[ticketTypeRoute] || 'General Support'; 
+
                 const chatMessage = {
                     Instruction: description,
                     Remarks: remarks,
@@ -551,7 +463,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     InstructionId: null,
                     ClientId: currentClient.id,
                     ClientAuthUserId: currentUser.id,
-                    InsertUser: 1,
+                    InsertUser: currentUser.id,
                     InstCategoryId: 101,
                     ServiceId: 3,
                 };
@@ -566,6 +478,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (!response.ok) {
                         const errorData = await response.json();
                         throw new Error(errorData.message || "Failed to create ticket.");
+                    }
+
+                    if (ticketsDataTable) {
+                        ticketsDataTable.ajax.reload();
                     }
 
                     await loadSidebarForClient(currentClient.id);
@@ -618,7 +534,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     InstructionId: null,
                     ClientId: currentClient.id,
                     ClientAuthUserId: currentUser.id,
-                    InsertUser: currentClient.id,
+                    InsertUser: currentUser.id,
                     InstCategoryId: 102,
                     ServiceId: 3,
                 };
@@ -657,6 +573,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         console.log(`CLIENT RECEIVER: Comparing incoming message ID (${conversationId}) with currently open chat ID (${currentChatContext.id})`);
 
+        if (message.clientAuthUserId === currentUser.id) {
+            console.log("CLIENT RECEIVER: Ignoring own message broadcast to prevent duplicate.");
+            return;
+        }
+
         if (currentChatContext && String(currentChatContext.id) === String(conversationId)) {
             displayMessage(message, false);
         }
@@ -677,7 +598,6 @@ document.addEventListener("DOMContentLoaded", () => {
             await connection.start();
             console.log("SignalR Connected.");
             updateSendButtonState();
-
             await loadSidebarForClient(currentClient.id);
 
         } catch (err) {
@@ -686,82 +606,129 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        let ticketsDataTable = null;
         if (supportTicketsTableE1.length) {
             ticketsDataTable = supportTicketsTableE1.DataTable({
-                "ajax": { "url": `/v1/api/instructions/tickets/${currentClient.id}`, "dataSrc": "data" },
+                "ajax": {
+                    "url": `/v1/api/instructions/tickets/${currentClient.id}`,
+                    "dataSrc": function (json) {
+                        console.log("DEBUG: Ticket data structure:", json.data[0]);
+                        return json.data;
+                    }
+                },
                 "columns": [
-                    { "data": "id", "title": "ID" },
-                    { "data": "subject", "title": "Subject" },
-                    { "data": "date", "title": "Date", "render": data => new Date(data).toLocaleDateString() },
-                    { "data": "status", "title": "Status" },
+                    {
+                        "data": "id",
+                        "title": '<i class="fas fa-hashtag me-1"></i>ID',
+                        "width": "8%",
+                        "className": "text-center fw-bold",
+                        "render": function (data) {
+                            return `<span class="badge bg-light text-dark border">#${data}</span>`;
+                        }
+                    },
+                    {
+                        "data": "subject",
+                        "title": '<i class="fas fa-ticket-alt me-1"></i>Subject',
+                        "width": "30%",
+                        "className": "fw-semibold",
+                        "render": function (data, type, row) {
+                            const subject = data || 'General Support';
+                            const truncated = subject.length > 40 ? subject.substring(0, 40) + '...' : subject;
+                            return `<span title="${escapeHtml(subject)}" class="text-primary">${escapeHtml(truncated)}</span>`;
+                        }
+                    },
+                    {
+                        "data": "date",
+                        "title": '<i class="fas fa-calendar me-1"></i>Date',
+                        "width": "15%",
+                        "className": "text-center",
+                        "render": function (data) {
+                            const date = new Date(data);
+                            const formatted = date.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                            });
+                            const time = date.toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                            return `<div class="text-muted small">${formatted}</div><div class="text-secondary" style="font-size: 0.75rem">${time}</div>`;
+                        }
+
+                    },
+                    {
+                        "data": "status",
+                        "title": '<i class="fas fa-info-circle me-1"></i>Status',
+                        "width": "12%",
+                        "className": "text-center",
+                        "render": function (data) {
+                            const status = data || 'Pending';
+                            const statusClass = `badge-status-${status.toLowerCase()}`;
+                            return `<span class="badge ${statusClass}"><i class="fas fa-circle me-1" style="font-size: 0.5rem"></i>${escapeHtml(status)}</span>`;
+                        }
+                    },
                     {
                         "data": "priority",
-                        "title": "Priority",
+                        "title": '<i class="fas fa-exclamation-triangle me-1"></i>Priority',
+                        "width": "12%",
+                        "className": "text-center",
                         "render": (data) => generatePriorityBadge(data)
                     },
                     {
                         "data": null,
-                        "title": "Actions",
+                        "title": '<i class="fas fa-cogs me-1"></i>Actions',
                         "orderable": false,
+                        "width": "15%",
                         "className": "text-center",
-                        "defaultContent": `
-            <div class="action-buttons">
-                <button class="btn-icon-action view-details-btn" title="View Details"><i class="fas fa-eye"></i></button>
-                <button class="btn-icon-action start-chat-btn" title="Open Chat"><i class="fas fa-comments"></i></button>
-            </div>`
+                        "render": function (data, type, row) {
+                            return `
+                        <div class="action-buttons">
+                            <button class="btn-icon-action view-details-btn" title="View Details" data-bs-toggle="tooltip">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn-icon-action start-chat-btn" title="Open Chat" data-bs-toggle="tooltip">
+                                <i class="fas fa-comments"></i>
+                            </button>
+                        </div>`;
+                        }
                     }
                 ],
                 "order": [[0, 'desc']],
-                "language": { "emptyTable": "You have not created any support tickets yet." }
+                "pageLength": 10,
+                "lengthMenu": [[5, 10, 25, 50], [5, 10, 25, 50]],
+                "language": {
+                    "emptyTable": '<div class="text-center p-4"><i class="fas fa-ticket-alt fa-3x text-muted mb-3"></i><br><span class="text-muted">You haven\'t created any support tickets yet.</span><br><small class="text-secondary">Click "New Support Ticket" to get started!</small></div>',
+                    "search": '<i class="fas fa-search me-2"></i>',
+                    "lengthMenu": 'Show _MENU_ tickets',
+                    "info": 'Showing _START_ to _END_ of _TOTAL_ tickets',
+                    "infoEmpty": 'No tickets available',
+                    "paginate": {
+                        "first": '<i class="fas fa-angle-double-left"></i>',
+                        "last": '<i class="fas fa-angle-double-right"></i>',
+                        "next": '<i class="fas fa-angle-right"></i>',
+                        "previous": '<i class="fas fa-angle-left"></i>'
+                    }
+                },
+                "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+                "responsive": true,
+                "processing": true,
+                "deferRender": true,
+                "stateSave": true,
+                "drawCallback": function () {
+                    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipTriggerList.map(function (tooltipTriggerEl) {
+                        return new bootstrap.Tooltip(tooltipTriggerEl, {
+                            trigger: 'hover',
+                            delay: { show: 300, hide: 100 }
+                        });
+                    });
+                }
             });
 
-            ticketsDataTable.on('click', '.view-details-btn', function () {
-                const rowData = ticketsDataTable.row($(this).parents('tr')).data();
-                if (!rowData) return;
-
-                currentTicketData = rowData;
-
-                const context = {
-                    id: rowData.id,
-                    name: rowData.subject,
-                    type: 'ticket',
-                    route: `/v1/api/instructions/tickets/${rowData.id}`
-                };
-
-                switchChatContext(context);
-
-                $('#details-id').text(rowData.id);
-                $('#details-subject').text(rowData.subject);
-                $('#details-date').text(new Date(rowData.date).toLocaleString());
-                $('#details-createdBy').text(rowData.createdBy || 'N/A');
-                $('#details-resolvedBy').text(rowData.resolvedBy || 'N/A');
-                $('#details-status').html(`<span class="badge badge-status-${(rowData.status || 'pending').toLowerCase()}">${escapeHtml(rowData.status || 'Pending')}</span>`);
-                $('#details-priority').html(generatePriorityBadge(rowData.priority));
-                $('#details-description').text(rowData.instruction || 'No description provided.');
-
-                try {
-                    const remarksObj = JSON.parse(rowData.remarks);
-                    $('#details-remarks').text(remarksObj.userremarks || 'N/A');
-                } catch (e) {
-                    $('#details-remarks').text(rowData.remarks || 'N/A');
-                }
-
-                const editButton = $('#editTicketBtn');
-                if (rowData.status !== 'Resolved') {
-                    editButton.show();
-                    editButton.data('ticketId', rowData.id);
-                } else {
-                    editButton.hide();
-                }
-
-                toggleEditMode(false);
-
-                new bootstrap.Modal(document.getElementById('viewTicketDetailsModal')).show();
-            });
+            const searchBox = supportTicketsTableE1.closest('.dataTables_wrapper').find('.dataTables_filter input');
+            searchBox.attr('placeholder', 'Search tickets...').addClass('form-control-sm');
         }
 
-        let inquiriesDataTable = null;
         if (inquiriesTableE1.length) {
             inquiriesDataTable = inquiriesTableE1.DataTable({
                 "ajax": {
@@ -769,71 +736,83 @@ document.addEventListener("DOMContentLoaded", () => {
                     "dataSrc": "data"
                 },
                 "columns": [
-                    { "data": "id", "title": "ID" },
-                    { "data": "topic", "title": "Topic" },
-                    { "data": "inquiredBy", "title": "Inquired By" },
-                    { "data": "date", "title": "Date", "render": data => new Date(data).toLocaleDateString() },
+                    {
+                        "data": "id",
+                        "title": '<i class="fas fa-hashtag me-1"></i>ID',
+                        "width": "10%",
+                        "className": "text-center fw-bold",
+                        "render": function (data) {
+                            return `<span class="badge bg-light text-dark border">#${data}</span>`;
+                        }
+                    },
+                    {
+                        "data": "topic",
+                        "title": '<i class="fas fa-question-circle me-1"></i>Topic',
+                        "width": "35%",
+                        "className": "fw-semibold text-primary"
+                    },
+                    {
+                        "data": "inquiredBy",
+                        "title": '<i class="fas fa-user me-1"></i>Inquired By',
+                        "width": "25%"
+                    },
+                    {
+                        "data": "date",
+                        "title": '<i class="fas fa-calendar me-1"></i>Date',
+                        "width": "20%",
+                        "className": "text-center",
+                        "render": function (data) {
+                            const date = new Date(data);
+                            return date.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                            });
+                        }
+                    },
                     {
                         "data": null,
-                        "title": "Actions",
+                        "title": '<i class="fas fa-cogs me-1"></i>Actions',
                         "orderable": false,
+                        "width": "10%",
                         "className": "text-center",
-                        "defaultContent": `
-            <div class="action-buttons">
-                <button class="btn-icon-action start-chat-btn" title="Open Chat"><i class="fas fa-comments"></i></button>
-            </div>`
+                        "render": function () {
+                            return `
+                        <div class="action-buttons">
+                            <button class="btn-icon-action start-chat-btn" title="Open Chat" data-bs-toggle="tooltip">
+                                <i class="fas fa-comments"></i>
+                            </button>
+                        </div>`;
+                        }
                     }
-                ]
-            });
-
-            inquiriesDataTable.on('click', '.start-chat-btn', function () {
-                const rowData = inquiriesDataTable.row($(this).parents('tr')).data();
-                if (!rowData) return;
-
-                const route = `inquiry/${rowData.topic.toLowerCase().replace(/\s+/g, '-')}`;
-
-                switchChatContext({
-                    id: rowData.id,
-                    name: `#${rowData.id} - ${rowData.topic}`,
-                    route: route
-                });
+                ],
+                "order": [[0, 'desc']],
+                "pageLength": 10,
+                "language": {
+                    "emptyTable": '<div class="text-center p-4"><i class="fas fa-question-circle fa-3x text-muted mb-3"></i><br><span class="text-muted">No inquiries found.</span><br><small class="text-secondary">Click "New Inquiry" to submit your first inquiry!</small></div>',
+                    "search": '<i class="fas fa-search me-2"></i>',
+                    "lengthMenu": 'Show _MENU_ inquiries',
+                    "info": 'Showing _START_ to _END_ of _TOTAL_ inquiries'
+                },
+                "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+                "responsive": true,
+                "drawCallback": function () {
+                    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipTriggerList.map(function (tooltipTriggerEl) {
+                        return new bootstrap.Tooltip(tooltipTriggerEl, {
+                            trigger: 'hover',
+                            delay: { show: 300, hide: 100 }
+                        });
+                    });
+                }
             });
         }
 
         initializeTicketSystem();
 
-        $(document).on('click', '#editTicketBtn', function () {
-            if (currentTicketData) {
-                populateEditTicketForm(currentTicketData);
-                toggleEditMode(true);
-            }
-        });
-
-        $(document).on('click', '#saveChangesBtn', function () {
-            saveTicketChanges();
-        });
-
-        $(document).on('click', '#cancelEditBtn', function () {
-            toggleEditMode(false);
-        });
-
-        $(document).on('click', '#closeModalBtn', function () {
-            if ($('#editTicketForm').is(':visible')) {
-                toggleEditMode(false);
-            }
-            closeTicketModal();
-        });
-
-        $(document).on('submit', '#editTicketForm', function (e) {
-            e.preventDefault();
-            saveTicketChanges();
-        });
-
         const ticketModal = document.getElementById('viewTicketDetailsModal');
         if (ticketModal) {
             ticketModal.addEventListener('hidden.bs.modal', function () {
-                toggleEditMode(false);
-
                 setTimeout(() => {
                     const backdrops = document.querySelectorAll('.modal-backdrop');
                     backdrops.forEach(backdrop => backdrop.remove());
@@ -865,7 +844,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (ticketsDataTable) {
             supportTicketsTableE1.on('click', '.start-chat-btn', function () {
                 const rowData = ticketsDataTable.row($(this).parents('tr')).data();
-                if (!rowData) return;
+                if (!rowData) {
+                    console.error('No row data found for the clicked button.');
+                    return
+                };
 
                 const route = `ticket/${rowData.subject.toLowerCase().replace(/\s+/g, '-')}`;
 
@@ -878,16 +860,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
             supportTicketsTableE1.on('click', '.view-details-btn', function () {
                 const rowData = ticketsDataTable.row($(this).parents('tr')).data();
-                if (!rowData) return;
-                const route = `ticket/${rowData.subject.toLowerCase().replace(/\s+/g, '-')}`;
+                if (!rowData) {
+                    console.error('No row data found for view details button');
+                    return;
+                }
 
-                switchChatContext({
-                    id: rowData.id,
-                    name: `#${rowData.id} - ${rowData.subject}`,
-                    route: route
-                });
+                console.log('Row data for modal:', rowData);
 
-                new bootstrap.Modal(document.getElementById('viewTicketDetailsModal')).show();
+                currentTicketData = rowData;
+
+                populateTicketDetailsModal(rowData);
+
+                const modal = new bootstrap.Modal(document.getElementById('viewTicketDetailsModal'));
+                modal.show();
             });
         }
 

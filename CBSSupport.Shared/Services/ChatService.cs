@@ -68,43 +68,60 @@ namespace CBSSupport.Shared.Services
                 var priority = newTicket.Priority ?? "Normal";
                 var userRemarks = newTicket.Remarks ?? "";
 
+                var subjectMap = new Dictionary<short, string>
+                {
+                    { 110, "Training" },
+                    { 111, "Migration" },
+                    { 112, "Setup" },
+                    { 113, "Correction" },
+                    { 114, "Bug Fix" },
+                    { 115, "New Feature Request" },
+                    { 116, "Feature Enhancement" },
+                    { 117, "Backend Workaround" }
+                };
+
+                var subject = subjectMap.TryGetValue(newTicket.InstTypeId, out var mappedSubject)
+                    ? mappedSubject
+                    : "General Support";
+
                 var remarksJson = new
                 {
                     priority = priority,
-                    userremarks = userRemarks
+                    userremarks = userRemarks,
+                    subject = subject
                 };
 
                 newTicket.Remarks = JsonSerializer.Serialize(remarksJson);
             }
 
             var sqlInsert = @"
-        INSERT INTO digital.instructions (
-            datetime, inst_category_id, inst_type_id, instruction,
-            status, insert_user, client_auth_user_id, client_id,
-            service_id, ip_address, geo_location, inst_channel,
-            attachment_id, instruction_id, remarks, expiry_date
-        )
-        VALUES (
-            @DateTime, @InstCategoryId, @InstTypeId, @Instruction,
-            @Status, @InsertUser, @ClientAuthUserId, @ClientId,
-            @ServiceId, @IpAddress, @GeoLocation, @InstChannel,
-            @AttachmentId, @InstructionId, @Remarks, @ExpiryDate
-        )
-        RETURNING id;";
+                INSERT INTO digital.instructions (
+                    datetime, inst_category_id, inst_type_id, instruction,
+                    status, insert_user, client_auth_user_id, client_id,
+                    service_id, ip_address, geo_location, inst_channel,
+                    attachment_id, instruction_id, remarks, expiry_date
+                )
+                VALUES (
+                    @DateTime, @InstCategoryId, @InstTypeId, @Instruction,
+                    @Status, @InsertUser, @ClientAuthUserId, @ClientId,
+                    @ServiceId, @IpAddress, @GeoLocation, @InstChannel,
+                    @AttachmentId, @InstructionId, @Remarks, @ExpiryDate
+                )
+                RETURNING id;";
 
             var sqlUpdate = @"UPDATE digital.instructions SET instruction_id = @Id WHERE id = @Id;";
 
             var sqlSelect = @"
-SELECT 
-    i.*,
-    CASE 
-        WHEN i.client_auth_user_id IS NOT NULL THEN COALESCE(cu.full_name, cu.user_name, 'Unknown Client User')
-        ELSE COALESCE(au.full_name, au.user_name, 'Unknown Admin User')
-    END AS SenderName 
-FROM digital.instructions i
-LEFT JOIN admin.users au ON i.insert_user = au.id AND i.client_auth_user_id IS NULL
-LEFT JOIN internal.support_users cu ON i.client_auth_user_id = cu.id
-WHERE i.id = @Id;";
+            SELECT 
+                i.*,
+                CASE 
+                    WHEN i.client_auth_user_id IS NOT NULL THEN COALESCE(cu.full_name, cu.user_name, 'Unknown Client User')
+                    ELSE COALESCE(au.full_name, au.user_name, 'Unknown Admin User')
+                END AS SenderName 
+            FROM digital.instructions i
+            LEFT JOIN admin.users au ON i.insert_user = au.id AND i.client_auth_user_id IS NULL
+            LEFT JOIN internal.support_users cu ON i.client_auth_user_id = cu.id
+            WHERE i.id = @Id;";
 
             using (var connection = new NpgsqlConnection(_connectionString))
             {
@@ -124,6 +141,94 @@ WHERE i.id = @Id;";
                 }
 
                 return savedMessage;
+            }
+        }
+
+        public async Task<ChatMessage> CreateGroupChatMessageAsync(ChatMessage newMessage)
+        {
+            var sqlInsert = @"
+            INSERT INTO digital.instructions (
+                datetime, inst_category_id, inst_type_id, instruction,
+                status, insert_user, client_auth_user_id, client_id,
+                service_id, ip_address, geo_location, inst_channel,
+                attachment_id, instruction_id, remarks, expiry_date
+            )
+            VALUES (
+                @DateTime, @InstCategoryId, @InstTypeId, @Instruction,
+                @Status, @InsertUser, @ClientAuthUserId, @ClientId,
+                @ServiceId, @IpAddress, @GeoLocation, @InstChannel,
+                @AttachmentId, NULL, @Remarks, @ExpiryDate
+            )
+            RETURNING id;";
+
+            var sqlUpdate = @"UPDATE digital.instructions SET instruction_id = @Id WHERE id = @Id;";
+
+            var sqlSelect = @"
+            SELECT 
+                i.*,
+                CASE 
+                    WHEN i.client_auth_user_id IS NOT NULL THEN COALESCE(cu.full_name, cu.user_name, 'Unknown Client User')
+                    ELSE COALESCE(au.full_name, au.user_name, 'Unknown Admin User')
+                END AS SenderName 
+            FROM digital.instructions i
+            LEFT JOIN admin.users au ON i.insert_user = au.id AND i.client_auth_user_id IS NULL
+            LEFT JOIN internal.support_users cu ON i.client_auth_user_id = cu.id
+            WHERE i.id = @Id;";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                long newId = await connection.ExecuteScalarAsync<long>(sqlInsert, newMessage);
+
+                await connection.ExecuteAsync(sqlUpdate, new { Id = newId });
+
+                var savedMessage = await connection.QueryFirstOrDefaultAsync<ChatMessage>(sqlSelect, new { Id = newId });
+
+                if (savedMessage != null)
+                {
+                    savedMessage.InstructionId = newId; 
+                }
+
+                return savedMessage;
+            }
+        }
+
+        public async Task<long> GetOrCreateGroupChatConversationIdAsync(long clientId, int loggedInUserId)
+        {
+            var sql = @"
+        SELECT i.instruction_id 
+        FROM digital.instructions i
+        WHERE i.client_id = @ClientId 
+          AND i.inst_type_id = 100 
+          AND i.inst_category_id = 100
+          AND i.instruction_id IS NOT NULL
+        ORDER BY i.datetime DESC
+        LIMIT 1;";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                var existingConversationId = await connection.QueryFirstOrDefaultAsync<long?>(sql, new { ClientId = clientId });
+
+                if (existingConversationId.HasValue)
+                {
+                    return existingConversationId.Value;
+                }
+
+                var newGroupChatMessage = new ChatMessage
+                {
+                    DateTime = DateTime.UtcNow,
+                    InstTypeId = 100,
+                    InstCategoryId = 100,
+                    Instruction = "Group chat conversation started",
+                    Status = true,
+                    InsertUser = loggedInUserId, 
+                    ClientId = clientId,
+                    ServiceId = 3,
+                    InstChannel = "chat",
+                    Remarks = "System generated group chat conversation"
+                };
+
+                var createdMessage = await CreateGroupChatMessageAsync(newGroupChatMessage);
+                return createdMessage.InstructionId ?? createdMessage.Id;
             }
         }
 
@@ -359,19 +464,22 @@ WHERE i.id = @Id;";
         {
             var ticketTypeIds = Enumerable.Range(110, 8).ToArray();
             var sql = @"
-        SELECT 
-            i.id AS Id,
-            i.instruction AS Subject,
-            i.datetime AS Date,
-            u.full_name AS CreatedBy,
-            res.full_name AS ResolvedBy,
-            CASE WHEN i.completed = true THEN 'Resolved' ELSE 'Open' END AS Status,
-            COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority
-        FROM digital.instructions i
-        LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
-        LEFT JOIN admin.users res ON i.completed_by = res.id
-        WHERE i.client_id = @ClientId AND i.inst_type_id = ANY(@TicketTypeIds)
-        ORDER BY i.datetime DESC;";
+            SELECT 
+                i.id AS Id,
+                COALESCE(public.try_get_json_value(i.remarks, 'subject'), 'General Support') AS Subject,  -- ✅ GET SUBJECT FROM JSON
+                i.datetime AS Date,
+                u.full_name AS CreatedBy,
+                res.full_name AS ResolvedBy,
+                CASE WHEN i.completed = true THEN 'Resolved' ELSE 'Open' END AS Status,
+                COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
+                i.instruction AS Description,  
+                i.remarks AS Remarks,  
+                i.expiry_date AS ExpiryDate  
+            FROM digital.instructions i
+            LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
+            LEFT JOIN admin.users res ON i.completed_by = res.id
+            WHERE i.client_id = @ClientId AND i.inst_type_id = ANY(@TicketTypeIds)
+            ORDER BY i.datetime DESC;";
 
             using (var connection = new NpgsqlConnection(_connectionString))
             {

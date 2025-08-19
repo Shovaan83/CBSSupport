@@ -160,7 +160,7 @@
                 Instruction: text,
                 InstructionId: parseInt(mainChatContext.id, 10), 
                 ClientId: currentClientId,
-                InsertUser: 1,
+                InsertUser: currentUser.id,
                 InstCategoryId: 100,
                 ServiceId: 3,
                 Remarks: "Message from admin panel"
@@ -462,7 +462,6 @@
         // --- 8. EVENT HANDLERS ---
         function wireEvents() {
             $('.admin-sidebar .nav-link').on('click', function (e) {
-
                 e.preventDefault();
                 const pageName = $(this).data('page');
 
@@ -470,6 +469,15 @@
                 $(this).addClass('active');
                 $('.admin-page.active').removeClass('active');
                 $('#' + pageName + '-page').addClass('active');
+
+                if (pageName === 'chats') {
+                    const chatsNavLink = document.querySelector('[data-page="chats"]');
+                    if (chatsNavLink) {
+                        chatsNavLink.classList.remove('has-notification');
+                        const badge = chatsNavLink.querySelector('.notification-badge');
+                        if (badge) badge.remove();
+                    }
+                }
 
                 if (pageInitializers[pageName]) {
                     pageInitializers[pageName]();
@@ -560,7 +568,8 @@
             connection.on("ReceivePrivateMessage", (message) => {
                 console.log("ADMIN RECEIVER: Hub broadcast received. Message object:", message);
 
-                if (message.insertUser === currentUser.id) {
+                // ✅ FIX: Check for both insertUser and clientAuthUserId to filter admin messages properly
+                if (message.insertUser === currentUser.id || message.clientAuthUserId === currentUser.id) {
                     console.log("ADMIN RECEIVER: Ignoring own message broadcast.");
                     return;
                 }
@@ -571,34 +580,62 @@
                     return;
                 }
 
+                // ✅ FIX: Handle floating chat messages first
                 const floatingChat = document.getElementById(`chatbox-tkt-${conversationId}`);
                 if (floatingChat && !floatingChat.classList.contains('collapsed')) {
                     console.log(`ADMIN RECEIVER: Message for open floating chat #${conversationId}. Appending message.`);
                     const container = floatingChat.querySelector('.chat-box-body');
-                    const senderName = message.senderName || 'Client'; 
+                    const senderName = message.senderName || 'Client';
 
                     const msgRow = document.createElement('div');
-                    msgRow.className = `message-row received`; 
+                    msgRow.className = `message-row received`;
                     msgRow.innerHTML = `<div class="message-content"><div class="message-bubble"><p class="message-text">${escapeHtml(message.instruction)}</p></div><span class="message-timestamp">${escapeHtml(senderName)} - ${formatTimestamp(message.dateTime)}</span></div>`;
 
                     container.appendChild(msgRow);
                     scrollToBottom(container);
-                    return; 
+                    return;
                 }
 
-                if ($('#chats-page').hasClass('active') && String(mainChatContext.id) === String(conversationId)) {
+                // ✅ FIX: Handle main chat messages regardless of which page is active
+                if (String(mainChatContext.id) === String(conversationId)) {
                     console.log(`ADMIN RECEIVER: Message for open main chat #${conversationId}. Calling displayMainChatMessage.`);
                     displayMainChatMessage(message);
-                } else {
-                    console.log(`ADMIN RECEIVER: Message for inactive chat #${conversationId}. Marking as unread.`);
-                    const convItem = document.querySelector(`.conversation-item[data-id="${conversationId}"]`);
-                    if (convItem) {
-                        convItem.classList.add('has-unread');
-                        const subtitle = convItem.querySelector('.text-muted');
-                        if (subtitle) subtitle.textContent = message.instruction;
+                }
+
+                // ✅ FIX: Always update conversation list with new messages
+                const convItem = document.querySelector(`.conversation-item[data-id="${conversationId}"]`);
+                if (convItem) {
+                    convItem.classList.add('has-unread');
+                    const subtitle = convItem.querySelector('.text-muted');
+                    if (subtitle) {
+                        subtitle.textContent = message.instruction;
                     }
                 }
-            });
+
+                // ✅ NEW: Add notification for client messages when not on chats page
+                if (!$('#chats-page').hasClass('active')) {
+                    console.log("ADMIN RECEIVER: New client message received while not on chats page");
+
+                    // Add visual indicator to the Chats tab
+                    const chatsNavLink = document.querySelector('[data-page="chats"]');
+                    if (chatsNavLink && !chatsNavLink.classList.contains('has-notification')) {
+                        chatsNavLink.classList.add('has-notification');
+                        // Add a badge or indicator
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-danger ms-2 notification-badge';
+                        badge.textContent = '!';
+                        chatsNavLink.appendChild(badge);
+                    }
+
+                    // Optional: Show browser notification
+                    if (Notification.permission === "granted") {
+                        new Notification("New Message", {
+                            body: `${message.senderName}: ${message.instruction}`,
+                            icon: "/images/notification-icon.png" // Add your icon path
+                        });
+                    }
+                }
+            }); // ✅ FIXED: Proper closing for ReceivePrivateMessage handler
 
             connection.on("NewTicket", (ticket) => {
                 if (String(ticket.clientId) === String(currentClientId)) {
@@ -612,7 +649,12 @@
         async function init() {
             try {
                 await connection.start();
+                if ('Notification' in window && Notification.permission === 'default') {
+                    await Notification.requestPermission();
+                }
+
                 setupSignalRListeners();
+
                 const meResp = await fetch('/v1/api/accounts/me');
                 if (meResp.ok) currentUser = await meResp.json();
                 $('#admin-username-display').text(currentUser.name);
@@ -641,6 +683,5 @@
                 $('body').html('<div class="alert alert-danger m-5"><strong>Error:</strong> Could not initialize admin panel. Please check the connection and API status.</div>');
             }
         }
-
         init();
     });
