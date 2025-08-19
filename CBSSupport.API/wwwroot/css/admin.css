@@ -250,8 +250,114 @@ body {
         text-transform: uppercase;
     }
 
+/* --- 5. INQUIRY MANAGEMENT LAYOUT --- */
+.inquiry-management-layout {
+    display: grid;
+    grid-template-columns: 70% 1fr;
+    gap: 1.5rem;
+    height: 100%;
+    overflow: hidden;
+}
 
-/* --- 5. CHAT PAGE & FLOATING CHAT --- */
+.inquiry-list-panel, .inquiry-detail-panel {
+    background-color: #fff;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--admin-border-color);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.inquiry-detail-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--admin-border-color);
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+    .inquiry-detail-header h5 {
+        margin: 0;
+        font-size: 1.2rem;
+        color: #495057;
+    }
+
+.inquiry-properties {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+    .inquiry-properties .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+        .inquiry-properties .form-group label {
+            font-weight: 500;
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+
+    .inquiry-properties .form-control {
+        border: 1px solid var(--admin-border-color);
+        border-radius: 6px;
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+        .inquiry-properties .form-control:focus {
+            border-color: var(--admin-accent);
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+        }
+
+.inquiry-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+    .inquiry-actions .btn {
+        flex: 1;
+        padding: 0.75rem;
+        font-weight: 500;
+    }
+
+.inquiry-conversation-notice {
+    margin-top: auto;
+    padding: 1rem 1.5rem;
+    background-color: #f8f9fa;
+    border-top: 1px solid var(--admin-border-color);
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+    .inquiry-conversation-notice i {
+        color: var(--admin-accent);
+    }
+
+/* Outcome badges for inquiries */
+.badge-outcome-pending {
+    color: #b45309;
+    background-color: #fde68a;
+}
+
+.badge-outcome-in-progress {
+    color: #1d4ed8;
+    background-color: #dbeafe;
+}
+
+.badge-outcome-completed {
+    color: #065f46;
+    background-color: #d1fae5;
+}
+
+/* --- 6. CHAT PAGE & FLOATING CHAT --- */
 .chat-container-full {
     display: grid;
     grid-template-columns: 320px 1fr; /* Sidebar width + Main panel */
@@ -455,6 +561,54 @@ body {
     color: rgba(255, 255, 255, 0.7);
 }
 
+/* Message row styles for floating chat */
+.message-row {
+    display: flex;
+    margin-bottom: 0.75rem;
+}
+
+    .message-row.sent {
+        justify-content: flex-end;
+    }
+
+    .message-row.received {
+        justify-content: flex-start;
+    }
+
+.message-content {
+    max-width: 80%;
+}
+
+.message-row.sent .message-content {
+    text-align: right;
+}
+
+.message-row.received .message-content {
+    text-align: left;
+}
+
+.message-row .message-bubble {
+    display: inline-block;
+    padding: 0.5rem 0.75rem;
+    border-radius: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.message-row.sent .message-bubble {
+    background-color: var(--admin-accent);
+    color: white;
+}
+
+.message-row.received .message-bubble {
+    background-color: #f1f3f4;
+    color: #333;
+}
+
+.message-row .message-timestamp {
+    font-size: 0.7rem;
+    color: #6c757d;
+}
+
 #floating-chat-container {
     position: fixed;
     bottom: 0;
@@ -546,8 +700,34 @@ body {
         flex-shrink: 0;
     }
 
+/* Date separator */
+.date-separator {
+    text-align: center;
+    margin: 1rem 0;
+    font-size: 0.8rem;
+    color: #6c757d;
+    position: relative;
+}
 
-/* --- 6. DATATABLES & BADGES (FINAL VERSION) --- */
+    .date-separator::before,
+    .date-separator::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        width: 40%;
+        height: 1px;
+        background-color: var(--admin-border-color);
+    }
+
+    .date-separator::before {
+        left: 0;
+    }
+
+    .date-separator::after {
+        right: 0;
+    }
+
+/* --- 7. DATATABLES & BADGES (FINAL VERSION) --- */
 .table {
     border-collapse: separate;
     border-spacing: 0;
@@ -703,3 +883,32 @@ body {
             background-color: #dc3545; /* A red color on hover for emphasis */
             color: #fff;
         }
+
+/* Panel body for table containers */
+.panel-body {
+    padding: 1.5rem;
+    overflow: auto;
+    flex-grow: 1;
+}
+
+/* DataTables specific overrides */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+    margin-bottom: 1rem;
+}
+
+    .dataTables_wrapper .dataTables_filter input {
+        border: 1px solid var(--admin-border-color);
+        border-radius: 6px;
+        padding: 0.5rem;
+        margin-left: 0.5rem;
+    }
+
+    .dataTables_wrapper .dataTables_length select {
+        border: 1px solid var(--admin-border-color);
+        border-radius: 6px;
+        padding: 0.25rem;
+        margin: 0 0.5rem;
+    }

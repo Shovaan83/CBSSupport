@@ -112,7 +112,7 @@ public class InstructionsController : ControllerBase
                 "support-private" => 101,
                 "internal-team-chat" => 105,
                 "ticket/training" => 110,
-                "ticket/migration" => 111,  
+                "ticket/migration" => 111,
                 "ticket/setup" => 112,
                 "ticket/correction" => 113,
                 "ticket/bug-fix" => 114,
@@ -164,7 +164,7 @@ public class InstructionsController : ControllerBase
     {
         try
         {
-            var sidebarData = await _service.GetSidebarForUserAsync(0, clientId); 
+            var sidebarData = await _service.GetSidebarForUserAsync(0, clientId);
             return Ok(sidebarData);
         }
         catch (Exception ex)
@@ -235,4 +235,64 @@ public class InstructionsController : ControllerBase
             return StatusCode(500, new { message = "An internal server error occurred." });
         }
     }
+
+    [HttpGet("inquiry/{inquiryId}")]
+    [Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
+    public async Task<IActionResult> GetInquiryById(long inquiryId)
+    {
+        if (inquiryId <= 0)
+        {
+            return BadRequest(new { message = "A valid inquiry ID must be provided." });
+        }
+
+        try
+        {
+            var inquiry = await _service.GetInquiryByIdAsync(inquiryId);
+            if (inquiry == null)
+            {
+                return NotFound(new { message = "Inquiry not found." });
+            }
+            return Ok(inquiry);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching inquiry by ID {InquiryId}.", inquiryId);
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpPut("inquiry/{inquiryId}/outcome")]
+    [Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
+    public async Task<IActionResult> UpdateInquiryOutcome(long inquiryId, [FromBody] UpdateInquiryOutcomeRequest request)
+    {
+        if (inquiryId <= 0)
+        {
+            return BadRequest(new { message = "A valid inquiry ID must be provided." });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Outcome))
+        {
+            return BadRequest(new { message = "Outcome cannot be empty." });
+        }
+
+        try
+        {
+            var result = await _service.UpdateInquiryOutcomeAsync(inquiryId, request.Outcome);
+            if (result)
+            {
+                return Ok(new { message = "Inquiry outcome updated successfully." });
+            }
+            return NotFound(new { message = "Inquiry not found." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating inquiry outcome for ID {InquiryId}.", inquiryId);
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+}
+
+public class UpdateInquiryOutcomeRequest
+{
+    public string Outcome { get; set; } = "";
 }
