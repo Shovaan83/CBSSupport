@@ -56,7 +56,32 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<span class="badge badge-outcome-${o}">${escapeHtml(outcome || 'Pending')}</span>`;
     };
 
-    // --- 5. CORE LOGIC: FLOATING CHAT ---
+    // --- 5. INQUIRY FILTERING FUNCTIONS ---
+    function applyInquiryFilters() {
+        if (!inquiriesTable) return;
+
+        const clientFilter = $('#client-switcher-inquiries').val();
+        const statusFilter = $('#status-filter-inquiries').val();
+
+        // Clear all previous searches
+        inquiriesTable.columns().search('');
+
+        // Apply client filter on "Inquired By" column (column index 2)
+        if (clientFilter) {
+            const clientName = $('#client-switcher-inquiries option:selected').text();
+            inquiriesTable.column(2).search(`^${clientName}$`, true, false);
+        }
+
+        // Apply status filter on raw data, not rendered HTML
+        if (statusFilter) {
+            // Use the raw data for filtering, not the rendered HTML
+            inquiriesTable.column(3).search(statusFilter, false, true);
+        }
+
+        inquiriesTable.draw();
+    }
+
+    // --- 6. CORE LOGIC: FLOATING CHAT ---
     function openFloatingChatBox(item, type) {
         const id = item.id;
         const clientName = item.clientName;
@@ -98,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 6. INQUIRY MANAGEMENT FUNCTIONS ---
+    // --- 7. INQUIRY MANAGEMENT FUNCTIONS ---
     function closeInquiryDetails() {
         // Hide the detail panel
         document.getElementById('inquiry-detail-content').style.display = 'none';
@@ -139,13 +164,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectedInquiryRow = rowElement;
             }
 
-            // Populate the detail panel
+            // Populate the detail panel (REMOVED PRIORITY SECTION)
             document.getElementById('detail-inquiry-id').textContent = `#INQ-${inquiry.id}`;
             document.getElementById('detail-inquiry-topic').textContent = inquiry.topic;
             document.getElementById('detail-inquiry-outcome').value = inquiry.outcome;
             document.getElementById('detail-inquiry-inquired-by').value = inquiry.inquiredBy;
-            document.getElementById('detail-inquiry-priority-badge').className = `badge badge-priority-${inquiry.priority.toLowerCase()}`;
-            document.getElementById('detail-inquiry-priority-badge').textContent = inquiry.priority;
             document.getElementById('detail-inquiry-date').value = new Date(inquiry.date).toLocaleString();
             document.getElementById('detail-inquiry-description').value = inquiry.description || '';
 
@@ -165,6 +188,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const outcome = document.getElementById('detail-inquiry-outcome').value;
         const originalOutcome = currentInquiry.outcome;
 
+        // Show loading state
+        const updateBtn = document.getElementById('btn-update-inquiry');
+        const originalBtnText = updateBtn.innerHTML;
+        updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+        updateBtn.disabled = true;
+
         try {
             const response = await fetch(`/v1/api/instructions/inquiry/${currentInquiry.id}/outcome`, {
                 method: 'PUT',
@@ -178,31 +207,82 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Update the current inquiry object
                 currentInquiry.outcome = outcome;
 
+                // Update the badge in the selected row immediately
+                if (selectedInquiryRow) {
+                    const badgeCell = $(selectedInquiryRow).find('td').eq(3); // Outcome column
+                    badgeCell.html(generateOutcomeBadge(outcome));
+                }
+
                 // Refresh the inquiries table to show updated data
                 if (inquiriesTable) {
-                    inquiriesTable.ajax.reload(null, false);
+                    inquiriesTable.ajax.reload(() => {
+                        // Reapply filters after reload
+                        setTimeout(() => {
+                            applyInquiryFilters();
+
+                            // Re-highlight the selected row after reload
+                            if (currentInquiry) {
+                                const newRow = $(`#inquiriesDataTable tr[data-inquiry-id="${currentInquiry.id}"]`)[0];
+                                if (newRow) {
+                                    $(newRow).addClass('table-active');
+                                    selectedInquiryRow = newRow;
+                                }
+                            }
+                        }, 100);
+                    }, false);
                 }
 
-                // Update the detail view badge
-                const outcomeBadgeElement = document.querySelector(`#inquiriesDataTable tr.table-active .badge`);
-                if (outcomeBadgeElement) {
-                    outcomeBadgeElement.outerHTML = generateOutcomeBadge(outcome);
-                }
+                // Show success message
+                const successAlert = document.createElement('div');
+                successAlert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                successAlert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                successAlert.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>Inquiry outcome updated successfully!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(successAlert);
 
-                alert('Inquiry outcome updated successfully!');
+                // Auto remove after 3 seconds
+                setTimeout(() => {
+                    if (successAlert.parentNode) {
+                        successAlert.remove();
+                    }
+                }, 3000);
+
             } else {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Failed to update inquiry outcome');
             }
         } catch (error) {
             console.error('Error updating inquiry outcome:', error);
-            alert('Failed to update inquiry outcome. Please try again.');
+
+            // Show error message
+            const errorAlert = document.createElement('div');
+            errorAlert.className = 'alert alert-danger alert-dismissible fade show position-fixed';
+            errorAlert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            errorAlert.innerHTML = `
+                <i class="fas fa-exclamation-triangle me-2"></i>Failed to update inquiry outcome. Please try again.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(errorAlert);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (errorAlert.parentNode) {
+                    errorAlert.remove();
+                }
+            }, 5000);
+
             // Revert the select value on error
             document.getElementById('detail-inquiry-outcome').value = originalOutcome;
+        } finally {
+            // Restore button state
+            updateBtn.innerHTML = originalBtnText;
+            updateBtn.disabled = false;
         }
     }
 
-    // --- 7. CORE LOGIC: MAIN CHAT PAGE ---
+    // --- 8. CORE LOGIC: MAIN CHAT PAGE ---
     function addMainChatDateSeparator(msgDateStr) {
         if (!mainChatPanelBody) return;
         const dateStr = new Date(msgDateStr).toDateString();
@@ -299,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 8. PAGE INITIALIZERS ---
+    // --- 9. PAGE INITIALIZERS ---
     const initializedPages = {};
 
     const pageInitializers = {
@@ -551,7 +631,10 @@ document.addEventListener('DOMContentLoaded', () => {
             closeInquiryDetails();
 
             if ($.fn.DataTable.isDataTable('#inquiriesDataTable')) {
-                $('#inquiriesDataTable').DataTable().ajax.url(url).load();
+                $('#inquiriesDataTable').DataTable().ajax.url(url).load(() => {
+                    // Reapply filters after reload
+                    setTimeout(() => applyInquiryFilters(), 100);
+                });
             } else {
                 inquiriesTable = $('#inquiriesDataTable').DataTable({
                     ajax: { url: url, dataSrc: 'data' },
@@ -569,7 +652,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             data: 'outcome',
                             title: 'Outcome',
                             render: function (data, type, row) {
-                                return generateOutcomeBadge(data);
+                                // For display, return HTML badge
+                                if (type === 'display') {
+                                    return generateOutcomeBadge(data);
+                                }
+                                // For search and other operations, return raw data
+                                return data;
                             }
                         },
                         {
@@ -597,13 +685,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     rowCallback: function (row, data) {
                         $(row).attr('data-inquiry-id', data.id);
+                    },
+                    initComplete: function () {
+                        // Apply initial filters
+                        setTimeout(() => applyInquiryFilters(), 100);
                     }
                 });
             }
         }
     };
 
-    // --- 9. EVENT HANDLERS ---
+    // --- 10. EVENT HANDLERS ---
     function wireEvents() {
         $('.admin-sidebar .nav-link').on('click', function (e) {
             e.preventDefault();
@@ -636,12 +728,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const searchTerm = selectedClientId ? `^${clientName}$` : '';
                 ticketsTable.column(1).search(searchTerm, true, false).draw();
             }
-            if (inquiriesTable) {
-                const clientName = $(this).find('option:selected').text();
-                // Use regex search for exact match on client name
-                const searchTerm = selectedClientId ? clientName : '';
-                inquiriesTable.search(searchTerm).draw();
+
+            // Apply inquiry filters when client changes
+            if (activePage === 'inquiry-management') {
+                applyInquiryFilters();
             }
+        });
+
+        // Status filter for inquiries
+        $('#status-filter-inquiries').on('change', function () {
+            applyInquiryFilters();
         });
 
         // Ticket management events
@@ -784,7 +880,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 10. REAL-TIME HANDLERS ---
+    // --- 11. REAL-TIME HANDLERS ---
     function setupSignalRListeners() {
         connection.on("ReceivePrivateMessage", (message) => {
             console.log("ADMIN RECEIVER: Hub broadcast received. Message object:", message);
@@ -850,13 +946,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     pageInitializers.dashboard();
                 }
                 if (inquiriesTable) {
-                    inquiriesTable.ajax.reload(null, false);
+                    inquiriesTable.ajax.reload(() => {
+                        setTimeout(() => applyInquiryFilters(), 100);
+                    }, false);
                 }
             }
         });
     }
 
-    // --- 11. INITIALIZATION ---
+    // --- 12. INITIALIZATION ---
     async function init() {
         try {
             await connection.start();

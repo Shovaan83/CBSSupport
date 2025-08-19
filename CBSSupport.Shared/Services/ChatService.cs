@@ -255,7 +255,6 @@ namespace CBSSupport.Shared.Services
             i.datetime AS Date,
             CASE 
                 WHEN i.completed = true THEN 'Completed'
-                WHEN i.completed_by IS NOT NULL THEN 'In Progress'
                 ELSE 'Pending'
             END AS Outcome,
             i.client_id AS ClientId,
@@ -327,7 +326,6 @@ namespace CBSSupport.Shared.Services
             i.datetime AS Date,
             CASE 
                 WHEN i.completed = true THEN 'Completed'
-                WHEN i.completed_by IS NOT NULL THEN 'In Progress'
                 ELSE 'Pending'
             END AS Outcome,
             (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName,
@@ -375,7 +373,6 @@ namespace CBSSupport.Shared.Services
             i.datetime AS Date,
             CASE 
                 WHEN i.completed = true THEN 'Completed'
-                WHEN i.completed_by IS NOT NULL THEN 'In Progress'
                 ELSE 'Pending'
             END AS Outcome,
             (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName,
@@ -401,8 +398,8 @@ namespace CBSSupport.Shared.Services
         UPDATE digital.instructions 
         SET 
             completed = CASE WHEN @Outcome = 'Completed' THEN true ELSE false END,
-            completed_on = CASE WHEN @Outcome = 'Completed' THEN CURRENT_TIMESTAMP ELSE completed_on END,
-            completed_by = CASE WHEN @Outcome = 'Completed' THEN 1 ELSE completed_by END,
+            completed_on = CASE WHEN @Outcome = 'Completed' THEN CURRENT_TIMESTAMP ELSE NULL END,
+            completed_by = CASE WHEN @Outcome = 'Completed' THEN 1 ELSE NULL END,
             edit_date = CURRENT_TIMESTAMP,
             edit_user = 1
         WHERE id = @InquiryId AND inst_type_id IN (121, 122);";
