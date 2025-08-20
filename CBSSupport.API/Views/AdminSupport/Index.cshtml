@@ -51,11 +51,62 @@
                 </div>
 
                 <div class="page-content">
+                    <!-- Updated Dashboard with 6 Cards -->
                     <div class="row g-4 mb-4">
-                        <div class="col-lg-3 col-md-6"><div class="dashboard-card stat-card"><h6>All tickets</h6><div class="stat-main"><h2 id="stat-total-tickets">0</h2><i class="fas fa-ticket-alt"></i></div></div></div>
-                        <div class="col-lg-3 col-md-6"><div class="dashboard-card stat-card"><h6>Open Tickets</h6><div class="stat-main"><h2 id="stat-open-tickets">0</h2><i class="far fa-comment-dots"></i></div></div></div>
-                        <div class="col-lg-3 col-md-6"><div class="dashboard-card stat-card"><h6>Resolved Tickets</h6><div class="stat-main"><h2 id="stat-resolved-tickets">0</h2><i class="fas fa-check-circle"></i></div></div></div>
-                        <div class="col-lg-3 col-md-6"><div class="dashboard-card stat-card"><h6>Total Inquiries</h6><div class="stat-main"><h2 id="stat-total-inquiries">0</h2><i class="fas fa-question-circle"></i></div></div></div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="dashboard-card stat-card clickable-card" data-action="view-all-tickets">
+                                <h6>All Tickets</h6>
+                                <div class="stat-main">
+                                    <h2 id="stat-total-tickets">0</h2>
+                                    <i class="fas fa-ticket-alt"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="dashboard-card stat-card clickable-card" data-action="view-all-inquiries">
+                                <h6>All Inquiries</h6>
+                                <div class="stat-main">
+                                    <h2 id="stat-total-inquiries">0</h2>
+                                    <i class="fas fa-question-circle"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="dashboard-card stat-card clickable-card" data-action="view-solved-tickets">
+                                <h6>Solved Tickets</h6>
+                                <div class="stat-main">
+                                    <h2 id="stat-resolved-tickets">0</h2>
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="dashboard-card stat-card clickable-card" data-action="view-solved-inquiries">
+                                <h6>Solved Inquiries</h6>
+                                <div class="stat-main">
+                                    <h2 id="stat-solved-inquiries">0</h2>
+                                    <i class="fas fa-check-square"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="dashboard-card stat-card clickable-card" data-action="view-unsolved-tickets">
+                                <h6>Unsolved Tickets</h6>
+                                <div class="stat-main">
+                                    <h2 id="stat-open-tickets">0</h2>
+                                    <i class="far fa-comment-dots"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="dashboard-card stat-card clickable-card" data-action="view-unsolved-inquiries">
+                                <h6>Unsolved Inquiries</h6>
+                                <div class="stat-main">
+                                    <h2 id="stat-unsolved-inquiries">0</h2>
+                                    <i class="far fa-question-circle"></i>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="row g-4">
@@ -176,7 +227,6 @@
                             <select id="status-filter-inquiries" class="form-select" style="width: 150px;">
                                 <option value="">All Status</option>
                                 <option value="Pending">Pending</option>
-                                @* <option value="In Progress">In Progress</option> *@
                                 <option value="Completed">Completed</option>
                             </select>
                         </div>
@@ -220,7 +270,6 @@
                                         <label>Outcome</label>
                                         <select id="detail-inquiry-outcome" class="form-select">
                                             <option value="Pending">Pending</option>
-                                            @* <option value="In Progress">In Progress</option> *@
                                             <option value="Completed">Completed</option>
                                         </select>
                                     </div>

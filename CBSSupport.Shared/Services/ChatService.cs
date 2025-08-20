@@ -346,6 +346,119 @@ namespace CBSSupport.Shared.Services
             }
         }
 
+        // NEW METHODS FOR FILTERED DATA
+        public async Task<IEnumerable<TicketViewModel>> GetSolvedTicketsAsync()
+        {
+            var ticketTypeIds = Enumerable.Range(110, 8).ToArray();
+            var sql = @"
+        SELECT 
+            i.id AS Id,
+            i.instruction AS Subject,
+            i.datetime AS Date,
+            u.full_name AS CreatedBy,
+            res.full_name AS ResolvedBy,
+            CASE WHEN i.completed = true THEN 'Resolved' ELSE 'Open' END AS Status,
+            COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
+            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName
+        FROM digital.instructions i
+        LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
+        LEFT JOIN admin.users res ON i.completed_by = res.id
+        WHERE i.inst_type_id = ANY(@TicketTypeIds) AND i.completed = true
+        ORDER BY i.datetime DESC;";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                return await connection.QueryAsync<TicketViewModel>(sql, new { TicketTypeIds = ticketTypeIds });
+            }
+        }
+
+        public async Task<IEnumerable<TicketViewModel>> GetUnsolvedTicketsAsync()
+        {
+            var ticketTypeIds = Enumerable.Range(110, 8).ToArray();
+            var sql = @"
+        SELECT 
+            i.id AS Id,
+            i.instruction AS Subject,
+            i.datetime AS Date,
+            u.full_name AS CreatedBy,
+            res.full_name AS ResolvedBy,
+            CASE WHEN i.completed = true THEN 'Resolved' ELSE 'Open' END AS Status,
+            COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
+            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName
+        FROM digital.instructions i
+        LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
+        LEFT JOIN admin.users res ON i.completed_by = res.id
+        WHERE i.inst_type_id = ANY(@TicketTypeIds) AND (i.completed = false OR i.completed IS NULL)
+        ORDER BY i.datetime DESC;";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                return await connection.QueryAsync<TicketViewModel>(sql, new { TicketTypeIds = ticketTypeIds });
+            }
+        }
+
+        public async Task<IEnumerable<InquiryViewModel>> GetSolvedInquiriesAsync()
+        {
+            var inquiryTypeIds = new[] { 121, 122 };
+            var sql = @"
+        SELECT
+            i.id AS Id,
+            t.inst_type_name AS Topic,
+            COALESCE(au.full_name, u.full_name, 'Unknown') AS InquiredBy,
+            i.datetime AS Date,
+            CASE 
+                WHEN i.completed = true THEN 'Completed'
+                ELSE 'Pending'
+            END AS Outcome,
+            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName,
+            i.client_id AS ClientId,
+            i.instruction AS Description,
+            COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
+            i.completed_on AS ResolvedDate
+        FROM digital.instructions i
+        LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
+        LEFT JOIN admin.users au ON i.insert_user = au.id
+        LEFT JOIN digital.inst_types t ON i.inst_type_id = t.id
+        WHERE i.inst_type_id = ANY(@InquiryTypeIds) AND i.completed = true
+        ORDER BY i.datetime DESC;";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                return await connection.QueryAsync<InquiryViewModel>(sql, new { InquiryTypeIds = inquiryTypeIds });
+            }
+        }
+
+        public async Task<IEnumerable<InquiryViewModel>> GetUnsolvedInquiriesAsync()
+        {
+            var inquiryTypeIds = new[] { 121, 122 };
+            var sql = @"
+        SELECT
+            i.id AS Id,
+            t.inst_type_name AS Topic,
+            COALESCE(au.full_name, u.full_name, 'Unknown') AS InquiredBy,
+            i.datetime AS Date,
+            CASE 
+                WHEN i.completed = true THEN 'Completed'
+                ELSE 'Pending'
+            END AS Outcome,
+            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName,
+            i.client_id AS ClientId,
+            i.instruction AS Description,
+            COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
+            i.completed_on AS ResolvedDate
+        FROM digital.instructions i
+        LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
+        LEFT JOIN admin.users au ON i.insert_user = au.id
+        LEFT JOIN digital.inst_types t ON i.inst_type_id = t.id
+        WHERE i.inst_type_id = ANY(@InquiryTypeIds) AND (i.completed = false OR i.completed IS NULL)
+        ORDER BY i.datetime DESC;";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                return await connection.QueryAsync<InquiryViewModel>(sql, new { InquiryTypeIds = inquiryTypeIds });
+            }
+        }
+
         public async Task<DashboardStatsViewModel> GetDashboardStatsAsync()
         {
             var sql = @"

@@ -29,6 +29,15 @@ namespace CBSSupport.Shared.Services
 
         Task<IEnumerable<InquiryViewModel>> GetAllInquiriesAsync();
 
+       
+        Task<IEnumerable<TicketViewModel>> GetSolvedTicketsAsync();
+
+        Task<IEnumerable<TicketViewModel>> GetUnsolvedTicketsAsync();
+
+        Task<IEnumerable<InquiryViewModel>> GetSolvedInquiriesAsync();
+
+        Task<IEnumerable<InquiryViewModel>> GetUnsolvedInquiriesAsync();
+
         Task<DashboardStatsViewModel> GetDashboardStatsAsync();
 
         Task<InquiryViewModel?> GetInquiryByIdAsync(long inquiryId);

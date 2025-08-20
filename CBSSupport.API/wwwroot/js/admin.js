@@ -56,7 +56,45 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<span class="badge badge-outcome-${o}">${escapeHtml(outcome || 'Pending')}</span>`;
     };
 
-    // --- 5. INQUIRY FILTERING FUNCTIONS ---
+    // --- 5. NAVIGATION FUNCTIONS ---
+    function navigateToTicketManagement(statusFilter = null) {
+        // Switch to ticket management page
+        $('.admin-sidebar .nav-link.active').removeClass('active');
+        $('.admin-sidebar .nav-link[data-page="ticket-management"]').addClass('active');
+        $('.admin-page.active').removeClass('active');
+        $('#ticket-management-page').addClass('active');
+
+        // Initialize the page
+        pageInitializers['ticket-management']();
+
+        // Apply status filter if provided
+        if (statusFilter && ticketsTable) {
+            setTimeout(() => {
+                ticketsTable.column(5).search(statusFilter).draw(); // Status column
+            }, 100);
+        }
+    }
+
+    function navigateToInquiryManagement(statusFilter = null) {
+        // Switch to inquiry management page
+        $('.admin-sidebar .nav-link.active').removeClass('active');
+        $('.admin-sidebar .nav-link[data-page="inquiry-management"]').addClass('active');
+        $('.admin-page.active').removeClass('active');
+        $('#inquiry-management-page').addClass('active');
+
+        // Initialize the page
+        pageInitializers['inquiry-management']();
+
+        // Apply status filter if provided
+        if (statusFilter) {
+            setTimeout(() => {
+                $('#status-filter-inquiries').val(statusFilter);
+                applyInquiryFilters();
+            }, 100);
+        }
+    }
+
+    // --- 6. INQUIRY FILTERING FUNCTIONS ---
     function applyInquiryFilters() {
         if (!inquiriesTable) return;
 
@@ -81,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         inquiriesTable.draw();
     }
 
-    // --- 6. CORE LOGIC: FLOATING CHAT ---
+    // --- 7. CORE LOGIC: FLOATING CHAT ---
     function openFloatingChatBox(item, type) {
         const id = item.id;
         const clientName = item.clientName;
@@ -123,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 7. INQUIRY MANAGEMENT FUNCTIONS ---
+    // --- 8. INQUIRY MANAGEMENT FUNCTIONS ---
     function closeInquiryDetails() {
         // Hide the detail panel
         document.getElementById('inquiry-detail-content').style.display = 'none';
@@ -164,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectedInquiryRow = rowElement;
             }
 
-            // Populate the detail panel (REMOVED PRIORITY SECTION)
+            // Populate the detail panel
             document.getElementById('detail-inquiry-id').textContent = `#INQ-${inquiry.id}`;
             document.getElementById('detail-inquiry-topic').textContent = inquiry.topic;
             document.getElementById('detail-inquiry-outcome').value = inquiry.outcome;
@@ -282,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 8. CORE LOGIC: MAIN CHAT PAGE ---
+    // --- 9. CORE LOGIC: MAIN CHAT PAGE ---
     function addMainChatDateSeparator(msgDateStr) {
         if (!mainChatPanelBody) return;
         const dateStr = new Date(msgDateStr).toDateString();
@@ -379,7 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 9. PAGE INITIALIZERS ---
+    // --- 10. PAGE INITIALIZERS ---
     const initializedPages = {};
 
     const pageInitializers = {
@@ -390,10 +428,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!statsRes.ok) throw new Error("Failed to fetch aggregate stats");
                     const stats = await statsRes.json();
 
+                    // Update all 6 dashboard cards for all clients
                     $('#stat-total-tickets').text(stats.totalTickets);
                     $('#stat-open-tickets').text(stats.openTickets);
                     $('#stat-resolved-tickets').text(stats.resolvedTickets);
                     $('#stat-total-inquiries').text(stats.totalInquiries);
+
+                    // Fetch all inquiries to calculate solved/unsolved
+                    const inquiriesRes = await fetch('/v1/api/instructions/inquiries/all');
+                    if (inquiriesRes.ok) {
+                        const allInquiries = await inquiriesRes.json();
+                        const inquiryData = allInquiries.data || [];
+
+                        const solvedInquiries = inquiryData.filter(i => i.outcome === 'Completed').length;
+                        const unsolvedInquiries = inquiryData.filter(i => i.outcome === 'Pending').length;
+
+                        $('#stat-solved-inquiries').text(solvedInquiries);
+                        $('#stat-unsolved-inquiries').text(unsolvedInquiries);
+                    }
 
                     const ticketsRes = await fetch('/v1/api/instructions/tickets/all');
                     if (!ticketsRes.ok) throw new Error("Failed to fetch all recent tickets");
@@ -500,10 +552,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ticketData = tickets.data || [];
                 const inquiryData = inquiries.data || [];
 
+                // Update all 6 dashboard cards for specific client
                 $('#stat-total-tickets').text(ticketData.length);
                 $('#stat-open-tickets').text(ticketData.filter(t => t.status !== 'Resolved').length);
                 $('#stat-resolved-tickets').text(ticketData.filter(t => t.status === 'Resolved').length);
                 $('#stat-total-inquiries').text(inquiryData.length);
+
+                const solvedInquiries = inquiryData.filter(i => i.outcome === 'Completed').length;
+                const unsolvedInquiries = inquiryData.filter(i => i.outcome === 'Pending').length;
+
+                $('#stat-solved-inquiries').text(solvedInquiries);
+                $('#stat-unsolved-inquiries').text(unsolvedInquiries);
 
                 const recentTicketsList = $('#recent-tickets-list');
                 recentTicketsList.empty();
@@ -695,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- 10. EVENT HANDLERS ---
+    // --- 11. EVENT HANDLERS ---
     function wireEvents() {
         $('.admin-sidebar .nav-link').on('click', function (e) {
             e.preventDefault();
@@ -871,16 +930,37 @@ document.addEventListener('DOMContentLoaded', () => {
         // View all tickets link
         $('#view-all-tickets-link').on('click', function (e) {
             e.preventDefault();
-            // Switch to ticket management page
-            $('.admin-sidebar .nav-link.active').removeClass('active');
-            $('.admin-sidebar .nav-link[data-page="ticket-management"]').addClass('active');
-            $('.admin-page.active').removeClass('active');
-            $('#ticket-management-page').addClass('active');
-            pageInitializers['ticket-management']();
+            navigateToTicketManagement();
+        });
+
+        // Dashboard card click handlers - delegated event handling
+        $(document).on('click', '.clickable-card', function () {
+            const action = $(this).data('action');
+
+            switch (action) {
+                case 'view-all-tickets':
+                    navigateToTicketManagement();
+                    break;
+                case 'view-all-inquiries':
+                    navigateToInquiryManagement();
+                    break;
+                case 'view-solved-tickets':
+                    navigateToTicketManagement('Resolved');
+                    break;
+                case 'view-solved-inquiries':
+                    navigateToInquiryManagement('Completed');
+                    break;
+                case 'view-unsolved-tickets':
+                    navigateToTicketManagement('Open');
+                    break;
+                case 'view-unsolved-inquiries':
+                    navigateToInquiryManagement('Pending');
+                    break;
+            }
         });
     }
 
-    // --- 11. REAL-TIME HANDLERS ---
+    // --- 12. REAL-TIME HANDLERS ---
     function setupSignalRListeners() {
         connection.on("ReceivePrivateMessage", (message) => {
             console.log("ADMIN RECEIVER: Hub broadcast received. Message object:", message);
@@ -954,7 +1034,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 12. INITIALIZATION ---
+    // --- 13. INITIALIZATION ---
     async function init() {
         try {
             await connection.start();

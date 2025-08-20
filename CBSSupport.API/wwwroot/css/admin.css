@@ -912,3 +912,21 @@ body {
         padding: 0.25rem;
         margin: 0 0.5rem;
     }
+
+.clickable-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+    .clickable-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+.dashboard-card.stat-card {
+    position: relative;
+}
+
+    .dashboard-card.stat-card:hover {
+        border-color: #007bff;
+    }
