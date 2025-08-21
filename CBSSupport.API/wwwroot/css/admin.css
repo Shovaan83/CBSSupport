@@ -2,7 +2,7 @@
 :root {
     --admin-sidebar-bg: #2c3e50;
     --admin-content-bg: #f4f7fa;
-    --admin-accent: #0d6efd; 
+    --admin-accent: #0d6efd;
     --admin-text-light: #ecf0f1;
     --admin-border-color: #e1e8ed;
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -246,7 +246,7 @@ body {
 
 .chat-container-full {
     display: grid;
-    grid-template-columns: 320px 1fr; 
+    grid-template-columns: 320px 1fr;
     height: 100%;
     overflow: hidden;
 }
@@ -295,7 +295,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background-color: #f0f2f5; 
+    background-color: #f0f2f5;
 }
 
 .chat-main-header {
@@ -643,7 +643,7 @@ body {
     }
 
 .chart-card {
-    min-height: 350px; 
+    min-height: 350px;
 }
 
     .chart-card h6 {
@@ -654,11 +654,11 @@ body {
 
 .chart-container {
     position: relative;
-    flex-grow: 1; 
+    flex-grow: 1;
 }
 
 .sidebar-footer {
-    margin-top: auto; 
+    margin-top: auto;
     padding-top: 1rem;
     border-top: 1px solid #3b4d61;
     display: flex;
@@ -687,7 +687,7 @@ body {
     }
 
         .sidebar-footer .logout-link:hover {
-            background-color: #dc3545; 
+            background-color: #dc3545;
             color: #fff;
         }
 

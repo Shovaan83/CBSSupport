@@ -116,14 +116,21 @@
             <div id="chat-panel-body" class="panel-body"></div>
             <div class="chat-footer">
                 <div id="typing-indicator" class="typing-indicator"></div>
+                <!-- Replace the existing chat-input-container section with this -->
                 <div class="chat-input-container">
-                    <input type="file" id="file-input" style="display: none;" />
+                    <input type="file" id="file-input" style="display: none;" accept=".jpg,.jpeg,.png,.gif,.pdf,.docx,.txt,.zip" />
                     <div class="chat-input-actions">
-                        <button class="btn btn-icon" id="attachment-button" aria-label="Attach file"><i class="fas fa-paperclip"></i></button>
-                        <button class="btn btn-icon" aria-label="Insert emoji"><i class="far fa-smile"></i></button>
+                        <button class="btn btn-icon" id="attachment-button" type="button" aria-label="Attach file" title="Attach file">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <button class="btn btn-icon" type="button" aria-label="Insert emoji" title="Insert emoji">
+                            <i class="far fa-smile"></i>
+                        </button>
                     </div>
                     <input type="text" class="form-control" placeholder="Type a message..." id="message-input">
-                    <button class="btn btn-primary" type="button" id="send-button" aria-label="Send Message"><i class="fas fa-paper-plane"></i></button>
+                    <button class="btn btn-primary" type="button" id="send-button" aria-label="Send Message" title="Send Message">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -134,7 +141,6 @@
                 <div class="history-table-container panel-body">
                     <table id="supportTicketsDataTable" class="table table-hover table-sm small" style="width:100%">
                         <thead>
-
                         </thead>
                         <tbody></tbody>
                     </table>
@@ -344,7 +350,7 @@
         </div>
     </div>
 
-    
+
     <div class="modal fade" id="notificationsModal" tabindex="-1" aria-labelledby="notificationsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-scrollable">
             <div class="modal-content">
@@ -363,7 +369,7 @@
         </div>
     </div>
 
-   
+
     <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-sm">
             <div class="modal-content">
@@ -390,7 +396,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                   
+
                     <div id="ticket-details-view">
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -427,7 +433,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                
+
                     <button type="button" class="btn btn-outline-primary me-auto" id="editTicketBtn" style="display: none;">
                         <i class="fas fa-pencil-alt me-2"></i>Edit Ticket
                     </button>

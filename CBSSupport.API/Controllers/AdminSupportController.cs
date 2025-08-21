@@ -61,7 +61,7 @@ public class AdminSupportController : Controller
             var clients = await _chatService.GetAllClientsAsync();
 
             var result = clients.Select(c => new {
-                Id = c.ClientId, 
+                Id = c.ClientId,
                 Name = c.FullName ?? c.Username
             });
 

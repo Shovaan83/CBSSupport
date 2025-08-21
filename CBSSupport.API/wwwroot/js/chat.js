@@ -2,30 +2,33 @@
 
 document.addEventListener("DOMContentLoaded", () => {
     // --- Globals & State ---
-
     let currentUser = {
         name: serverData.currentUserName,
         id: serverData.currentUserId,
     };
 
     let currentClient = {
-            id: serverData.currentClientId,
-            name: serverData.currentUserName
-     };
+        id: serverData.currentClientId,
+        name: serverData.currentUserName
+    };
 
     let currentChatContext = {};
     let lastMessageDate = null;
+    let notifications = []; // Store notifications
+    let notificationSound = null; // Audio notification
+    let unreadCount = 0; // Track unread messages
 
     // --- DOM References ---
     const fullscreenBtn = document.getElementById("fullscreen-btn");
-    //const clientSwitcher = document.getElementById("client-switcher");
     const messageInput = document.getElementById("message-input");
     const sendButton = document.getElementById("send-button");
     const chatPanelBody = document.getElementById("chat-panel-body");
     const chatHeader = document.getElementById("chat-header");
     const fileInput = document.getElementById("file-input");
+    const attachmentButton = document.getElementById("attachment-button");
+    const notificationBell = document.querySelector('[data-bs-target="#notificationsModal"]');
 
-    const supportTicketsTable = $('#supportTicketsDataTable'); 
+    const supportTicketsTable = $('#supportTicketsDataTable');
     const inquiriesTable = $('#inquiriesDataTable');
 
     // --- SignalR Connection ---
@@ -34,16 +37,318 @@ document.addEventListener("DOMContentLoaded", () => {
         .withAutomaticReconnect()
         .build();
 
-    // --- Helper & UI Functions ---
+    // --- Notification Functions ---
+    const initializeNotifications = () => {
+        // Initialize notification sound
+        notificationSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmgfCDGH0fPTgjMGHm7A7+OZRA0PVqzn77BdGAg+ltryxnkpBSl+zPLaizsIGGS57OihUg4LTKXh8bllHgg2jdXzzn0vBSF1xe/glEILElyx6OyrWBUIQ5zd8sFuIAUuhM/z1YU2Bhxqvu7mnEoODlOq5O+zYBoGPJPY88p9KwUme8rx3I4+CRZiturqpVQOC0ml4PK8aB4GM4nU8tGAMgYfcsLu45ZFDBFYrebe9cJ+Jg==');
+        notificationSound.volume = 0.3;
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    };
+
+    const showDesktopNotification = (title, body, icon = '/images/infobrain-logo.jpg') => {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            const notification = new Notification(title, {
+                body: body,
+                icon: icon,
+                badge: icon,
+                tag: 'chat-notification',
+                requireInteraction: false
+            });
+
+            notification.onclick = () => {
+                window.focus();
+                notification.close();
+            };
+
+            // Auto close after 5 seconds
+            setTimeout(() => notification.close(), 5000);
+        }
+    };
+
+    const playNotificationSound = () => {
+        if (notificationSound) {
+            notificationSound.play().catch(e => console.log('Could not play notification sound:', e));
+        }
+    };
+
+    const updateNotificationBadge = () => {
+        if (notificationBell) {
+            let badge = notificationBell.querySelector('.notification-badge');
+            if (unreadCount > 0) {
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'notification-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger';
+                    badge.style.fontSize = '0.7rem';
+                    notificationBell.appendChild(badge);
+                }
+                badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                badge.style.display = 'block';
+            } else if (badge) {
+                badge.style.display = 'none';
+            }
+        }
+    };
+
+    const addNotification = (notification) => {
+        notifications.unshift({
+            id: Date.now(),
+            ...notification,
+            timestamp: new Date(),
+            read: false
+        });
+
+        // Keep only last 50 notifications
+        if (notifications.length > 50) {
+            notifications = notifications.slice(0, 50);
+        }
+
+        updateNotificationsList();
+    };
+
+    const updateNotificationsList = () => {
+        const notificationsContainer = document.querySelector('#notificationsModal .modal-body .list-group');
+        if (!notificationsContainer) return;
+
+        notificationsContainer.innerHTML = '';
+
+        if (notifications.length === 0) {
+            notificationsContainer.innerHTML = `
+                <div class="list-group-item text-center text-muted">
+                    <i class="fas fa-bell-slash mb-2"></i>
+                    <p class="mb-0">No notifications</p>
+                </div>
+            `;
+            return;
+        }
+
+        notifications.forEach(notification => {
+            const item = document.createElement('div');
+            item.className = `list-group-item list-group-item-action ${!notification.read ? 'bg-light border-start border-primary border-3' : ''}`;
+            item.innerHTML = `
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">${escapeHtml(notification.title || 'New Message')}</h6>
+                    <small class="text-muted">${formatNotificationTime(notification.timestamp)}</small>
+                </div>
+                <p class="mb-1">${escapeHtml(notification.message || '')}</p>
+                <small class="text-muted">
+                    ${notification.senderName ? `From: ${escapeHtml(notification.senderName)}` : ''}
+                    ${notification.conversationId ? ` | Chat #${notification.conversationId}` : ''}
+                </small>
+            `;
+
+            item.addEventListener('click', () => {
+                if (notification.conversationId) {
+                    // Switch to the conversation
+                    const convItem = document.querySelector(`.conversation-item[data-id="${notification.conversationId}"]`);
+                    if (convItem) {
+                        convItem.click();
+                    }
+                }
+                // Mark as read
+                notification.read = true;
+                updateNotificationsList();
+                updateUnreadCount();
+            });
+
+            notificationsContainer.appendChild(item);
+        });
+    };
+
+    const formatNotificationTime = (timestamp) => {
+        const now = new Date();
+        const diff = now - timestamp;
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+
+        if (minutes < 1) return 'Just now';
+        if (minutes < 60) return `${minutes}m ago`;
+        if (hours < 24) return `${hours}h ago`;
+        return `${days}d ago`;
+    };
+
+    const updateUnreadCount = () => {
+        unreadCount = notifications.filter(n => !n.read).length;
+        updateNotificationBadge();
+    };
+
+    // --- File Upload Functions ---
+    const formatFileSize = (bytes) => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
+    const validateFile = (file) => {
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        const allowedTypes = [
+            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+            'application/pdf', 'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain', 'application/zip', 'application/x-zip-compressed'
+        ];
+
+        if (file.size > maxSize) {
+            throw new Error(`File size must be less than ${formatFileSize(maxSize)}`);
+        }
+
+        if (!allowedTypes.includes(file.type)) {
+            throw new Error('File type not allowed. Please select an image, PDF, Word document, text, or zip file.');
+        }
+
+        return true;
+    };
+
+    const uploadFile = async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/FileUpload/UploadFile', {
+                method: 'POST',
+                body: formData,
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'File upload failed');
+            }
+
+            const result = await response.json();
+            console.log('File uploaded successfully:', result);
+            return result;
+        } catch (error) {
+            console.error('File upload error:', error);
+            throw error;
+        }
+    };
+
+    const updateFileInputDisplay = () => {
+        const existingPreview = document.querySelector('.file-preview');
+        if (existingPreview) {
+            existingPreview.remove();
+        }
+
+        if (fileInput && fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const preview = document.createElement('div');
+            preview.className = 'file-preview p-2 mb-2 border rounded bg-light';
+            preview.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-paperclip me-2 text-primary"></i>
+                    <span class="file-name flex-grow-1">${escapeHtml(file.name)}</span>
+                    <small class="text-muted me-2">${formatFileSize(file.size)}</small>
+                    <button class="btn btn-sm btn-outline-danger" onclick="clearFileSelection()" type="button">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+            const chatFooter = document.querySelector('.chat-footer');
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (chatFooter && typingIndicator) {
+                chatFooter.insertBefore(preview, typingIndicator);
+            }
+        }
+    };
+
+    // Make clearFileSelection global
+    window.clearFileSelection = () => {
+        if (fileInput) {
+            fileInput.value = '';
+            updateSendButtonState();
+        }
+    };
+
+    const createAttachmentHtml = (attachmentInfo) => {
+        if (!attachmentInfo || !attachmentInfo.url) return '';
+
+        const isImage = attachmentInfo.type && attachmentInfo.type.startsWith('image/');
+
+        if (isImage) {
+            return `
+                <div class="message-attachment mt-2">
+                    <img src="${escapeHtml(attachmentInfo.url)}" 
+                         alt="${escapeHtml(attachmentInfo.name || 'Image')}" 
+                         class="attachment-image img-fluid rounded shadow-sm"
+                         style="max-width: 250px; max-height: 200px; cursor: pointer;"
+                         onclick="window.open('${escapeHtml(attachmentInfo.url)}', '_blank')">
+                    <div class="mt-1">
+                        <small class="text-muted">${escapeHtml(attachmentInfo.name || 'Image')}</small>
+                    </div>
+                </div>
+            `;
+        } else {
+            const fileIcon = getFileIcon(attachmentInfo.type);
+            return `
+                <div class="message-attachment mt-2">
+                    <a href="${escapeHtml(attachmentInfo.url)}" 
+                       target="_blank" 
+                       class="attachment-link d-inline-flex align-items-center p-2 border rounded text-decoration-none bg-light">
+                        <i class="fas ${fileIcon} me-2 text-primary"></i>
+                        <span class="flex-grow-1">${escapeHtml(attachmentInfo.name || 'Download File')}</span>
+                        <small class="text-muted ms-2">
+                            <i class="fas fa-download"></i>
+                        </small>
+                    </a>
+                </div>
+            `;
+        }
+    };
+
+    const getFileIcon = (mimeType) => {
+        if (!mimeType) return 'fa-file';
+
+        if (mimeType.includes('pdf')) return 'fa-file-pdf';
+        if (mimeType.includes('word') || mimeType.includes('document')) return 'fa-file-word';
+        if (mimeType.includes('text')) return 'fa-file-text';
+        if (mimeType.includes('zip')) return 'fa-file-archive';
+        if (mimeType.includes('image')) return 'fa-file-image';
+
+        return 'fa-file';
+    };
+
+    // --- Core Helper Functions ---
     const formatTimestamp = (d) => new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     const updateSendButtonState = () => {
-        if (!sendButton) return;
-        sendButton.disabled = connection.state !== "Connected" || (!messageInput.value.trim() && fileInput.files.length === 0);
+        if (!sendButton || !messageInput) return;
+
+        const hasText = messageInput.value.trim().length > 0;
+        const hasFile = fileInput && fileInput.files.length > 0;
+        const isConnected = connection.state === signalR.HubConnectionState.Connected;
+        const hasActiveChat = currentChatContext && currentChatContext.id;
+
+        const shouldEnable = isConnected && hasActiveChat && (hasText || hasFile);
+
+        sendButton.disabled = !shouldEnable;
+        sendButton.classList.toggle('btn-primary', shouldEnable);
+        sendButton.classList.toggle('btn-secondary', !shouldEnable);
+
+        // Update file preview
+        updateFileInputDisplay();
+
+        console.log('Send button state updated:', {
+            disabled: sendButton.disabled,
+            hasText,
+            hasFile,
+            isConnected,
+            hasActiveChat,
+            connectionState: connection.state
+        });
     };
 
     const scrollToBottom = () => {
-        chatPanelBody.scrollTop = chatPanelBody.scrollHeight;
+        if (chatPanelBody) {
+            chatPanelBody.scrollTop = chatPanelBody.scrollHeight;
+        }
     };
 
     function escapeHtml(text) {
@@ -70,18 +375,41 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     function addDateSeparatorIfNeeded(msgDateStr) {
-        if (!chatPanelBody) return; 
+        if (!chatPanelBody) return;
         const dateStr = new Date(msgDateStr).toDateString();
         if (lastMessageDate !== dateStr) {
             lastMessageDate = dateStr;
             const ds = document.createElement("div");
-            ds.className = "date-separator";
-            ds.textContent = formatDateForSeparator(msgDateStr);
+            ds.className = "date-separator text-center my-3";
+            ds.innerHTML = `<span class="badge bg-secondary">${formatDateForSeparator(msgDateStr)}</span>`;
             chatPanelBody.appendChild(ds);
         }
     }
 
-    // --- Fullscreen Toggle ---
+    // --- Event Listeners Setup ---
+    if (attachmentButton) {
+        attachmentButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                try {
+                    validateFile(file);
+                    console.log('File selected:', file.name, formatFileSize(file.size));
+                } catch (error) {
+                    alert(error.message);
+                    fileInput.value = '';
+                    return;
+                }
+            }
+            updateSendButtonState();
+        });
+    }
+
     if (fullscreenBtn) {
         const fullscreenIcon = fullscreenBtn.querySelector("i");
         fullscreenBtn.addEventListener("click", () => {
@@ -102,7 +430,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- UI Rendering ---
+    // --- Enhanced Message Display with Attachments ---
     function displayMessage(msg, isHistory = false) {
         if (!chatPanelBody) {
             console.error("CRITICAL: displayMessage was called but 'chatPanelBody' is null!");
@@ -113,34 +441,61 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Invalid message object received:", msg);
             return;
         }
-        //const messageDate = new Date(msg.dateTime).toDateString();
-        //if (lastMessageDate !== messageDate) {
-        //    lastMessageDate = messageDate;
-        //    const ds = document.createElement("div");
-        //    ds.className = "date-separator";
-        //    ds.textContent = formatDateForSeparator(msg.dateTime);
-        //    chatPanelBody.appendChild(ds);
-        //}
 
         addDateSeparatorIfNeeded(msg.dateTime);
 
         const isSent = msg.clientAuthUserId != null && msg.clientAuthUserId === currentUser.id;
         const senderName = msg.senderName || "Support";
-        
+
         const row = document.createElement('div');
-        row.className = `message-row ${isSent ? 'sent' : 'received'}`;
+        row.className = `message-row ${isSent ? 'sent' : 'received'} mb-3`;
+
+        // Parse attachment info if available
+        let attachmentHtml = '';
+        if (msg.attachmentId) {
+            try {
+                const attachmentInfo = JSON.parse(msg.attachmentId);
+                attachmentHtml = createAttachmentHtml(attachmentInfo);
+            } catch (e) {
+                console.error('Error parsing attachment info:', e);
+            }
+        }
 
         row.innerHTML = `
-        <div class="message-bubble">
-            <div class="message-sender">${escapeHtml(senderName)}</div>
-            <p class="message-text">${escapeHtml(msg.instruction || '')}</p>
-            <div class="message-timestamp">${formatTimestamp(msg.dateTime)}</div>
+        <div class="message-bubble p-3 rounded shadow-sm ${isSent ? 'bg-primary text-white ms-auto' : 'bg-light'}">
+            <div class="message-sender fw-bold mb-1 ${isSent ? 'text-white-50' : 'text-muted'}">${escapeHtml(senderName)}</div>
+            ${msg.instruction ? `<p class="message-text mb-2">${escapeHtml(msg.instruction)}</p>` : ''}
+            ${attachmentHtml}
+            <div class="message-timestamp text-end mt-2">
+                <small class="${isSent ? 'text-white-50' : 'text-muted'}">${formatTimestamp(msg.dateTime)}</small>
+            </div>
         </div>`;
 
         chatPanelBody.appendChild(row);
 
         if (!isHistory) {
             scrollToBottom();
+
+            // Show notification if message is not from current user and not in focus
+            if (!isSent && (!document.hasFocus() || currentChatContext.id != msg.instructionId)) {
+                showDesktopNotification(
+                    `New message from ${senderName}`,
+                    msg.instruction || '📎 Attachment',
+                    '/images/infobrain-logo.jpg'
+                );
+                playNotificationSound();
+
+                addNotification({
+                    title: `New Message`,
+                    message: msg.instruction || '📎 File attachment',
+                    senderName: senderName,
+                    conversationId: msg.instructionId,
+                    type: 'message'
+                });
+
+                unreadCount++;
+                updateNotificationBadge();
+            }
         }
     }
 
@@ -162,25 +517,29 @@ document.addEventListener("DOMContentLoaded", () => {
     function createConversationItem(itemData, type) {
         const item = document.createElement('a');
         item.href = '#';
-        item.className = 'list-group-item list-group-item-action conversation-item';
+        item.className = 'list-group-item list-group-item-action conversation-item border-0 rounded mb-1';
         item.dataset.id = itemData.conversationId;
         item.dataset.name = itemData.displayName;
         item.dataset.type = type;
-        item.dataset.route = itemData.route; 
+        item.dataset.route = itemData.route;
 
         item.innerHTML = `
             <div class="d-flex w-100 align-items-center">
-                <div class="avatar-initials ${itemData.avatarClass || 'avatar-bg-secondary'} me-3">${itemData.avatarInitials || '?'}</div>
+                <div class="avatar-initials ${itemData.avatarClass || 'avatar-bg-secondary'} me-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    ${itemData.avatarInitials || '?'}
+                </div>
                 <div class="flex-grow-1">
                     <div class="fw-bold">${escapeHtml(itemData.displayName)}</div>
                     <small class="text-muted">${escapeHtml(itemData.subtitle)}</small>
+                </div>
+                <div class="unread-indicator d-none">
+                    <span class="badge bg-danger rounded-pill">•</span>
                 </div>
             </div>`;
 
         return item;
     }
 
-    // --- Core Chat Logic ---
     async function loadSidebarForClient(clientId) {
         try {
             const response = await fetch(`/v1/api/instructions/sidebar/${clientId}`);
@@ -202,18 +561,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
         console.log("CLIENT: Switched chat context to:", currentChatContext);
 
-        document.querySelectorAll(".conversation-item.active").forEach(el => el.classList.remove("active"));
+        // Clear unread indicator for this conversation
         const activeItem = document.querySelector(`.conversation-item[data-id="${currentChatContext.id}"]`);
-        if (activeItem) activeItem.classList.add("active");
+        if (activeItem) {
+            activeItem.classList.add("active");
+            const unreadIndicator = activeItem.querySelector('.unread-indicator');
+            if (unreadIndicator) {
+                unreadIndicator.classList.add('d-none');
+            }
+        }
 
-        chatHeader.innerHTML = `<div><div class="fw-bold">${escapeHtml(currentChatContext.name)}</div></div>`;
-        await connection.invoke("JoinPrivateChat", currentChatContext.id).catch(err => console.error(err));
-        await loadMessagesForConversation(currentChatContext.id);
+        // Remove active class from other items
+        document.querySelectorAll(".conversation-item.active").forEach(el => {
+            if (el !== activeItem) el.classList.remove("active");
+        });
+
+        chatHeader.innerHTML = `
+            <div class="d-flex align-items-center">
+                <div class="fw-bold">${escapeHtml(currentChatContext.name)}</div>
+                <div class="ms-auto">
+                    <span class="badge bg-success" id="connection-status">Connected</span>
+                </div>
+            </div>`;
+
+        updateSendButtonState();
+
+        try {
+            await connection.invoke("JoinPrivateChat", currentChatContext.id);
+            await loadMessagesForConversation(currentChatContext.id);
+        } catch (err) {
+            console.error("Error switching chat context:", err);
+        }
     }
 
     async function loadMessagesForConversation(conversationId) {
         if (!chatPanelBody) return;
-        chatPanelBody.innerHTML = '<div class="text-center p-3"><div class="spinner-border" role="status"></div></div>';
+        chatPanelBody.innerHTML = '<div class="text-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
         lastMessageDate = null;
         try {
             const response = await fetch(`/v1/api/instructions/messages/${conversationId}`);
@@ -224,70 +607,119 @@ document.addEventListener("DOMContentLoaded", () => {
             scrollToBottom();
         } catch (error) {
             console.error("Error loading messages:", error);
-            chatPanelBody.innerHTML = `<p class="text-danger p-3">Error loading messages.</p>`;
+            chatPanelBody.innerHTML = `<div class="alert alert-danger m-3">Error loading messages: ${error.message}</div>`;
         }
     }
 
-    // --- Core Chat Logic (Sending Messages) ---
-    async function handleSendMessage() {
-        const messageText = messageInput.value.trim();
-        if (messageText) {
-            await sendMessage();
-        }
-    }
-
+    // --- Enhanced Send Message with File Support ---
     async function sendMessage() {
-        if (!messageInput || !currentChatContext.route) return;
+        console.log('Send message called');
+
+        if (!messageInput || !currentChatContext.route) {
+            console.error('Missing messageInput or currentChatContext.route');
+            return;
+        }
+
         const messageText = messageInput.value.trim();
-        if (!messageText) return;
+        const hasFile = fileInput && fileInput.files.length > 0;
+
+        if (!messageText && !hasFile) {
+            console.log('No message text or file to send');
+            return;
+        }
 
         if (!currentChatContext.route) {
             alert("Please select a conversation to send a message.");
             return;
         }
 
-        const postUrl = `/v1/api/instructions/reply`;
-
-        const chatMessage = {
-            Instruction: messageText,
-            ClientId: currentClient.id,
-            ClientAuthUserId: currentUser.id,
-            InsertUser: 1,
-            InstructionId: parseInt(currentChatContext.id, 10),
-            InstCategoryId: 100,
-            ServiceId: 3,        
-            Remarks: "Message from web chat",
-        };
-
-        console.log("SENDING THIS OBJECT:", JSON.stringify(chatMessage, null, 2));
+        const originalButtonContent = sendButton.innerHTML;
+        sendButton.disabled = true;
+        sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
 
         try {
+            let attachmentInfo = null;
+
+            // Upload file if present
+            if (hasFile) {
+                const file = fileInput.files[0];
+                console.log('Uploading file:', file.name);
+
+                sendButton.innerHTML = '<i class="fas fa-cloud-upload-alt fa-spin"></i> Uploading...';
+
+                try {
+                    attachmentInfo = await uploadFile(file);
+                    console.log('File uploaded successfully:', attachmentInfo);
+                } catch (error) {
+                    console.error('File upload failed:', error);
+                    alert(`File upload failed: ${error.message}`);
+                    return;
+                }
+            }
+
+            sendButton.innerHTML = '<i class="fas fa-paper-plane fa-spin"></i> Sending...';
+
+            const postUrl = `/v1/api/instructions/reply`;
+
+            const chatMessage = {
+                Instruction: messageText || `📎 ${attachmentInfo?.name || 'File attachment'}`,
+                ClientId: currentClient.id,
+                ClientAuthUserId: currentUser.id,
+                InsertUser: 1,
+                InstructionId: parseInt(currentChatContext.id, 10),
+                InstCategoryId: 100,
+                ServiceId: 3,
+                Remarks: "Message from web chat",
+                AttachmentId: attachmentInfo ? JSON.stringify(attachmentInfo) : null
+            };
+
+            console.log("SENDING THIS OBJECT:", JSON.stringify(chatMessage, null, 2));
+
             const response = await fetch(postUrl, {
                 method: "POST",
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 body: JSON.stringify(chatMessage),
+                credentials: 'include'
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
+                const errorData = await response.json().catch(() => ({ message: response.statusText }));
                 throw new Error(errorData.message || "Failed to send message.");
             }
 
             const savedMessage = await response.json();
             console.log("CLIENT SIDE: Invoking 'SendClientMessage' with message object:", savedMessage);
 
-            await connection.invoke("SendClientMessage", savedMessage);
+            await connection.invoke("SendClientMessage", savedMessage, false);
 
+            // Clear inputs
             messageInput.value = '';
+            if (fileInput) {
+                fileInput.value = '';
+            }
+
+            // Remove file preview
+            const existingPreview = document.querySelector('.file-preview');
+            if (existingPreview) {
+                existingPreview.remove();
+            }
+
             updateSendButtonState();
+
+            console.log('Message sent successfully');
         } catch (error) {
             console.error("Error sending message:", error);
             alert(`Error: ${error.message}`);
+        } finally {
+            sendButton.innerHTML = originalButtonContent;
+            updateSendButtonState();
         }
     }
 
-    // --- Ticket & Inquiry System ---
-
+    // --- Ticket & Inquiry System (Enhanced) ---
     function initializeTicketSystem() {
         const newTicketBtn = document.getElementById("newSupportTicketBtn");
         const newInquiryBtn = document.getElementById("newInquiryBtn");
@@ -312,13 +744,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 e.preventDefault();
 
                 const subjectSelect = document.getElementById("ticketSubject");
-                const descriptionInput = document.getElementById("ticketDescription")
-                const remarksInput = document.getElementById("ticketRemarks")
-                const expiryDateInput = document.getElementById("ticketExpiryDate")
+                const descriptionInput = document.getElementById("ticketDescription");
+                const remarksInput = document.getElementById("ticketRemarks");
+                const expiryDateInput = document.getElementById("ticketExpiryDate");
 
                 if (!subjectSelect) {
                     console.error("Could not find element with ID 'ticketSubject'.");
-                    alert("An error occured. Could not find the subject field");
+                    alert("An error occurred. Could not find the subject field");
                     return;
                 }
 
@@ -332,6 +764,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     alert("Please fill all the required fields for the ticket.");
                     return;
                 }
+
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
 
                 const chatMessage = {
                     Instruction: description,
@@ -360,12 +797,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     await loadSidebarForClient(currentClient.id);
 
+                    // Show success notification
+                    addNotification({
+                        title: 'Ticket Created',
+                        message: 'Your support ticket has been created successfully',
+                        type: 'success'
+                    });
+
                     alert("Ticket created successfully!");
                     if (createTicketModal) createTicketModal.hide();
                     createTicketForm.reset();
                 } catch (error) {
                     console.error("Error creating ticket:", error);
-                    alert(error.message);
+                    alert(`Error: ${error.message}`);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
                 }
             });
         }
@@ -376,17 +823,13 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        // In initializeTicketSystem()
-
         if (createInquiryForm) {
             createInquiryForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
 
                 const subjectSelect = document.getElementById("inquirySubject");
-                const messageInput = document.getElementById("inquiryMessage");
+                const messageInputInquiry = document.getElementById("inquiryMessage");
 
-                // Note: The previous code had a logic error trying to find 'ticketSubject'
-                // This is now corrected to look for 'inquirySubject'.
                 if (!subjectSelect) {
                     console.error("Could not find element with ID 'inquirySubject'.");
                     alert("An error occurred. Could not find the subject field.");
@@ -394,9 +837,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
 
                 const inquiryType = subjectSelect.value;
-                const message = messageInput.value;
+                const message = messageInputInquiry.value;
 
-                // --- FIX #1: Declare the variable with 'let' ---
                 let inquiryRoute;
 
                 if (inquiryType === "Account Inquiry") {
@@ -408,13 +850,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
                 const chatMessage = {
                     Instruction: message,
                     InstructionId: null,
                     ClientId: currentClient.id,
                     ClientAuthUserId: currentUser.id,
-                    InsertUser: 1, 
-                    InstCategoryId: 102, 
+                    InsertUser: 1,
+                    InstCategoryId: 102,
                     ServiceId: 3,
                 };
 
@@ -431,22 +878,31 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
 
                     await loadSidebarForClient(currentClient.id);
+
+                    // Show success notification
+                    addNotification({
+                        title: 'Inquiry Sent',
+                        message: 'Your inquiry has been sent successfully',
+                        type: 'success'
+                    });
+
                     alert("Inquiry sent successfully!");
 
                     if (createInquiryModal) createInquiryModal.hide();
                     createInquiryForm.reset();
-                }
-                catch (error) {
+                } catch (error) {
                     console.error("Error creating inquiry:", error);
                     alert(`Error: ${error.message}`);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
                 }
             });
         }
     }
 
-    // --- SignalR Event Handlers ---
+    // --- Enhanced SignalR Event Handlers ---
     connection.on("ReceivePrivateMessage", (message) => {
-
         console.log("CLIENT SIDE: 'ReceivePrivateMessage' event fired. Message received:", message);
 
         const conversationId = message.instructionId;
@@ -455,22 +911,62 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (currentChatContext && String(currentChatContext.id) === String(conversationId)) {
             displayMessage(message, false);
-        }
-        else {
+        } else {
             const convItem = document.querySelector(`.conversation-item[data-id="${conversationId}"]`);
             if (convItem) {
                 convItem.classList.add('has-unread');
-                const subtitle = convItem.querySelector('.text-muted'); 
+                const subtitle = convItem.querySelector('.text-muted');
                 if (subtitle) {
-                    subtitle.textContent = message.instruction; 
+                    subtitle.textContent = message.instruction || '📎 Attachment';
                 }
-            }   
+
+                // Show unread indicator
+                const unreadIndicator = convItem.querySelector('.unread-indicator');
+                if (unreadIndicator) {
+                    unreadIndicator.classList.remove('d-none');
+                }
+            }
         }
     });
 
-    async function init() {
+    // --- Connection State Handlers ---
+    connection.onreconnecting((error) => {
+        console.log('SignalR reconnecting:', error);
+        updateSendButtonState();
+        const statusBadge = document.getElementById('connection-status');
+        if (statusBadge) {
+            statusBadge.className = 'badge bg-warning';
+            statusBadge.textContent = 'Reconnecting...';
+        }
+    });
 
+    connection.onreconnected((connectionId) => {
+        console.log('SignalR reconnected:', connectionId);
+        updateSendButtonState();
+        const statusBadge = document.getElementById('connection-status');
+        if (statusBadge) {
+            statusBadge.className = 'badge bg-success';
+            statusBadge.textContent = 'Connected';
+        }
+    });
+
+    connection.onclose((error) => {
+        console.log('SignalR connection closed:', error);
+        updateSendButtonState();
+        const statusBadge = document.getElementById('connection-status');
+        if (statusBadge) {
+            statusBadge.className = 'badge bg-danger';
+            statusBadge.textContent = 'Disconnected';
+        }
+    });
+
+    // --- Initialization ---
+    async function init() {
         try {
+            // Initialize notifications
+            initializeNotifications();
+
+            // Start SignalR connection
             await connection.start();
             console.log("SignalR Connected.");
             updateSendButtonState();
@@ -479,10 +975,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         } catch (err) {
             console.error("Initialization Error: ", err);
-            if (chatHeader) chatHeader.innerHTML = `<div class="text-danger">Connection Failed</div>`;
+            if (chatHeader) {
+                chatHeader.innerHTML = `<div class="alert alert-danger">Connection Failed: ${err.message}</div>`;
+            }
+            updateSendButtonState();
             return;
         }
 
+        // Initialize DataTables for tickets
         if (supportTicketsTable.length) {
             const dt = supportTicketsTable.DataTable({
                 "ajax": { "url": `/v1/api/instructions/tickets/${currentClient.id}`, "dataSrc": "data" },
@@ -491,10 +991,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     { "data": "subject", "title": "Subject", "render": (data, type, row) => `<div><strong>${escapeHtml(data)}</strong><div class="text-muted small">Created: ${new Date(row.date).toLocaleDateString()}</div></div>` },
                     { "data": "status", "title": "Status", "render": (data) => `<span class="badge badge-status-${(data || 'pending').toLowerCase().replace(' ', '-')}">${escapeHtml(data || 'Pending')}</span>` },
                     { "data": "priority", "title": "Priority", "render": (data) => generatePriorityBadge(data) },
-                    { "data": null, "title": "Actions", "orderable": false, "className": "text-start", "defaultContent": `<div class="action-buttons"><button class="btn-icon-action view-details-btn" title="View Details"><i class="fas fa-eye"></i></button></div>` }
+                    { "data": null, "title": "Actions", "orderable": false, "className": "text-start", "defaultContent": `<div class="action-buttons"><button class="btn btn-sm btn-outline-primary view-details-btn" title="View Details"><i class="fas fa-eye"></i></button></div>` }
                 ],
                 "order": [[0, 'desc']],
-                "language": { "emptyTable": "You have not created any support tickets yet." }
+                "language": { "emptyTable": "You have not created any support tickets yet." },
+                "pageLength": 10,
+                "responsive": true
             });
 
             supportTicketsTable.on('click', '.view-details-btn', function () {
@@ -529,6 +1031,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
+        // Initialize DataTables for inquiries
         if (inquiriesTable.length) {
             inquiriesTable.DataTable({
                 "ajax": {
@@ -541,14 +1044,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     { "data": "inquiredBy" },
                     { "data": "date", "render": function (data) { return new Date(data).toLocaleDateString(); } },
                     { "data": "outcome" }
-                ]
+                ],
+                "pageLength": 10,
+                "responsive": true
             });
-
         }
-
 
         initializeTicketSystem();
 
+        // Event delegation for conversation items
         const conversationListPanel = document.getElementById("conversation-list-panel");
         if (conversationListPanel) {
             conversationListPanel.addEventListener('click', (e) => {
@@ -559,6 +1063,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
+        // Client switcher
         const clientSwitcher = document.getElementById("client-switcher");
         if (clientSwitcher) {
             clientSwitcher.addEventListener('change', (e) => {
@@ -575,15 +1080,62 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        if (sendButton) sendButton.addEventListener("click", sendMessage);
-        if (messageInput) {
-            messageInput.addEventListener("keyup", (e) => {
-                updateSendButtonState();
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        // Send button event listener
+        if (sendButton) {
+            sendButton.addEventListener("click", (e) => {
+                e.preventDefault();
+                console.log('Send button clicked');
+                sendMessage();
             });
         }
 
+        // Message input event listeners
+        if (messageInput) {
+            messageInput.addEventListener("input", () => {
+                updateSendButtonState();
+            });
+
+            messageInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    console.log('Enter key pressed');
+                    sendMessage();
+                }
+            });
+
+            // Focus management
+            messageInput.addEventListener("focus", () => {
+                // Mark messages as read when user focuses on input
+                if (currentChatContext.id) {
+                    notifications.forEach(n => {
+                        if (n.conversationId == currentChatContext.id) {
+                            n.read = true;
+                        }
+                    });
+                    updateUnreadCount();
+                }
+            });
+        }
+
+        // Initial button state update
+        updateSendButtonState();
+
+        // Page visibility change handler
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && currentChatContext.id) {
+                // Mark current conversation messages as read when page becomes visible
+                notifications.forEach(n => {
+                    if (n.conversationId == currentChatContext.id) {
+                        n.read = true;
+                    }
+                });
+                updateUnreadCount();
+            }
+        });
+
+        console.log("Chat system initialized successfully");
     }
 
+    // Start initialization
     init();
 });

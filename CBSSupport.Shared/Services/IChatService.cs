@@ -30,5 +30,11 @@ namespace CBSSupport.Shared.Services
         Task<IEnumerable<InquiryViewModel>> GetAllInquiriesAsync();
 
         Task<DashboardStatsViewModel> GetDashboardStatsAsync();
+
+        Task<ChatMessage> CreateGroupChatMessageAsync(ChatMessage newMessage);
+
+        Task<long> GetOrCreateGroupChatConversationIdAsync(long clientId, int loggedInUserId);
+
+        Task<bool> UpdateInstructionAsync(ChatMessage instruction);
     }
 }

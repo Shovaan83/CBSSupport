@@ -1,4 +1,4 @@
-﻿// Located in CBSSupport.Shared/Models/ChatMessage.cs
+﻿
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -32,7 +32,7 @@ namespace CBSSupport.Shared.Models
         public long? IdenId { get; set; }
         public long? AccountId { get; set; }
         public long? DemandId { get; set; }
-        public short InstCategoryId { get; set; } 
+        public short InstCategoryId { get; set; }
         public DateTime? AlertDate { get; set; }
         public DateTime? ExpiryDate { get; set; }
         public long? InstructionId { get; set; }
@@ -44,8 +44,8 @@ namespace CBSSupport.Shared.Models
 
         public string? Priority { get; set; }
         public string? Remarks { get; set; }
-        public int? EditUser { get; set; }
         public DateTime? EditDate { get; set; }
+        public long? EditUser { get; set; }
         public long? ServiceId { get; set; }
         public string? AttachmentId { get; set; }
         public string? GeoLocation { get; set; }

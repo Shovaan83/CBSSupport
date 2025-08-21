@@ -13,5 +13,6 @@ namespace CBSSupport.Shared.ViewModels
         public List<SidebarChatItem> InternalChats { get; set; } = new List<SidebarChatItem>();
         public List<SidebarChatItem> TicketChats { get; set; } = new List<SidebarChatItem>();
         public List<SidebarChatItem> InquiryChats { get; set; } = new List<SidebarChatItem>();
+        public List<SidebarChatItem> GroupChats { get; set; } = new List<SidebarChatItem>();
     }
 }

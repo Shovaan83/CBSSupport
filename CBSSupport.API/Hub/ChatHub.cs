@@ -1,13 +1,14 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using CBSSupport.Shared.Services;
 using CBSSupport.Shared.Models;
 using System;
 using System.Threading.Tasks;
-using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
 
 namespace CBSSupport.API.Hubs
 {
+    [Authorize] // Added from your friend's file for security
     public class ChatHub : Hub
     {
         private readonly IChatService _chatService;
@@ -31,28 +32,54 @@ namespace CBSSupport.API.Hubs
             await Clients.All.SendAsync("MessageSeen", messageId, userName, DateTime.UtcNow);
         }
 
+        // Merged robust JoinPrivateChat method from your friend's file
         public async Task JoinPrivateChat(string groupName)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-            _logger.LogInformation("Connection {ConnectionId} joined group {GroupName}", Context.ConnectionId, groupName);
+            try
+            {
+                if (string.IsNullOrEmpty(groupName))
+                {
+                    _logger.LogWarning("JoinPrivateChat called with empty groupName by connection {ConnectionId}", Context.ConnectionId);
+                    throw new HubException("Group name cannot be empty");
+                }
+
+                if (!System.Text.RegularExpressions.Regex.IsMatch(groupName, @"^[a-zA-Z0-9\-_]+$"))
+                {
+                    throw new HubException("Invalid group name format");
+                }
+
+                if (Context.User?.Identity == null || !Context.User.Identity.IsAuthenticated)
+                {
+                    _logger.LogWarning("JoinPrivateChat called by unauthenticated user with connection {ConnectionId}", Context.ConnectionId);
+                    throw new HubException("User must be authenticated to join private chat");
+                }
+
+                var userName = Context.User.Identity.Name ?? "Anonymous";
+                _logger.LogInformation("User '{UserName}' attempting to join group '{GroupName}' with connection ID {ConnectionId}", userName, groupName, Context.ConnectionId);
+
+                await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+                _logger.LogInformation("SUCCESS: User '{UserName}' joined group '{GroupName}'", userName, groupName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "CRITICAL ERROR in JoinPrivateChat for group {GroupName} and connection {ConnectionId}", groupName, Context.ConnectionId);
+                throw new HubException($"Failed to join chat: {ex.Message}");
+            }
         }
 
-        // NEW: Method for admins to join admin notification group
+        // Methods for admin group management from your file
         public async Task JoinAdminNotifications()
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, "AdminNotifications");
             _logger.LogInformation("Admin connection {ConnectionId} joined admin notifications group", Context.ConnectionId);
         }
 
-        // NEW: Method for admins to join all conversation groups they need to monitor
         public async Task JoinAllAdminGroups()
         {
             try
             {
-                // Join the general admin notifications group
                 await Groups.AddToGroupAsync(Context.ConnectionId, "AdminNotifications");
 
-                // Get all active conversations and join their groups
                 var allTickets = await _chatService.GetAllTicketsAsync();
                 foreach (var ticket in allTickets)
                 {
@@ -92,8 +119,7 @@ namespace CBSSupport.API.Hubs
             }
             catch (Exception ex)
             {
-                _logger.LogError("An error occurred in GetMyConversations for client ID {ClientId}", clientId);
-                _logger.LogError(ex, "Full exception details for the error above.");
+                _logger.LogError(ex, "An error occurred in GetMyConversations for client ID {ClientId}", clientId);
             }
         }
 
@@ -111,7 +137,6 @@ namespace CBSSupport.API.Hubs
             ChatMessage savedTicket = await _chatService.CreateInstructionTicketAsync(newTicket);
             await Clients.Caller.SendAsync("NewTicketCreated", savedTicket);
 
-            // NEW: Add admin to the new ticket's group
             if (savedTicket.InstructionId.HasValue)
             {
                 await Clients.Group("AdminNotifications").SendAsync("NewTicketGroup", savedTicket.InstructionId.Value.ToString());
@@ -127,9 +152,7 @@ namespace CBSSupport.API.Hubs
                     _logger.LogWarning("SendAdminMessage called with invalid message object");
                     return;
                 }
-
                 _logger.LogInformation("HUB: Received Admin Message. Broadcasting to group {GroupId}", message.InstructionId.Value);
-
                 await Clients.Group(message.InstructionId.Value.ToString()).SendAsync("ReceivePrivateMessage", message);
             }
             catch (Exception ex)
@@ -138,7 +161,9 @@ namespace CBSSupport.API.Hubs
             }
         }
 
-        public async Task SendClientMessage(ChatMessage message, bool isNewConversation)
+        // Advanced SendClientMessage method from your file
+        // This method in your hub is correct - no changes needed
+        public async Task SendClientMessage(ChatMessage message, bool isNewConversation = false)
         {
             try
             {
@@ -149,10 +174,8 @@ namespace CBSSupport.API.Hubs
                 }
 
                 _logger.LogInformation("HUB: Received Client Message for conversation {GroupId}. Is new: {isNew}", message.InstructionId.Value, isNewConversation);
-
                 await Clients.Group(message.InstructionId.Value.ToString()).SendAsync("ReceivePrivateMessage", message);
 
-                // --- FIXED NOTIFICATION LOGIC ---
                 string notificationType = isNewConversation ? "new_ticket" : "new_message";
                 string title = isNewConversation ?
                     $"New Request #{message.InstructionId}" :
@@ -168,16 +191,13 @@ namespace CBSSupport.API.Hubs
                     title = title
                 };
 
-                // Send notification to AdminNotifications group instead of all clients
                 await Clients.Group("AdminNotifications").SendAsync("ReceiveAdminNotification", notification);
                 _logger.LogInformation("HUB: Admin notification sent to AdminNotifications group for conversation {GroupId}.", message.InstructionId.Value);
 
-                // If it's a new conversation, ensure admins join the new conversation group
                 if (isNewConversation)
                 {
                     await Clients.Group("AdminNotifications").SendAsync("JoinNewConversationGroup", message.InstructionId.Value.ToString());
                 }
-                // --- END FIXED NOTIFICATION LOGIC ---
             }
             catch (Exception ex)
             {
@@ -185,6 +205,7 @@ namespace CBSSupport.API.Hubs
             }
         }
 
+        // Connection lifecycle logging from your file
         public override async Task OnConnectedAsync()
         {
             _logger.LogInformation("Client connected: {ConnectionId}", Context.ConnectionId);
