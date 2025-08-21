@@ -327,21 +327,65 @@ namespace CBSSupport.Shared.Services
 
             using (var connection = new NpgsqlConnection(_connectionString))
             {
-                //1. Get Private Chats
+                var groupChatSql = @"
+        SELECT DISTINCT ON (i.instruction_id)
+            i.instruction_id AS ConversationId,
+            'Company Group Chat' AS DisplayName,
+            COALESCE(i.instruction, 'Start the conversation') AS Subtitle,
+            'G' AS AvatarInitials, 
+            'admin-avatar-bg-success' AS AvatarClass,
+            'support-group' AS Route
+        FROM digital.instructions i
+        WHERE i.client_id = @ViewingClientId 
+          AND i.inst_type_id = 100 
+          AND i.inst_category_id = 100
+          AND i.instruction_id IS NOT NULL
+        ORDER BY i.instruction_id, i.datetime DESC
+        LIMIT 1;";
+
+                var groupChats = await connection.QueryAsync<SidebarChatItem>(groupChatSql, new { ViewingClientId = viewingClientId });
+
+                foreach (var groupChat in groupChats)
+                {
+                    sidebar.GroupChats.Add(new SidebarChatItem
+                    {
+                        ConversationId = groupChat.ConversationId.ToString(),
+                        DisplayName = groupChat.DisplayName,
+                        Subtitle = groupChat.Subtitle,
+                        AvatarInitials = "G",
+                        AvatarClass = "admin-avatar-bg-success",
+                        Route = "support-group"
+                    });
+                }
+
+                if (!groupChats.Any())
+                {
+                    sidebar.GroupChats.Add(new SidebarChatItem
+                    {
+                        ConversationId = "0",
+                        DisplayName = "Company Group Chat",
+                        Subtitle = "Click to start group conversation",
+                        AvatarInitials = "G",
+                        AvatarClass = "admin-avatar-bg-success",
+                        Route = "support-group"
+                    });
+                }
+
                 var privateChatSql = @"
         SELECT DISTINCT ON (i.instruction_id)
             i.instruction_id AS ConversationId, 
             COALESCE(u.full_name, 'Client User') AS DisplayName,
             i.instruction AS Subtitle,
-            'P' AS AvatarInitials, 'avatar-bg-purple' AS AvatarClass,
+            'P' AS AvatarInitials, 'admin-avatar-bg-purple' AS AvatarClass,
             'support-private' AS Route
         FROM digital.instructions i
         LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
-        WHERE i.client_id = @ViewingClientId AND i.inst_type_id = 101 AND i.instruction_id IS NOT NULL
+        WHERE i.client_id = @ViewingClientId 
+          AND i.inst_type_id = 101 
+          AND i.instruction_id IS NOT NULL
         ORDER BY i.instruction_id, i.datetime DESC;";
                 sidebar.PrivateChats.AddRange(await connection.QueryAsync<SidebarChatItem>(privateChatSql, new { ViewingClientId = actualClientId }));
 
-                // 2. Get Internal Chats 
                 var internalChatSql = @"
         SELECT DISTINCT ON (i.instruction_id)
             i.instruction_id AS ConversationId, -- Correctly aliased
@@ -354,7 +398,6 @@ namespace CBSSupport.Shared.Services
         ORDER BY i.instruction_id, i.datetime DESC;";
                 sidebar.InternalChats.AddRange(await connection.QueryAsync<SidebarChatItem>(internalChatSql, new { ClientId = actualClientId }));
 
-                // 3. Get Ticket Chats 
                 var ticketTypeIds = Enumerable.Range(110, 8).ToArray();
                 var ticketSql = @"
         SELECT DISTINCT ON (i.instruction_id)
@@ -376,7 +419,6 @@ namespace CBSSupport.Shared.Services
                 foreach (var ticket in tickets) { ticket.DisplayName = $"#{ticket.ConversationId} - {ticket.DisplayName}"; }
                 sidebar.TicketChats.AddRange(tickets);
 
-                // 4. Get Inquiry Chats 
                 var inquiryTypeIds = new[] { 121, 122 };
                 var inquirySql = @"
          SELECT DISTINCT ON (i.instruction_id)
@@ -618,7 +660,6 @@ namespace CBSSupport.Shared.Services
 
         public async Task<bool> UpdateInstructionAsync(ChatMessage instruction)
         {
-            // First, let's check if the record exists and get its current state
             var checkSql = @"
         SELECT id, completed, instruction, remarks, expiry_date, edit_date, edit_user
         FROM digital.instructions 
@@ -637,7 +678,6 @@ namespace CBSSupport.Shared.Services
             {
                 try
                 {
-                    // Check if record exists first
                     var existingRecord = await connection.QueryFirstOrDefaultAsync(checkSql, new { Id = instruction.Id });
 
                     Console.WriteLine($"DEBUG: Record check for ID {instruction.Id}:");
