@@ -1,31 +1,30 @@
 ﻿"use strict";
 
 document.addEventListener("DOMContentLoaded", () => {
-    // --- Globals & State ---
-
+   
     let currentUser = {
         name: serverData.currentUserName,
         id: serverData.currentUserId,
     };
 
     let currentClient = {
-            id: serverData.currentClientId,
-            name: serverData.currentUserName
-     };
+        id: serverData.currentClientId,
+        name: serverData.currentUserName
+    };
 
     let currentChatContext = {};
     let lastMessageDate = null;
+    let notificationManager = null; 
 
     // --- DOM References ---
     const fullscreenBtn = document.getElementById("fullscreen-btn");
-    //const clientSwitcher = document.getElementById("client-switcher");
     const messageInput = document.getElementById("message-input");
     const sendButton = document.getElementById("send-button");
     const chatPanelBody = document.getElementById("chat-panel-body");
     const chatHeader = document.getElementById("chat-header");
     const fileInput = document.getElementById("file-input");
 
-    const supportTicketsTable = $('#supportTicketsDataTable'); 
+    const supportTicketsTable = $('#supportTicketsDataTable');
     const inquiriesTable = $('#inquiriesDataTable');
 
     // --- SignalR Connection ---
@@ -34,7 +33,6 @@ document.addEventListener("DOMContentLoaded", () => {
         .withAutomaticReconnect()
         .build();
 
-    // --- Helper & UI Functions ---
     const formatTimestamp = (d) => new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     const updateSendButtonState = () => {
@@ -70,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     function addDateSeparatorIfNeeded(msgDateStr) {
-        if (!chatPanelBody) return; 
+        if (!chatPanelBody) return;
         const dateStr = new Date(msgDateStr).toDateString();
         if (lastMessageDate !== dateStr) {
             lastMessageDate = dateStr;
@@ -81,7 +79,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- Fullscreen Toggle ---
     if (fullscreenBtn) {
         const fullscreenIcon = fullscreenBtn.querySelector("i");
         fullscreenBtn.addEventListener("click", () => {
@@ -102,7 +99,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- UI Rendering ---
     function displayMessage(msg, isHistory = false) {
         if (!chatPanelBody) {
             console.error("CRITICAL: displayMessage was called but 'chatPanelBody' is null!");
@@ -113,20 +109,12 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Invalid message object received:", msg);
             return;
         }
-        //const messageDate = new Date(msg.dateTime).toDateString();
-        //if (lastMessageDate !== messageDate) {
-        //    lastMessageDate = messageDate;
-        //    const ds = document.createElement("div");
-        //    ds.className = "date-separator";
-        //    ds.textContent = formatDateForSeparator(msg.dateTime);
-        //    chatPanelBody.appendChild(ds);
-        //}
 
         addDateSeparatorIfNeeded(msg.dateTime);
 
         const isSent = msg.clientAuthUserId != null && msg.clientAuthUserId === currentUser.id;
         const senderName = msg.senderName || "Support";
-        
+
         const row = document.createElement('div');
         row.className = `message-row ${isSent ? 'sent' : 'received'}`;
 
@@ -166,7 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
         item.dataset.id = itemData.conversationId;
         item.dataset.name = itemData.displayName;
         item.dataset.type = type;
-        item.dataset.route = itemData.route; 
+        item.dataset.route = itemData.route;
 
         item.innerHTML = `
             <div class="d-flex w-100 align-items-center">
@@ -180,7 +168,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return item;
     }
 
-    // --- Core Chat Logic ---
     async function loadSidebarForClient(clientId) {
         try {
             const response = await fetch(`/v1/api/instructions/sidebar/${clientId}`);
@@ -255,7 +242,7 @@ document.addEventListener("DOMContentLoaded", () => {
             InsertUser: 1,
             InstructionId: parseInt(currentChatContext.id, 10),
             InstCategoryId: 100,
-            ServiceId: 3,        
+            ServiceId: 3,
             Remarks: "Message from web chat",
         };
 
@@ -287,7 +274,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // --- Ticket & Inquiry System ---
-
     function initializeTicketSystem() {
         const newTicketBtn = document.getElementById("newSupportTicketBtn");
         const newInquiryBtn = document.getElementById("newInquiryBtn");
@@ -318,7 +304,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (!subjectSelect) {
                     console.error("Could not find element with ID 'ticketSubject'.");
-                    alert("An error occured. Could not find the subject field");
+                    alert("An error occurred. Could not find the subject field");
                     return;
                 }
 
@@ -358,7 +344,20 @@ document.addEventListener("DOMContentLoaded", () => {
                         throw new Error(errorData.message || "Failed to create ticket.");
                     }
 
+                    const savedTicket = await response.json();
+
+                    await connection.invoke("NotifyNewTicket", {
+                        id: savedTicket.id,
+                        subject: description,
+                        clientName: currentUser.name,
+                        clientId: currentClient.id
+                    });
+
                     await loadSidebarForClient(currentClient.id);
+
+                    if ($.fn.DataTable.isDataTable(supportTicketsTable)) {
+                        supportTicketsTable.DataTable().ajax.reload();
+                    }
 
                     alert("Ticket created successfully!");
                     if (createTicketModal) createTicketModal.hide();
@@ -376,8 +375,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        // In initializeTicketSystem()
-
         if (createInquiryForm) {
             createInquiryForm.addEventListener("submit", async (e) => {
                 e.preventDefault();
@@ -385,8 +382,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const subjectSelect = document.getElementById("inquirySubject");
                 const messageInput = document.getElementById("inquiryMessage");
 
-                // Note: The previous code had a logic error trying to find 'ticketSubject'
-                // This is now corrected to look for 'inquirySubject'.
                 if (!subjectSelect) {
                     console.error("Could not find element with ID 'inquirySubject'.");
                     alert("An error occurred. Could not find the subject field.");
@@ -396,7 +391,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const inquiryType = subjectSelect.value;
                 const message = messageInput.value;
 
-                // --- FIX #1: Declare the variable with 'let' ---
                 let inquiryRoute;
 
                 if (inquiryType === "Account Inquiry") {
@@ -413,8 +407,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     InstructionId: null,
                     ClientId: currentClient.id,
                     ClientAuthUserId: currentUser.id,
-                    InsertUser: 1, 
-                    InstCategoryId: 102, 
+                    InsertUser: 1,
+                    InstCategoryId: 102,
                     ServiceId: 3,
                 };
 
@@ -430,7 +424,21 @@ document.addEventListener("DOMContentLoaded", () => {
                         throw new Error(errorData.message || `Failed to create inquiry: ${response.statusText}`);
                     }
 
+                    const savedInquiry = await response.json();
+
+                    await connection.invoke("NotifyNewInquiry", {
+                        id: savedInquiry.id,
+                        topic: inquiryType,
+                        clientName: currentUser.name,
+                        clientId: currentClient.id
+                    });
+
                     await loadSidebarForClient(currentClient.id);
+
+                    if ($.fn.DataTable.isDataTable(inquiriesTable)) {
+                        inquiriesTable.DataTable().ajax.reload();
+                    }
+
                     alert("Inquiry sent successfully!");
 
                     if (createInquiryModal) createInquiryModal.hide();
@@ -444,9 +452,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- SignalR Event Handlers ---
     connection.on("ReceivePrivateMessage", (message) => {
-
         console.log("CLIENT SIDE: 'ReceivePrivateMessage' event fired. Message received:", message);
 
         const conversationId = message.instructionId;
@@ -460,20 +466,36 @@ document.addEventListener("DOMContentLoaded", () => {
             const convItem = document.querySelector(`.conversation-item[data-id="${conversationId}"]`);
             if (convItem) {
                 convItem.classList.add('has-unread');
-                const subtitle = convItem.querySelector('.text-muted'); 
+                const subtitle = convItem.querySelector('.text-muted');
                 if (subtitle) {
-                    subtitle.textContent = message.instruction; 
+                    subtitle.textContent = message.instruction;
                 }
-            }   
+            }
         }
     });
 
-    async function init() {
+\    connection.on("NewNotification", (notification) => {
+        if (notificationManager) {
+            notificationManager.addNotification(notification);
+        }
+    });
 
+    window.openConversation = function (conversationId) {
+        const conversationItem = document.querySelector(`[data-id="${conversationId}"]`);
+        if (conversationItem) {
+            conversationItem.click();
+        }
+    };
+
+    async function init() {
         try {
             await connection.start();
             console.log("SignalR Connected.");
             updateSendButtonState();
+
+            if (serverData.currentUserId) {
+                notificationManager = new NotificationManager(false, serverData.currentUserId);
+            }
 
             await loadSidebarForClient(currentClient.id);
 
@@ -543,9 +565,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     { "data": "outcome" }
                 ]
             });
-
         }
-
 
         initializeTicketSystem();
 
@@ -582,7 +602,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
             });
         }
-
     }
 
     init();

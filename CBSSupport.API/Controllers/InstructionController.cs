@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using CBSSupport.API.Hubs;
 
 [ApiController]
 [Route("v1/api/instructions")]
@@ -11,11 +13,19 @@ using Microsoft.AspNetCore.Mvc;
 public class InstructionsController : ControllerBase
 {
     private readonly IChatService _service;
+    private readonly INotificationService _notificationService;
+    private readonly IHubContext<ChatHub> _hubContext;
     private readonly ILogger<InstructionsController> _logger;
 
-    public InstructionsController(IChatService service, ILogger<InstructionsController> logger)
+    public InstructionsController(
+        IChatService service,
+        INotificationService notificationService,
+        IHubContext<ChatHub> hubContext,
+        ILogger<InstructionsController> logger)
     {
         _service = service;
+        _notificationService = notificationService;
+        _hubContext = hubContext;
         _logger = logger;
     }
 
@@ -45,6 +55,72 @@ public class InstructionsController : ControllerBase
 
             if (savedMessage != null)
             {
+                bool isNewTicket = instTypeId >= 110 && instTypeId <= 117 && instruction.InstructionId == null;
+                bool isNewInquiry = (instTypeId == 121 || instTypeId == 122) && instruction.InstructionId == null;
+
+                try
+                {
+                    if (isNewTicket)
+                    {
+                        await _notificationService.NotifyNewTicketAsync(
+                            savedMessage.Id,
+                            instruction.Instruction ?? "New Ticket",
+                            "Client User" 
+                        );
+
+                        await _hubContext.Clients.All.SendAsync("NewNotification", new
+                        {
+                            Type = "new_ticket",
+                            Title = "New Support Ticket",
+                            Message = $"New ticket created: {instruction.Instruction}",
+                            CreatedAt = DateTime.UtcNow,
+                            IsRead = false
+                        });
+                    }
+                    else if (isNewInquiry)
+                    {
+                        string inquiryTopic = instTypeId == 121 ? "Account Inquiry" : "Sales and Management";
+                        await _notificationService.NotifyNewInquiryAsync(
+                            savedMessage.Id,
+                            inquiryTopic,
+                            "Client User" 
+                        );
+
+                        // Send real-time notification
+                        await _hubContext.Clients.All.SendAsync("NewNotification", new
+                        {
+                            Type = "new_inquiry",
+                            Title = "New Inquiry",
+                            Message = $"New inquiry: {inquiryTopic}",
+                            CreatedAt = DateTime.UtcNow,
+                            IsRead = false
+                        });
+                    }
+                    else if (instruction.InstructionId != null)
+                    {
+                        await _notificationService.NotifyNewMessageAsync(
+                            instruction.InstructionId.Value,
+                            "Client User", 
+                            instruction.Instruction ?? "",
+                            null, 
+                            null  
+                        );
+
+                        await _hubContext.Clients.All.SendAsync("NewNotification", new
+                        {
+                            Type = "new_message",
+                            Title = "New Message",
+                            Message = $"New message in conversation #{instruction.InstructionId}",
+                            CreatedAt = DateTime.UtcNow,
+                            IsRead = false
+                        });
+                    }
+                }
+                catch (Exception notificationEx)
+                {
+                    _logger.LogWarning(notificationEx, "Failed to create notification for instruction {InstructionId}, but instruction was saved successfully.", savedMessage.Id);
+                }
+
                 return Ok(savedMessage);
             }
             return BadRequest(new { message = "Failed to create the instruction." });
@@ -280,6 +356,36 @@ public class InstructionsController : ControllerBase
             var result = await _service.UpdateInquiryOutcomeAsync(inquiryId, request.Outcome);
             if (result)
             {
+                // Get inquiry details for notification
+                var inquiry = await _service.GetInquiryByIdAsync(inquiryId);
+                if (inquiry != null)
+                {
+                    try
+                    {
+                        // Create notification for inquiry update
+                        await _notificationService.NotifyInquiryUpdatedAsync(
+                            inquiryId,
+                            inquiry.Topic ?? "Inquiry",
+                            request.Outcome,
+                            inquiry.ClientId
+                        );
+
+                        // Send real-time notification
+                        await _hubContext.Clients.All.SendAsync("NewNotification", new
+                        {
+                            Type = "inquiry_updated",
+                            Title = "Inquiry Updated",
+                            Message = $"Inquiry '{inquiry.Topic}' outcome updated to: {request.Outcome}",
+                            CreatedAt = DateTime.UtcNow,
+                            IsRead = false
+                        });
+                    }
+                    catch (Exception notificationEx)
+                    {
+                        _logger.LogWarning(notificationEx, "Failed to create notification for inquiry update {InquiryId}, but update was successful.", inquiryId);
+                    }
+                }
+
                 return Ok(new { message = "Inquiry outcome updated successfully." });
             }
             return NotFound(new { message = "Inquiry not found." });
@@ -287,6 +393,67 @@ public class InstructionsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating inquiry outcome for ID {InquiryId}.", inquiryId);
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    // New endpoints for filtered data (for dashboard cards)
+    [HttpGet("tickets/solved")]
+    public async Task<IActionResult> GetSolvedTickets()
+    {
+        try
+        {
+            var tickets = await _service.GetSolvedTicketsAsync();
+            return Ok(new { data = tickets });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching solved tickets.");
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpGet("tickets/unsolved")]
+    public async Task<IActionResult> GetUnsolvedTickets()
+    {
+        try
+        {
+            var tickets = await _service.GetUnsolvedTicketsAsync();
+            return Ok(new { data = tickets });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching unsolved tickets.");
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpGet("inquiries/solved")]
+    public async Task<IActionResult> GetSolvedInquiries()
+    {
+        try
+        {
+            var inquiries = await _service.GetSolvedInquiriesAsync();
+            return Ok(new { data = inquiries });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching solved inquiries.");
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpGet("inquiries/unsolved")]
+    public async Task<IActionResult> GetUnsolvedInquiries()
+    {
+        try
+        {
+            var inquiries = await _service.GetUnsolvedInquiriesAsync();
+            return Ok(new { data = inquiries });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching unsolved inquiries.");
             return StatusCode(500, new { message = "An internal server error occurred." });
         }
     }

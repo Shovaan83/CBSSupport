@@ -28,9 +28,28 @@
             </div>
             <div class="header-actions">
                 <button class="btn btn-icon" id="fullscreen-btn" title="Toggle Fullscreen"><i class="fas fa-expand"></i></button>
-                <button class="btn btn-icon position-relative" data-bs-toggle="modal" data-bs-target="#notificationsModal" title="Notifications">
-                    <i class="fas fa-bell"></i>
-                </button>
+
+                <div class="notification-container">
+                    <button class="btn btn-icon position-relative" id="user-notification-btn" title="Notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="user-notification-badge" style="display: none;">0</span>
+                    </button>
+                    <div class="notification-dropdown" id="user-notification-dropdown">
+                        <div class="notification-header">
+                            <h6>Notifications</h6>
+                            <button class="btn btn-sm btn-link" id="user-mark-all-read">Mark all as read</button>
+                        </div>
+                        <div class="notification-list" id="user-notification-list">
+                            <div class="notification-empty">
+                                <p class="text-muted text-center">No new notifications</p>
+                            </div>
+                        </div>
+                        <div class="notification-footer">
+                            <a href="#" class="text-center d-block" id="user-view-all-notifications">View all notifications</a>
+                        </div>
+                    </div>
+                </div>
+
                 <button class="btn btn-icon" data-bs-toggle="modal" data-bs-target="#userModal" title="User Actions">
                     <i class="fas fa-users"></i>
                 </button>
@@ -39,6 +58,7 @@
     </header>
 
     <div class="dashboard-container">
+
         <!-- SECTION 1: CONVERSATION LIST  -->
         <div id="conversation-list-panel" class="dashboard-panel">
 
@@ -84,7 +104,6 @@
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInternal">Internal</button>
                         </h2>
                         <div id="collapseInternal" class="accordion-collapse collapse">
-                            <!-- Added 'conversation-list' class -->
                             <div class="list-group list-group-flush conversation-list" id="internal-chat-list">
                             </div>
                         </div>
@@ -116,7 +135,7 @@
             </div>
         </div>
 
-        <!-- SECTION 2: CHAT AREA (35%) -->
+        <!-- SECTION 2: CHAT AREA -->
         <div id="chat-panel" class="dashboard-panel">
             <div class="panel-header" id="chat-header"></div>
             <div id="chat-panel-body" class="panel-body"></div>
@@ -141,7 +160,6 @@
                 <div class="history-table-container panel-body">
                     <table id="supportTicketsDataTable" class="table table-hover table-sm small" style="width:100%">
                         <thead>
-
                         </thead>
                         <tbody></tbody>
                     </table>
@@ -232,7 +250,7 @@
     </div>
 
     <div class="modal fade" id="viewTicketDetailsModal" tabindex="-1" aria-labelledby="viewTicketDetailsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="viewTicketDetailsModalLabel">Ticket Details</h5>
@@ -240,31 +258,40 @@
                 </div>
                 <div class="modal-body">
                     <div id="ticket-details-view">
-                        <dl class="row">
-                            <dt class="col-sm-3">Ticket ID</dt>
-                            <dd class="col-sm-9"><span id="details-id"></span></dd>
-                            <dt class="col-sm-3">Status</dt>
-                            <dd class="col-sm-9"><span id="details-status"></span></dd>
-                            <dt class="col-sm-3">Priority</dt>
-                            <dd class="col-sm-9"><span id="details-priority"></span></dd>
-                            <dt class="col-sm-3">Subject</dt>
-                            <dd class="col-sm-9"><span id="details-subject"></span></dd>
-                            <dt class="col-sm-3">Date Submitted</dt>
-                            <dd class="col-sm-9"><span id="details-date"></span></dd>
-                            <dt class="col-sm-3">Expected Resolution</dt>
-                            <dd class="col-sm-9"><span id="details-expiryDate"></span></dd>
-                            <dt class="col-sm-3">Created By</dt>
-                            <dd class="col-sm-9"><span id="details-createdBy"></span></dd>
-                            <dt class="col-sm-3">Resolved By</dt>
-                            <dd class="col-sm-9"><span id="details-resolvedBy"></span></dd>
-                            <dt class="col-sm-3">Description</dt>
-                            <dd class="col-sm-9"><p id="details-description" style="white-space: pre-wrap;"></p></dd>
-                            <dt class="col-sm-3">Remarks</dt>
-                            <dd class="col-sm-9">
-                                <p id="details-remarks" style="white-space: pre-wrap;"></p>
-                            </dd>
-                        </dl>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label-sm">Ticket ID</label>
+                                <p class="fw-bold" id="details-id">#...</p>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-sm">Date Submitted</label>
+                                <p id="details-date">...</p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label-sm">Status</label>
+                                <div id="details-status"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label-sm">Priority</label>
+                                <div id="details-priority"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label-sm">Subject</label>
+                            <p id="details-subject">...</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label-sm">Description</label>
+                            <p id="details-description" class="bg-light p-3 rounded" style="white-space: pre-wrap;">...</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label-sm">Your Remarks</label>
+                            <p id="details-remarks" class="bg-light p-3 rounded" style="white-space: pre-wrap;">...</p>
+                        </div>
                     </div>
+
                     <form id="editTicketForm" novalidate style="display: none;">
                         <input type="hidden" id="edit-ticketId">
                         <div class="row">
@@ -275,12 +302,22 @@
                         </div>
                         <div class="mb-3">
                             <label for="edit-ticketSubject" class="form-label">Subject *</label>
-                            <select id="edit-ticketSubject" class="form-select" required></select>
+                            <select id="edit-ticketSubject" class="form-select" required>
+                                <option value="" disabled>Select a subject...</option>
+                                <option value="ticket/training">Training</option>
+                                <option value="ticket/migration">Migration</option>
+                                <option value="ticket/setup">Setup</option>
+                                <option value="ticket/correction">Correction</option>
+                                <option value="ticket/bug-fix">Bug Fix</option>
+                                <option value="ticket/new-feature">New Feature Request</option>
+                                <option value="ticket/feature-enhancement">Feature Enhancement</option>
+                                <option value="ticket/backend-workaround">Backend Workaround</option>
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label for="edit-ticketPriority" class="form-label">Priority *</label>
                             <select id="edit-ticketPriority" class="form-select" required>
-                                <option value="Low" selected>Low</option>
+                                <option value="Low">Low</option>
                                 <option value="Normal">Medium</option>
                                 <option value="Urgent">High</option>
                             </select>
@@ -301,8 +338,12 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary me-auto" id="editTicketBtn">Edit</button>
-                    <button type="submit" form="editTicketForm" class="btn btn-success me-auto" id="saveChangesBtn" style="display: none;">Save Changes</button>
+                    <button type="button" class="btn btn-outline-primary me-auto" id="editTicketBtn" style="display: none;">
+                        <i class="fas fa-pencil-alt me-2"></i>Edit Ticket
+                    </button>
+                    <button type="submit" form="editTicketForm" class="btn btn-success me-auto" id="saveChangesBtn" style="display: none;">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
                     <button type="button" class="btn btn-secondary" id="cancelEditBtn" style="display: none;">Cancel</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="closeModalBtn">Close</button>
                 </div>
@@ -352,25 +393,6 @@
         </div>
     </div>
 
-    <!-- Notification Modal -->
-    <div class="modal fade" id="notificationsModal" tabindex="-1" aria-labelledby="notificationsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="notificationsModalLabel">Notifications</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="list-group">
-                        <a href="#" class="list-group-item list-group-item-action">
-                            <p class="mb-1">No new notifications.</p>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- User/Logout Modal -->
     <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-sm">
@@ -390,61 +412,6 @@
         </div>
     </div>
 
-    <div class="modal fade" id="viewTicketDetailsModal" tabindex="-1" aria-labelledby="viewTicketDetailsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="viewTicketDetailsModalLabel">Ticket Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <!-- This div shows the ticket details in read-only mode -->
-                    <div id="ticket-details-view">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label-sm">Ticket ID</label>
-                                <p class="fw-bold" id="details-id">#...</p>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label-sm">Date Submitted</label>
-                                <p id="details-date">...</p>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label-sm">Status</label>
-                                <div id="details-status"></div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label-sm">Priority</label>
-                                <div id="details-priority"></div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label-sm">Subject</label>
-                            <p id="details-subject">...</p>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label-sm">Description</label>
-                            <p id="details-description" class="bg-light p-3 rounded" style="white-space: pre-wrap;">...</p>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label-sm">Your Remarks</label>
-                            <p id="details-remarks" class="bg-light p-3 rounded" style="white-space: pre-wrap;">...</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <!-- The "Edit" button will be shown/hidden by JavaScript -->
-                    <button type="button" class="btn btn-outline-primary me-auto" id="editTicketBtn" style="display: none;">
-                        <i class="fas fa-pencil-alt me-2"></i>Edit Ticket
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- SCRIPT SECTION -->
     <script>
         const serverData = {
@@ -457,7 +424,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    <script src="~/js/signalr/dist/browser/signalr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script src="~/js/notification.js" asp-append-version="true"></script>
     <script src="~/js/chat.js" asp-append-version="true"></script>
 </body>
 </html>

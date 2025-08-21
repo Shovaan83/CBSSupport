@@ -2,7 +2,6 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- 1. STATE AND CONFIGURATION ---
     let currentUser = { name: "Admin", id: 1 };
     let currentClientId = null;
     const agents = ["Sijal", "Shovan", "Alzeena", "Samana", "Darshan", "Anuj", "Avay", "Nikesh", "Salina", "Safal", "Imon", "Bigya", "Unassigned"];
@@ -14,9 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let ticketsTable = null;
     let inquiriesTable = null;
     let currentInquiry = null;
-    let selectedInquiryRow = null; // Track currently selected row
+    let selectedInquiryRow = null; 
+    let notificationManager = null; 
 
-    // --- 2. DOM ELEMENT REFERENCES ---
+    const initializedPages = {};
+
     const floatingChatContainer = document.getElementById('floating-chat-container');
     const conversationListContainer = document.getElementById("conversation-list-container");
     const mainChatPanelBody = document.getElementById("chat-panel-body");
@@ -30,7 +31,6 @@ document.addEventListener('DOMContentLoaded', () => {
         .withAutomaticReconnect()
         .build();
 
-    // --- 4. HELPERS ---
     const formatTimestamp = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const escapeHtml = (text) => {
         if (text === null || typeof text === 'undefined') return '';
@@ -56,36 +56,32 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<span class="badge badge-outcome-${o}">${escapeHtml(outcome || 'Pending')}</span>`;
     };
 
-    // --- 5. NAVIGATION FUNCTIONS ---
     function navigateToTicketManagement(statusFilter = null) {
-        // Switch to ticket management page
         $('.admin-sidebar .nav-link.active').removeClass('active');
         $('.admin-sidebar .nav-link[data-page="ticket-management"]').addClass('active');
         $('.admin-page.active').removeClass('active');
         $('#ticket-management-page').addClass('active');
 
-        // Initialize the page
         pageInitializers['ticket-management']();
 
-        // Apply status filter if provided
         if (statusFilter && ticketsTable) {
             setTimeout(() => {
-                ticketsTable.column(5).search(statusFilter).draw(); // Status column
+                ticketsTable.column(5).search(statusFilter).draw(); 
             }, 100);
         }
     }
 
     function navigateToInquiryManagement(statusFilter = null) {
-        // Switch to inquiry management page
+    
         $('.admin-sidebar .nav-link.active').removeClass('active');
         $('.admin-sidebar .nav-link[data-page="inquiry-management"]').addClass('active');
         $('.admin-page.active').removeClass('active');
         $('#inquiry-management-page').addClass('active');
 
-        // Initialize the page
+       
         pageInitializers['inquiry-management']();
 
-        // Apply status filter if provided
+      
         if (statusFilter) {
             setTimeout(() => {
                 $('#status-filter-inquiries').val(statusFilter);
@@ -94,32 +90,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 6. INQUIRY FILTERING FUNCTIONS ---
+    
     function applyInquiryFilters() {
         if (!inquiriesTable) return;
 
         const clientFilter = $('#client-switcher-inquiries').val();
         const statusFilter = $('#status-filter-inquiries').val();
 
-        // Clear all previous searches
+        
         inquiriesTable.columns().search('');
 
-        // Apply client filter on "Inquired By" column (column index 2)
+        
         if (clientFilter) {
             const clientName = $('#client-switcher-inquiries option:selected').text();
             inquiriesTable.column(2).search(`^${clientName}$`, true, false);
         }
 
-        // Apply status filter on raw data, not rendered HTML
+        
         if (statusFilter) {
-            // Use the raw data for filtering, not the rendered HTML
+           
             inquiriesTable.column(3).search(statusFilter, false, true);
         }
 
         inquiriesTable.draw();
     }
 
-    // --- 7. CORE LOGIC: FLOATING CHAT ---
+   
     function openFloatingChatBox(item, type) {
         const id = item.id;
         const clientName = item.clientName;
@@ -161,16 +157,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 8. INQUIRY MANAGEMENT FUNCTIONS ---
     function closeInquiryDetails() {
-        // Hide the detail panel
         document.getElementById('inquiry-detail-content').style.display = 'none';
         document.getElementById('inquiry-detail-placeholder').style.display = 'flex';
 
-        // Clear current inquiry and selected row
         currentInquiry = null;
 
-        // Remove highlight from previously selected row
         if (selectedInquiryRow) {
             $(selectedInquiryRow).removeClass('table-active');
             selectedInquiryRow = null;
@@ -178,7 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadInquiryDetails(inquiryId, rowElement = null) {
-        // If clicking the same inquiry, close the details
         if (currentInquiry && currentInquiry.id === inquiryId) {
             closeInquiryDetails();
             return;
@@ -193,7 +184,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const inquiry = await response.json();
             currentInquiry = inquiry;
 
-            // Update row highlighting
             if (selectedInquiryRow) {
                 $(selectedInquiryRow).removeClass('table-active');
             }
@@ -202,15 +192,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectedInquiryRow = rowElement;
             }
 
-            // Populate the detail panel
-            document.getElementById('detail-inquiry-id').textContent = `#INQ-${inquiry.id}`;
+\            document.getElementById('detail-inquiry-id').textContent = `#INQ-${inquiry.id}`;
             document.getElementById('detail-inquiry-topic').textContent = inquiry.topic;
             document.getElementById('detail-inquiry-outcome').value = inquiry.outcome;
             document.getElementById('detail-inquiry-inquired-by').value = inquiry.inquiredBy;
             document.getElementById('detail-inquiry-date').value = new Date(inquiry.date).toLocaleString();
             document.getElementById('detail-inquiry-description').value = inquiry.description || '';
 
-            // Show the detail panel
             document.getElementById('inquiry-detail-placeholder').style.display = 'none';
             document.getElementById('inquiry-detail-content').style.display = 'block';
 
@@ -226,7 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const outcome = document.getElementById('detail-inquiry-outcome').value;
         const originalOutcome = currentInquiry.outcome;
 
-        // Show loading state
         const updateBtn = document.getElementById('btn-update-inquiry');
         const originalBtnText = updateBtn.innerHTML;
         updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
@@ -242,23 +229,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (response.ok) {
-                // Update the current inquiry object
                 currentInquiry.outcome = outcome;
 
-                // Update the badge in the selected row immediately
                 if (selectedInquiryRow) {
-                    const badgeCell = $(selectedInquiryRow).find('td').eq(3); // Outcome column
+                    const badgeCell = $(selectedInquiryRow).find('td').eq(3); 
                     badgeCell.html(generateOutcomeBadge(outcome));
                 }
 
-                // Refresh the inquiries table to show updated data
                 if (inquiriesTable) {
                     inquiriesTable.ajax.reload(() => {
-                        // Reapply filters after reload
                         setTimeout(() => {
                             applyInquiryFilters();
 
-                            // Re-highlight the selected row after reload
                             if (currentInquiry) {
                                 const newRow = $(`#inquiriesDataTable tr[data-inquiry-id="${currentInquiry.id}"]`)[0];
                                 if (newRow) {
@@ -270,7 +252,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, false);
                 }
 
-                // Show success message
                 const successAlert = document.createElement('div');
                 successAlert.className = 'alert alert-success alert-dismissible fade show position-fixed';
                 successAlert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
@@ -280,7 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 document.body.appendChild(successAlert);
 
-                // Auto remove after 3 seconds
                 setTimeout(() => {
                     if (successAlert.parentNode) {
                         successAlert.remove();
@@ -294,7 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error updating inquiry outcome:', error);
 
-            // Show error message
             const errorAlert = document.createElement('div');
             errorAlert.className = 'alert alert-danger alert-dismissible fade show position-fixed';
             errorAlert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
@@ -304,23 +283,20 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             document.body.appendChild(errorAlert);
 
-            // Auto remove after 5 seconds
             setTimeout(() => {
                 if (errorAlert.parentNode) {
                     errorAlert.remove();
                 }
             }, 5000);
 
-            // Revert the select value on error
             document.getElementById('detail-inquiry-outcome').value = originalOutcome;
         } finally {
-            // Restore button state
             updateBtn.innerHTML = originalBtnText;
             updateBtn.disabled = false;
         }
     }
 
-    // --- 9. CORE LOGIC: MAIN CHAT PAGE ---
+    // --- CORE LOGIC: MAIN CHAT PAGE ---
     function addMainChatDateSeparator(msgDateStr) {
         if (!mainChatPanelBody) return;
         const dateStr = new Date(msgDateStr).toDateString();
@@ -417,9 +393,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 10. PAGE INITIALIZERS ---
-    const initializedPages = {};
-
     const pageInitializers = {
         dashboard: async function () {
             if (!currentClientId) {
@@ -428,13 +401,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!statsRes.ok) throw new Error("Failed to fetch aggregate stats");
                     const stats = await statsRes.json();
 
-                    // Update all 6 dashboard cards for all clients
                     $('#stat-total-tickets').text(stats.totalTickets);
                     $('#stat-open-tickets').text(stats.openTickets);
                     $('#stat-resolved-tickets').text(stats.resolvedTickets);
                     $('#stat-total-inquiries').text(stats.totalInquiries);
 
-                    // Fetch all inquiries to calculate solved/unsolved
                     const inquiriesRes = await fetch('/v1/api/instructions/inquiries/all');
                     if (inquiriesRes.ok) {
                         const allInquiries = await inquiriesRes.json();
@@ -458,13 +429,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         ticketData.slice(0, 5).forEach(ticket => {
                             const lastUpdate = new Date(ticket.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
                             const itemHtml = `
-                    <div class="recent-ticket-item">
-                        <div class="recent-ticket-info">
-                            <strong>#${ticket.id} - ${escapeHtml(ticket.clientName)}</strong>
-                            <small>Subject: ${escapeHtml(ticket.subject)} | Last Update: ${lastUpdate}</small>
-                        </div>
-                        ${generatePriorityBadge(ticket.priority)}
-                    </div>`;
+                <div class="recent-ticket-item">
+                    <div class="recent-ticket-info">
+                        <strong>#${ticket.id} - ${escapeHtml(ticket.clientName)}</strong>
+                        <small>Subject: ${escapeHtml(ticket.subject)} | Last Update: ${lastUpdate}</small>
+                    </div>
+                    ${generatePriorityBadge(ticket.priority)}
+                </div>`;
                             recentTicketsList.append(itemHtml);
                         });
                     } else {
@@ -552,7 +523,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ticketData = tickets.data || [];
                 const inquiryData = inquiries.data || [];
 
-                // Update all 6 dashboard cards for specific client
                 $('#stat-total-tickets').text(ticketData.length);
                 $('#stat-open-tickets').text(ticketData.filter(t => t.status !== 'Resolved').length);
                 $('#stat-resolved-tickets').text(ticketData.filter(t => t.status === 'Resolved').length);
@@ -570,13 +540,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     ticketData.slice(0, 5).forEach(ticket => {
                         const lastUpdate = new Date(ticket.date).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                         const itemHtml = `
-                <div class="recent-ticket-item">
-                    <div class="recent-ticket-info">
-                        <strong>#${ticket.id} - ${escapeHtml(ticket.subject)}</strong>
-                        <small>Created by: ${escapeHtml(ticket.createdBy)} | Last Update: ${lastUpdate}</small>
-                    </div>
-                    ${generatePriorityBadge(ticket.priority)}
-                </div>`;
+            <div class="recent-ticket-item">
+                <div class="recent-ticket-info">
+                    <strong>#${ticket.id} - ${escapeHtml(ticket.subject)}</strong>
+                    <small>Created by: ${escapeHtml(ticket.createdBy)} | Last Update: ${lastUpdate}</small>
+                </div>
+                ${generatePriorityBadge(ticket.priority)}
+            </div>`;
                         recentTicketsList.append(itemHtml);
                     });
                 } else {
@@ -648,6 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Dashboard 'Specific Client' init error:", err);
             }
         },
+
         chats: async function () {
             if (!currentClientId) return;
             conversationListContainer.innerHTML = '<div class="p-3 text-center"><div class="spinner-border spinner-border-sm"></div></div>';
@@ -661,6 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 conversationListContainer.innerHTML = '<p class="text-danger p-3">Could not load chats.</p>';
             }
         },
+
         'ticket-management': function () {
             const url = `/v1/api/instructions/tickets/all`;
             if ($.fn.DataTable.isDataTable('#ticketsTable')) {
@@ -686,12 +658,10 @@ document.addEventListener('DOMContentLoaded', () => {
         'inquiry-management': function () {
             const url = `/v1/api/instructions/inquiries/all`;
 
-            // Close any open inquiry details when switching pages
             closeInquiryDetails();
 
             if ($.fn.DataTable.isDataTable('#inquiriesDataTable')) {
                 $('#inquiriesDataTable').DataTable().ajax.url(url).load(() => {
-                    // Reapply filters after reload
                     setTimeout(() => applyInquiryFilters(), 100);
                 });
             } else {
@@ -711,11 +681,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             data: 'outcome',
                             title: 'Outcome',
                             render: function (data, type, row) {
-                                // For display, return HTML badge
                                 if (type === 'display') {
                                     return generateOutcomeBadge(data);
                                 }
-                                // For search and other operations, return raw data
                                 return data;
                             }
                         },
@@ -726,15 +694,15 @@ document.addEventListener('DOMContentLoaded', () => {
                             className: "text-center",
                             render: function (data, type, row) {
                                 return `
-                                    <div class="action-buttons">
-                                        <button class="btn btn-sm btn-outline-secondary view-inquiry-btn me-1" data-id="${row.id}" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-primary start-inquiry-chat-btn" data-id="${row.id}" data-type="inq" title="Open Chat">
-                                            <i class="fas fa-comments"></i>
-                                        </button>
-                                    </div>
-                                `;
+                                <div class="action-buttons">
+                                    <button class="btn btn-sm btn-outline-secondary view-inquiry-btn me-1" data-id="${row.id}" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary start-inquiry-chat-btn" data-id="${row.id}" data-type="inq" title="Open Chat">
+                                        <i class="fas fa-comments"></i>
+                                    </button>
+                                </div>
+                            `;
                             }
                         }
                     ],
@@ -746,7 +714,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         $(row).attr('data-inquiry-id', data.id);
                     },
                     initComplete: function () {
-                        // Apply initial filters
                         setTimeout(() => applyInquiryFilters(), 100);
                     }
                 });
@@ -754,7 +721,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- 11. EVENT HANDLERS ---
     function wireEvents() {
         $('.admin-sidebar .nav-link').on('click', function (e) {
             e.preventDefault();
@@ -788,24 +754,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 ticketsTable.column(1).search(searchTerm, true, false).draw();
             }
 
-            // Apply inquiry filters when client changes
             if (activePage === 'inquiry-management') {
                 applyInquiryFilters();
             }
         });
 
-        // Status filter for inquiries
         $('#status-filter-inquiries').on('change', function () {
             applyInquiryFilters();
         });
 
-        // Ticket management events
         $('#ticketsTable tbody').on('click', '.start-chat-btn', function () {
             const data = ticketsTable.row($(this).parents('tr')).data();
             if (data) openFloatingChatBox(data, 'tkt');
         });
 
-        // Inquiry management events
         $('#inquiriesDataTable tbody').on('click', '.view-inquiry-btn', function () {
             const inquiryId = $(this).data('id');
             const rowElement = $(this).closest('tr')[0];
@@ -819,7 +781,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data) openFloatingChatBox(data, 'inq');
         });
 
-        // Inquiry detail panel events
         $('#btn-update-inquiry').on('click', function () {
             updateInquiryOutcome();
         });
@@ -830,12 +791,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Close inquiry detail button
         $('#btn-close-inquiry-detail').on('click', function () {
             closeInquiryDetails();
         });
 
-        // Floating chat events
         $(floatingChatContainer).on('click', e => {
             const chatBox = e.target.closest('.floating-chat-box');
             if (!chatBox) return;
@@ -871,7 +830,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     .then(res => res.json())
                     .then(savedMessage => {
                         connection.invoke("SendAdminMessage", savedMessage);
-                        // Add message to the chat box
                         const container = chatBox.querySelector('.chat-box-body');
                         const senderName = currentUser.name || 'Admin';
                         container.innerHTML += `<div class="message-row sent"><div class="message-content"><div class="message-bubble"><p class="message-text">${escapeHtml(text)}</p></div><span class="message-timestamp">${escapeHtml(senderName)} - ${formatTimestamp(new Date())}</span></div></div>`;
@@ -882,7 +840,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Main chat events
         $(mainSendButton).on('click', sendMainChatMessage);
         $(mainMessageInput).on('keyup', e => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -927,13 +884,12 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = '/Login/Logout';
         });
 
-        // View all tickets link
         $('#view-all-tickets-link').on('click', function (e) {
             e.preventDefault();
             navigateToTicketManagement();
         });
 
-        // Dashboard card click handlers - delegated event handling
+       
         $(document).on('click', '.clickable-card', function () {
             const action = $(this).data('action');
 
@@ -976,7 +932,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Check for floating chats (both ticket and inquiry)
+          
             const floatingChatTkt = document.getElementById(`chatbox-tkt-${conversationId}`);
             const floatingChatInq = document.getElementById(`chatbox-inq-${conversationId}`);
             const floatingChat = floatingChatTkt || floatingChatInq;
@@ -1032,9 +988,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+
+        // Add notification listeners
+        connection.on("NewNotification", (notification) => {
+            if (notificationManager) {
+                notificationManager.addNotification(notification);
+            }
+        });
     }
 
-    // --- 13. INITIALIZATION ---
+ 
     async function init() {
         try {
             await connection.start();
@@ -1044,6 +1007,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (meResp.ok) {
                 currentUser = await meResp.json();
                 $('#admin-username-display').text(currentUser.name);
+
+              
+                try {
+                    if (typeof NotificationManager !== 'undefined') {
+                        notificationManager = new NotificationManager(true, currentUser.id);
+                    } else {
+                        console.warn('NotificationManager is not available. Notification features will be disabled.');
+                    }
+                } catch (notifError) {
+                    console.error('Failed to initialize NotificationManager:', notifError);
+                }
             }
 
             const clientsResp = await fetch('/v1/api/clients');
@@ -1069,6 +1043,11 @@ document.addEventListener('DOMContentLoaded', () => {
             $('body').html('<div class="alert alert-danger m-5"><strong>Error:</strong> Could not initialize admin panel. Please check the connection and API status.</div>');
         }
     }
+
+   
+    window.navigateToTicketManagement = navigateToTicketManagement;
+    window.navigateToInquiryManagement = navigateToInquiryManagement;
+    window.pageInitializers = pageInitializers;
 
     init();
 });

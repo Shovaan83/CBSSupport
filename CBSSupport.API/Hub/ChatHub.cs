@@ -1,176 +1,126 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using CBSSupport.Shared.Services;
-using CBSSupport.Shared.Models;
-using System;
+﻿using CBSSupport.Shared.Services;
+using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
-using System.Linq.Expressions;
 
 namespace CBSSupport.API.Hubs
 {
     public class ChatHub : Hub
     {
-        private readonly IChatService _chatService;
-        private readonly ILogger<ChatHub> _logger;
+        private readonly INotificationService _notificationService;
 
-        public ChatHub(IChatService chatService, ILogger<ChatHub> logger)
+        public ChatHub(INotificationService notificationService)
         {
-            _chatService = chatService;
-            _logger = logger;
+            _notificationService = notificationService;
         }
 
-        public async Task SendPublicMessage(string senderName, string message, string fileUrl = null, string fileName = null, string fileType = null)
-        {
-            long messageId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            string initials = !string.IsNullOrEmpty(senderName) ? senderName.Substring(0, 1).ToUpper() : "?";
-            await Clients.All.SendAsync("ReceivePublicMessage", messageId, senderName, message, DateTime.UtcNow, initials, fileUrl, fileName, fileType);
-        }
-
-        public async Task MarkAsSeen(long messageId, string userName)
-        {
-            await Clients.All.SendAsync("MessageSeen", messageId, userName, DateTime.UtcNow);
-        }
-
-        public async Task JoinPrivateChat(string groupName)
+        public async Task JoinGroup(string groupName)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
         }
 
-        //public async Task SendPrivateMessage(string groupName, string senderName, string message, string fileUrl = null, string fileName = null, string fileType = null)
-        //{
-        //    try
-        //    {
-        //        if (string.IsNullOrEmpty(groupName))
-        //        {
-        //            _logger.LogWarning("SendPrivateMessage was called with a null or empty groupName.");
-        //            return;
-        //        }
-
-        //        long messageId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        //        string initials = !string.IsNullOrEmpty(senderName) ? senderName.Substring(0, 1).ToUpper() : "?";
-
-        //        await Clients.Group(groupName).SendAsync("ReceivePrivateMessage", messageId, groupName, senderName, message, DateTime.UtcNow, initials, fileUrl, fileName, fileType);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error occured in SendPrivateMessage for group {GroupName}", groupName);
-        //        throw;
-        //    }
-        //}
-
-        // In your ChatHub class
-
-        //public async Task SendPrivateMessage(string groupName, string message)
-        //{
-        //    try
-        //    {
-        //        if (string.IsNullOrEmpty(groupName))
-        //        {
-        //            _logger.LogWarning("SendPrivateMessage called with empty groupName.");
-        //            return;
-        //        }
-
-        //        // --- NEW LOGIC: The Hub now gets the user info from the connection context ---
-        //        // This is more secure because the client can't fake who they are.
-        //        string senderName = Context.User.FindFirst("FullName")?.Value ?? "Unknown User";
-        //        string senderIdStr = Context.User.FindFirst("UserId")?.Value;
-
-        //        // The Hub is now responsible for creating the full message object to broadcast.
-        //        var messageToBroadcast = new
-        //        {
-        //            id = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-        //            groupName = groupName,
-        //            senderName = senderName,
-        //            instruction = message,
-        //            datetime = DateTime.UtcNow,
-        //            insertUser = int.TryParse(senderIdStr, out var senderId) ? senderId : 0
-        //        };
-
-        //        // Broadcast the full object.
-        //        await Clients.Group(message.InstructionId.ToString()).SendAsync("ReceivePrivateMessage", message);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error occurred in SendPrivateMessage for group {GroupName}", groupName);
-        //        throw;
-        //    }
-        //}
-
-        public async Task UserIsTyping(string groupName, string userName)
+        public async Task LeaveGroup(string groupName)
         {
-            await Clients.GroupExcept(groupName, Context.ConnectionId).SendAsync("ReceiveTypingNotification", groupName, userName, true);
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
         }
 
-        public async Task UserStoppedTyping(string groupName, string userName)
+        public async Task SendAdminMessage(object message)
         {
-            await Clients.GroupExcept(groupName, Context.ConnectionId).SendAsync("ReceiveTypingNotification", groupName, userName, false);
+            await Clients.All.SendAsync("ReceivePrivateMessage", message);
         }
 
-        public async Task GetMyConversations(long clientId)
+        public async Task SendPrivateMessage(string user, string message, object fullMessage)
         {
-            try
-            {
-                var sidebarData = await _chatService.GetSidebarForUserAsync(0, clientId);
-                await Clients.Caller.SendAsync("ReceivesSidebarData", sidebarData);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("An error occurred in GetMyConversations for client ID {ClientId}", clientId);
-                _logger.LogError(ex, "Full exception details for the error above.");
-            }
+            await Clients.User(user).SendAsync("ReceivePrivateMessage", fullMessage);
+            await Clients.Caller.SendAsync("ReceivePrivateMessage", fullMessage);
         }
 
-        public async Task CreateTicket(string subject)
+        public async Task NotifyNewTicket(object ticket)
         {
-            var newTicket = new ChatMessage
-            {
-                Instruction = subject,
-                InstTypeId = 100, 
-                Status = true,
-                InstChannel = "chat",
-                IpAddress = Context.GetHttpContext()?.Connection.RemoteIpAddress?.ToString()
-            };
+            await Clients.All.SendAsync("NewTicket", ticket);
 
-            ChatMessage savedTicket = await _chatService.CreateInstructionTicketAsync(newTicket);
-            await Clients.Caller.SendAsync("NewTicketCreated", savedTicket);
-        }
-
-        public async Task SendAdminMessage(ChatMessage message)
-        {
-            try
+            // Create notification for admins
+            var ticketData = ticket as dynamic;
+            if (ticketData != null)
             {
-                if (message == null || !message.InstructionId.HasValue)
+                await _notificationService.NotifyNewTicketAsync(
+                    ticketData.id,
+                    ticketData.subject ?? "New Ticket",
+                    ticketData.clientName ?? "Unknown Client"
+                );
+
+                // Send notification to all admin clients
+                var notification = new
                 {
-                    _logger.LogWarning("SendAdminMessage called with invalid message object");
-                    return;
-                }
+                    Type = "new_ticket",
+                    Title = "New Support Ticket",
+                    Message = $"New ticket created by {ticketData.clientName}: {ticketData.subject}",
+                    CreatedAt = DateTime.UtcNow,
+                    IsRead = false
+                };
 
-                _logger.LogInformation("HUB: Received Admin Message. Broadcasting to group {GroupId}", message.InstructionId.Value);
-
-                await Clients.Group(message.InstructionId.Value.ToString()).SendAsync("ReceivePrivateMessage", message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in SendAdminMessage for ConversationId {ConversationId}", message?.InstructionId);
+                await Clients.All.SendAsync("NewNotification", notification);
             }
         }
 
-        public async Task SendClientMessage(ChatMessage message)
+        public async Task NotifyNewInquiry(object inquiry)
         {
-            try
+            await Clients.All.SendAsync("NewInquiry", inquiry);
+
+            // Create notification for admins
+            var inquiryData = inquiry as dynamic;
+            if (inquiryData != null)
             {
-                if (message == null || !message.InstructionId.HasValue)
+                await _notificationService.NotifyNewInquiryAsync(
+                    inquiryData.id,
+                    inquiryData.topic ?? "New Inquiry",
+                    inquiryData.clientName ?? "Unknown Client"
+                );
+
+                // Send notification to all admin clients
+                var notification = new
                 {
-                    _logger.LogWarning("SendClientMessage called with invalid message object");
-                    return;
-                }
+                    Type = "new_inquiry",
+                    Title = "New Inquiry",
+                    Message = $"New inquiry from {inquiryData.clientName}: {inquiryData.topic}",
+                    CreatedAt = DateTime.UtcNow,
+                    IsRead = false
+                };
 
-                _logger.LogInformation("HUB: Received Client Message. Broadcasting to group {GroupId}", message.InstructionId.Value);
-
-                await Clients.Group(message.InstructionId.Value.ToString()).SendAsync("ReceivePrivateMessage", message);
+                await Clients.All.SendAsync("NewNotification", notification);
             }
-            catch (Exception ex)
+        }
+
+        public async Task NotifyNewMessage(object messageData)
+        {
+            var data = messageData as dynamic;
+            if (data != null)
             {
-                _logger.LogError(ex, "Error in SendClientMessage for ConversationId {ConversationId}", message?.InstructionId);
+                await _notificationService.NotifyNewMessageAsync(
+                    data.conversationId ?? 0,
+                    data.senderName ?? "Unknown",
+                    data.message ?? "",
+                    data.recipientUserId,
+                    data.recipientAdminId
+                );
+
+                // Send notification to specific recipients
+                var notification = new
+                {
+                    Type = "new_message",
+                    Title = "New Message",
+                    Message = $"{data.senderName}: {data.message}",
+                    CreatedAt = DateTime.UtcNow,
+                    IsRead = false
+                };
+
+                if (data.recipientUserId != null)
+                {
+                    await Clients.User(data.recipientUserId.ToString()).SendAsync("NewNotification", notification);
+                }
+                if (data.recipientAdminId != null)
+                {
+                    await Clients.User(data.recipientAdminId.ToString()).SendAsync("NewNotification", notification);
+                }
             }
         }
     }

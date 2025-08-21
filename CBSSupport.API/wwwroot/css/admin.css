@@ -1,10 +1,9 @@
-﻿/* === DEFINITIVE ADMIN CSS === */
-
+﻿
 /* --- 1. GLOBAL & LAYOUT --- */
 :root {
     --admin-sidebar-bg: #2c3e50;
     --admin-content-bg: #f4f7fa;
-    --admin-accent: #0d6efd; /* Standard Bootstrap Blue */
+    --admin-accent: #0d6efd;
     --admin-text-light: #ecf0f1;
     --admin-border-color: #e1e8ed;
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -207,7 +206,6 @@ body {
 }
 
 
-/* --- 4. TICKET MANAGEMENT LAYOUT --- */
 .ticket-management-layout {
     display: grid;
     grid-template-columns: 60% 1fr;
@@ -250,7 +248,6 @@ body {
         text-transform: uppercase;
     }
 
-/* --- 5. INQUIRY MANAGEMENT LAYOUT --- */
 .inquiry-management-layout {
     display: grid;
     grid-template-columns: 70% 1fr;
@@ -341,7 +338,6 @@ body {
         color: var(--admin-accent);
     }
 
-/* Outcome badges for inquiries */
 .badge-outcome-pending {
     color: #b45309;
     background-color: #fde68a;
@@ -357,10 +353,9 @@ body {
     background-color: #d1fae5;
 }
 
-/* --- 6. CHAT PAGE & FLOATING CHAT --- */
 .chat-container-full {
     display: grid;
-    grid-template-columns: 320px 1fr; /* Sidebar width + Main panel */
+    grid-template-columns: 320px 1fr;
     height: 100%;
     overflow: hidden;
 }
@@ -405,12 +400,11 @@ body {
         font-weight: 600;
     }
 
-/* Main Chat Panel */
 .chat-main {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background-color: #f0f2f5; /* A slightly different BG for the chat area */
+    background-color: #f0f2f5; 
 }
 
 .chat-main-header {
@@ -446,7 +440,6 @@ body {
         box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
     }
 
-/* Placeholder View */
 .placeholder-view {
     margin: auto;
     text-align: center;
@@ -459,7 +452,6 @@ body {
     margin-bottom: 1rem;
 }
 
-/* Premium Message Group & Avatar Styles */
 .message-group {
     display: flex;
     gap: 0.75rem;
@@ -561,7 +553,6 @@ body {
     color: rgba(255, 255, 255, 0.7);
 }
 
-/* Message row styles for floating chat */
 .message-row {
     display: flex;
     margin-bottom: 0.75rem;
@@ -700,7 +691,6 @@ body {
         flex-shrink: 0;
     }
 
-/* Date separator */
 .date-separator {
     text-align: center;
     margin: 1rem 0;
@@ -727,7 +717,7 @@ body {
         right: 0;
     }
 
-/* --- 7. DATATABLES & BADGES (FINAL VERSION) --- */
+
 .table {
     border-collapse: separate;
     border-spacing: 0;
@@ -836,7 +826,7 @@ body {
     }
 
 .chart-card {
-    min-height: 350px; /* Ensure the card has enough height for the chart */
+    min-height: 350px;
 }
 
     .chart-card h6 {
@@ -847,11 +837,11 @@ body {
 
 .chart-container {
     position: relative;
-    flex-grow: 1; /* Allow the chart to fill the available space */
+    flex-grow: 1; 
 }
 
 .sidebar-footer {
-    margin-top: auto; /* This pushes the footer to the bottom of the sidebar */
+    margin-top: auto;
     padding-top: 1rem;
     border-top: 1px solid #3b4d61;
     display: flex;
@@ -880,18 +870,18 @@ body {
     }
 
         .sidebar-footer .logout-link:hover {
-            background-color: #dc3545; /* A red color on hover for emphasis */
+            background-color: #dc3545;
             color: #fff;
         }
 
-/* Panel body for table containers */
+
 .panel-body {
     padding: 1.5rem;
     overflow: auto;
     flex-grow: 1;
 }
 
-/* DataTables specific overrides */
+
 .dataTables_wrapper .dataTables_length,
 .dataTables_wrapper .dataTables_filter,
 .dataTables_wrapper .dataTables_info,
