@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 [ApiController]
 [Route("v1/api/instructions")]
@@ -304,5 +305,103 @@ public class InstructionsController : ControllerBase
             _logger.LogError(ex, "Error updating ticket {TicketId}", ticketId);
             return StatusCode(500, new { message = "An internal server error occurred.", detail = ex.Message });
         }
+    }
+
+    // Add these missing endpoints to your InstructionsController class:
+
+    [HttpGet("tickets/{ticketId}/details")]
+    [Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
+    public async Task<IActionResult> GetTicketDetails(long ticketId)
+    {
+        try
+        {
+            var ticket = await _service.GetTicketDetailsByIdAsync(ticketId);
+            if (ticket == null)
+            {
+                return NotFound(new { message = "Ticket not found." });
+            }
+            return Ok(ticket);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching ticket details for ID {TicketId}", ticketId);
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpGet("inquiries/{inquiryId}/details")]
+    [Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
+    public async Task<IActionResult> GetInquiryDetails(long inquiryId)
+    {
+        try
+        {
+            var inquiry = await _service.GetInquiryDetailsByIdAsync(inquiryId);
+            if (inquiry == null)
+            {
+                return NotFound(new { message = "Inquiry not found." });
+            }
+            return Ok(inquiry);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching inquiry details for ID {InquiryId}", inquiryId);
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpPut("tickets/{ticketId}/status")]
+    [Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
+    public async Task<IActionResult> UpdateTicketStatus(long ticketId, [FromBody] UpdateStatusRequest request)
+    {
+        try
+        {
+            var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var currentUserId = long.TryParse(currentUserIdClaim, out var userId) ? userId : (long?)null;
+
+            var result = await _service.UpdateTicketStatusAsync(ticketId, request.IsCompleted, currentUserId);
+
+            if (result)
+            {
+                return Ok(new { success = true, message = "Ticket status updated successfully." });
+            }
+
+            return BadRequest(new { success = false, message = "Failed to update ticket status." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating ticket status for ID {TicketId}", ticketId);
+            return StatusCode(500, new { success = false, message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpPut("inquiries/{inquiryId}/status")]
+    [Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
+    public async Task<IActionResult> UpdateInquiryStatus(long inquiryId, [FromBody] UpdateStatusRequest request)
+    {
+        try
+        {
+            var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var currentUserId = long.TryParse(currentUserIdClaim, out var userId) ? userId : (long?)null;
+
+            var result = await _service.UpdateInquiryStatusAsync(inquiryId, request.IsCompleted, currentUserId);
+
+            if (result)
+            {
+                return Ok(new { success = true, message = "Inquiry status updated successfully." });
+            }
+
+            return BadRequest(new { success = false, message = "Failed to update inquiry status." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating inquiry status for ID {InquiryId}", inquiryId);
+            return StatusCode(500, new { success = false, message = "An internal server error occurred." });
+        }
+    }
+
+    // Add this class to support the status update request
+    public class UpdateStatusRequest
+    {
+        public bool IsCompleted { get; set; }
     }
 }

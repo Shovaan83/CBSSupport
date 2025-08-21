@@ -29,6 +29,15 @@ namespace CBSSupport.Shared.Services
 
         Task<IEnumerable<InquiryViewModel>> GetAllInquiriesAsync();
 
+
+        Task<IEnumerable<TicketViewModel>> GetSolvedTicketsAsync();
+
+        Task<IEnumerable<TicketViewModel>> GetUnsolvedTicketsAsync();
+
+        Task<IEnumerable<InquiryViewModel>> GetSolvedInquiriesAsync();
+
+        Task<IEnumerable<InquiryViewModel>> GetUnsolvedInquiriesAsync();
+
         Task<DashboardStatsViewModel> GetDashboardStatsAsync();
 
         Task<bool> UpdateInstructionAsync(ChatMessage instruction);
@@ -36,5 +45,10 @@ namespace CBSSupport.Shared.Services
         Task<long> GetOrCreateGroupChatConversationIdAsync(long clientId, int loggedInUserId);
 
         Task<ChatMessage> CreateGroupChatMessageAsync(ChatMessage newMessage);
+
+        Task<bool> UpdateTicketStatusAsync(long ticketId, bool isCompleted, long? completedByUserId = null);
+        Task<bool> UpdateInquiryStatusAsync(long inquiryId, bool isCompleted, long? completedByUserId = null);
+        Task<TicketViewModel> GetTicketDetailsByIdAsync(long ticketId);
+        Task<InquiryViewModel> GetInquiryDetailsByIdAsync(long inquiryId);
     }
 }

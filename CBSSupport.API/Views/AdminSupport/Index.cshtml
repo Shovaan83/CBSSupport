@@ -52,10 +52,60 @@
 
                 <div class="page-content">
                     <div class="row g-4 mb-4">
-                        <div class="col-lg-3 col-md-6"><div class="dashboard-card stat-card"><h6>All tickets</h6><div class="stat-main"><h2 id="stat-total-tickets">0</h2><i class="fas fa-ticket-alt"></i></div></div></div>
-                        <div class="col-lg-3 col-md-6"><div class="dashboard-card stat-card"><h6>Open Tickets</h6><div class="stat-main"><h2 id="stat-open-tickets">0</h2><i class="far fa-comment-dots"></i></div></div></div>
-                        <div class="col-lg-3 col-md-6"><div class="dashboard-card stat-card"><h6>Resolved Tickets</h6><div class="stat-main"><h2 id="stat-resolved-tickets">0</h2><i class="fas fa-check-circle"></i></div></div></div>
-                        <div class="col-lg-3 col-md-6"><div class="dashboard-card stat-card"><h6>Total Inquiries</h6><div class="stat-main"><h2 id="stat-total-inquiries">0</h2><i class="fas fa-question-circle"></i></div></div></div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="dashboard-card stat-card clickable-card" data-action="view-all-tickets">
+                                <h6>All Tickets</h6>
+                                <div class="stat-main">
+                                    <h2 id="stat-total-tickets">0</h2>
+                                    <i class="fas fa-ticket-alt"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="dashboard-card stat-card clickable-card" data-action="view-all-inquiries">
+                                <h6>All Inquiries</h6>
+                                <div class="stat-main">
+                                    <h2 id="stat-total-inquiries">0</h2>
+                                    <i class="fas fa-question-circle"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="dashboard-card stat-card clickable-card" data-action="view-solved-tickets">
+                                <h6>Solved Tickets</h6>
+                                <div class="stat-main">
+                                    <h2 id="stat-resolved-tickets">0</h2>
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="dashboard-card stat-card clickable-card" data-action="view-solved-inquiries">
+                                <h6>Solved Inquiries</h6>
+                                <div class="stat-main">
+                                    <h2 id="stat-solved-inquiries">0</h2>
+                                    <i class="fas fa-check-square"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="dashboard-card stat-card clickable-card" data-action="view-unsolved-tickets">
+                                <h6>Unsolved Tickets</h6>
+                                <div class="stat-main">
+                                    <h2 id="stat-open-tickets">0</h2>
+                                    <i class="far fa-comment-dots"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="dashboard-card stat-card clickable-card" data-action="view-unsolved-inquiries">
+                                <h6>Unsolved Inquiries</h6>
+                                <div class="stat-main">
+                                    <h2 id="stat-unsolved-inquiries">0</h2>
+                                    <i class="far fa-question-circle"></i>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="row g-4">
@@ -268,12 +318,72 @@
                         </div>
                         <div class="ticket-detail-panel">
                             <div id="ticket-detail-content" style="display: none;">
-                                <div class="ticket-detail-header"><span id="detail-ticket-id">#...</span><div id="detail-ticket-subject-container"></div></div>
+                                <div class="ticket-detail-header">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <span id="detail-ticket-id">#TKT-12345</span>
+                                            <h5 id="detail-ticket-subject">Training Request</h5>
+                                        </div>
+                                        <button type="button" id="btn-close-ticket-detail" class="btn btn-sm btn-outline-light" title="Close">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
                                 <div class="ticket-properties">
-                                    <div class="form-group"><label>Status</label><div id="detail-ticket-status-badge" class="mt-1"></div></div>
-                                    <div class="form-group"><label>Priority</label><select id="detail-priority" class="form-select"></select></div>
-                                    <div class="form-group"><label>Assignee</label><select id="detail-assignee" class="form-select"></select></div>
-                                    <div class="form-group"><label>Created By</label><input type="text" id="detail-createdby" class="form-control" disabled /></div>
+                                    <div class="form-group">
+                                        <label>Status</label>
+                                        <select id="detail-ticket-status" class="form-select">
+                                            <option value="Open">Open</option>
+                                            <option value="Resolved">Resolved</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Priority</label>
+                                        <select id="detail-ticket-priority" class="form-select" disabled>
+                                            <option value="Low">Low</option>
+                                            <option value="Normal">Normal</option>
+                                            <option value="High">High</option>
+                                            <option value="Urgent">Urgent</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Created By</label>
+                                        <input type="text" id="detail-ticket-created-by" class="form-control" disabled />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Client</label>
+                                        <input type="text" id="detail-ticket-client" class="form-control" disabled />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Date Created</label>
+                                        <input type="text" id="detail-ticket-date" class="form-control" disabled />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Description</label>
+                                        <textarea id="detail-ticket-description" class="form-control" rows="4" disabled></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Resolved By</label>
+                                        <input type="text" id="detail-ticket-resolved-by" class="form-control" disabled />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Resolved Date</label>
+                                        <input type="text" id="detail-ticket-resolved-date" class="form-control" disabled />
+                                    </div>
+                                    <div class="ticket-actions">
+                                        <button type="button" id="btn-update-ticket" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Update Status
+                                        </button>
+                                        <button type="button" id="btn-start-ticket-chat" class="btn btn-success">
+                                            <i class="fas fa-comments"></i> Open Chat
+                                        </button>
+                                    </div>
+                                    <div class="inquiry-conversation-notice">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-comments me-2"></i>
+                                            <span>Conversations for this ticket will open in a floating chat window.</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div id="ticket-detail-placeholder" class="d-flex align-items-center justify-content-center h-100">
@@ -287,19 +397,106 @@
             <div id="inquiry-management-page" class="admin-page">
                 <div class="page-header">
                     <h1>Inquiry Management</h1>
-                    <div class="d-flex align-items-center">
-                        <label for="client-switcher-inquiries" class="form-label me-2 mb-0">Client:</label>
-                        <select id="client-switcher-inquiries" class="form-select client-switcher" style="width: 250px;"></select>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="d-flex align-items-center">
+                            <label for="client-switcher-inquiries" class="form-label me-2 mb-0">Client:</label>
+                            <select id="client-switcher-inquiries" class="form-select client-switcher" style="width: 200px;">
+                                <option value="">All Clients</option>
+                            </select>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <label for="status-filter-inquiries" class="form-label me-2 mb-0">Status:</label>
+                            <select id="status-filter-inquiries" class="form-select" style="width: 150px;">
+                                <option value="">All Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+
+                        <div class="notification-container">
+                            <button class="btn btn-outline-secondary notification-btn" id="admin-notification-btn-inquiries" title="Notifications">
+                                <i class="fas fa-bell"></i>
+                                <span class="notification-badge" id="admin-notification-badge-inquiries" style="display: none;">0</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="page-content">
-                    <table id="inquiriesDataTable" class="table table-hover" style="width:100%">
-                        <thead><tr><th>ID</th><th>Client</th><th>Topic</th><th>Inquired By</th><th>Date</th><th>Outcome</th></tr></thead>
-                        <tbody></tbody>
-                    </table>
+                    <div class="inquiry-management-layout">
+                        <div class="inquiry-list-panel">
+                            <div class="panel-body">
+                                <table id="inquiriesDataTable" class="table table-hover" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Topic</th>
+                                            <th>Inquired By</th>
+                                            <th>Outcome</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="inquiry-detail-panel">
+                            <div id="inquiry-detail-content" style="display: none;">
+                                <div class="inquiry-detail-header">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <span id="detail-inquiry-id">#INQ-68915</span>
+                                            <div id="detail-inquiry-topic-container">
+                                                <h5 id="detail-inquiry-topic">Account Inquiry</h5>
+                                            </div>
+                                        </div>
+                                        <button type="button" id="btn-close-inquiry-detail" class="btn btn-sm btn-outline-secondary" title="Close">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="inquiry-properties">
+                                    <div class="form-group">
+                                        <label>Outcome</label>
+                                        <select id="detail-inquiry-outcome" class="form-select">
+                                            <option value="Pending">Pending</option>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Inquired By</label>
+                                        <input type="text" id="detail-inquiry-inquired-by" class="form-control" disabled />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Date</label>
+                                        <input type="text" id="detail-inquiry-date" class="form-control" disabled />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Description</label>
+                                        <textarea id="detail-inquiry-description" class="form-control" rows="4" disabled></textarea>
+                                    </div>
+                                    <div class="inquiry-actions">
+                                        <button type="button" id="btn-update-inquiry" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Update Outcome
+                                        </button>
+                                        <button type="button" id="btn-start-inquiry-chat" class="btn btn-success">
+                                            <i class="fas fa-comments"></i> Open Chat
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="inquiry-conversation-notice">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-comments me-2"></i>
+                                        <span>Conversations for this inquiry will open in a floating chat window.</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="inquiry-detail-placeholder" class="d-flex align-items-center justify-content-center h-100">
+                                <p class="text-muted">Select an inquiry to view its details.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </main>
 
         <div id="floating-chat-container"></div>
     </div>

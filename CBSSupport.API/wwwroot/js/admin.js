@@ -1,9 +1,10 @@
 ﻿"use strict";
 
 document.addEventListener('DOMContentLoaded', () => {
-
     let currentUser = { name: "Admin", id: null };
     let currentClientId = null;
+    let currentTicketData = null;
+    let currentInquiryData = null;
     const agents = ["Sijal", "Shovan", "Alzeena", "Samana", "Darshan", "Anuj", "Avay", "Nikesh", "Salina", "Safal", "Imon", "Bigya", "Unassigned"];
     const priorities = ["Low", "Normal", "High", "Urgent"];
     let ticketPriorityChart = null;
@@ -55,6 +56,33 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<span class="badge badge-status-${s}">${escapeHtml(status || 'Pending')}</span>`;
     };
 
+    function showNotification(message, type = 'info') {
+        const toastContainer = document.querySelector('.toast-container') || (() => {
+            const container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+            return container;
+        })();
+
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'primary'} border-0`;
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+
+        toastContainer.appendChild(toast);
+        const toastBootstrap = new bootstrap.Toast(toast);
+        toastBootstrap.show();
+
+        toast.addEventListener('hidden.bs.toast', function () {
+            toast.remove();
+        });
+    }
+
     function initializeAdminChatSidebar() {
         $(document).on('click', '.admin-chat-section-toggle', function (e) {
             e.stopPropagation();
@@ -71,6 +99,392 @@ document.addEventListener('DOMContentLoaded', () => {
                 refreshAdminConversations();
             }
         });
+    }
+
+    function initializeTicketManagement() {
+        const ticketTable = $('#ticketsTable');
+        if (ticketTable.length && !$.fn.DataTable.isDataTable('#ticketsTable')) {
+            ticketsTable = ticketTable.DataTable({
+                "ajax": {
+                    "url": "/v1/api/instructions/tickets/all",
+                    "dataSrc": "data"
+                },
+                "columns": [
+                    {
+                        "data": "id",
+                        "title": "ID",
+                        "width": "10%",
+                        "className": "text-center fw-bold",
+                        "render": function (data) {
+                            return `<span class="badge bg-light text-dark border">#${data}</span>`;
+                        }
+                    },
+                    {
+                        "data": "clientName",
+                        "title": "Client",
+                        "width": "15%"
+                    },
+                    {
+                        "data": "subject",
+                        "title": "Subject",
+                        "width": "25%"
+                    },
+                    {
+                        "data": "createdBy",
+                        "title": "Created By",
+                        "width": "15%"
+                    },
+                    {
+                        "data": "status",
+                        "title": "Status",
+                        "width": "12%",
+                        "className": "text-center",
+                        "render": function (data) {
+                            return generateStatusBadge(data);
+                        }
+                    },
+                    {
+                        "data": "priority",
+                        "title": "Priority",
+                        "width": "12%",
+                        "className": "text-center",
+                        "render": function (data) {
+                            return generatePriorityBadge(data);
+                        }
+                    },
+                    {
+                        "data": null,
+                        "title": "Actions",
+                        "orderable": false,
+                        "width": "11%",
+                        "className": "text-center",
+                        "render": function () {
+                            return `
+                                <div class="action-buttons">
+                                    <button class="btn-icon-action view-ticket-details-btn" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn-icon-action start-chat-btn" title="Open Chat">
+                                        <i class="fas fa-comments"></i>
+                                    </button>
+                                </div>`;
+                        }
+                    }
+                ],
+                "order": [[0, 'desc']],
+                "pageLength": 10,
+                "responsive": true,
+                "processing": true,
+                "language": {
+                    "emptyTable": "No tickets found.",
+                    "search": '<i class="fas fa-search me-2"></i>',
+                }
+            });
+
+            ticketTable.on('click', '.view-ticket-details-btn', function () {
+                const rowData = ticketsTable.row($(this).parents('tr')).data();
+                if (rowData) {
+                    loadTicketDetails(rowData.id);
+                }
+            });
+
+            ticketTable.on('click', '.start-chat-btn', function () {
+                const data = ticketsTable.row($(this).parents('tr')).data();
+                if (data) openEnhancedFloatingChatBox(data, 'tkt');
+            });
+        }
+    }
+
+    function initializeInquiryManagement() {
+        const inquiryTable = $('#inquiriesDataTable');
+        if (inquiryTable.length && !$.fn.DataTable.isDataTable('#inquiriesDataTable')) {
+            inquiriesTable = inquiryTable.DataTable({
+                "ajax": {
+                    "url": "/v1/api/instructions/inquiries/all",
+                    "dataSrc": "data"
+                },
+                "columns": [
+                    {
+                        "data": "id",
+                        "title": "ID",
+                        "width": "10%",
+                        "className": "text-center fw-bold",
+                        "render": function (data) {
+                            return `<span class="badge bg-light text-dark border">#INQ-${data}</span>`;
+                        }
+                    },
+                    {
+                        "data": "topic",
+                        "title": "Topic",
+                        "width": "30%"
+                    },
+                    {
+                        "data": "inquiredBy",
+                        "title": "Inquired By",
+                        "width": "25%"
+                    },
+                    {
+                        "data": "outcome",
+                        "title": "Outcome",
+                        "width": "20%",
+                        "className": "text-center",
+                        "render": function (data) {
+                            const status = data || 'Pending';
+                            const statusClass = status === 'Completed' ? 'badge-status-completed' : 'badge-status-pending';
+                            return `<span class="badge ${statusClass}">${escapeHtml(status)}</span>`;
+                        }
+                    },
+                    {
+                        "data": null,
+                        "title": "Actions",
+                        "orderable": false,
+                        "width": "15%",
+                        "className": "text-center",
+                        "render": function () {
+                            return `
+                                <div class="action-buttons">
+                                    <button class="btn-icon-action view-inquiry-details-btn" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn-icon-action start-inquiry-chat-btn" title="Open Chat">
+                                        <i class="fas fa-comments"></i>
+                                    </button>
+                                </div>`;
+                        }
+                    }
+                ],
+                "order": [[0, 'desc']],
+                "pageLength": 10,
+                "responsive": true,
+                "processing": true,
+                "language": {
+                    "emptyTable": "No inquiries found.",
+                    "search": '<i class="fas fa-search me-2"></i>',
+                }
+            });
+
+            inquiryTable.on('click', '.view-inquiry-details-btn', function () {
+                const rowData = inquiriesTable.row($(this).parents('tr')).data();
+                if (rowData) {
+                    loadInquiryDetails(rowData.id);
+                }
+            });
+
+            inquiryTable.on('click', '.start-inquiry-chat-btn', function () {
+                const data = inquiriesTable.row($(this).parents('tr')).data();
+                if (data) openEnhancedFloatingChatBox(data, 'inq');
+            });
+        }
+    }
+
+    async function loadTicketDetails(ticketId) {
+        try {
+            const response = await fetch(`/v1/api/instructions/tickets/${ticketId}/details`);
+            if (!response.ok) throw new Error('Failed to load ticket details');
+
+            const ticket = await response.json();
+            currentTicketData = ticket;
+
+            console.log('Loaded ticket data:', ticket);
+
+            $('#detail-ticket-id').text(`#TKT-${ticket.id}`);
+            $('#detail-ticket-subject').text(ticket.subject || 'General Support');
+
+            $('#detail-ticket-status').val(ticket.status || 'Open');
+
+            $('#detail-ticket-priority').val(ticket.priority || 'Normal');
+            $('#detail-ticket-created-by').val(ticket.createdBy || 'Unknown');
+            $('#detail-ticket-client').val(ticket.clientName || 'Unknown');
+            $('#detail-ticket-date').val(new Date(ticket.date).toLocaleString());
+            $('#detail-ticket-description').val(ticket.description || 'No description available.');
+            $('#detail-ticket-resolved-by').val(ticket.resolvedBy || '');
+
+            if (ticket.resolvedDate) {
+                $('#detail-ticket-resolved-date').val(new Date(ticket.resolvedDate).toLocaleString());
+            } else {
+                $('#detail-ticket-resolved-date').val('');
+            }
+
+            $('#ticket-detail-placeholder').hide();
+            $('#ticket-detail-content').show();
+
+            $('.ticket-properties').scrollTop(0);
+
+            console.log('Ticket details loaded successfully');
+
+        } catch (error) {
+            console.error('Error loading ticket details:', error);
+            showNotification('Failed to load ticket details. Please try again.', 'error');
+        }
+    }
+
+    async function loadInquiryDetails(inquiryId) {
+        try {
+            const response = await fetch(`/v1/api/instructions/inquiries/${inquiryId}/details`);
+            if (!response.ok) throw new Error('Failed to load inquiry details');
+
+            const inquiry = await response.json();
+            currentInquiryData = inquiry;
+
+            $('#detail-inquiry-id').text(`#INQ-${inquiry.id}`);
+            $('#detail-inquiry-topic').text(inquiry.topic);
+            $('#detail-inquiry-outcome').val(inquiry.outcome);
+            $('#detail-inquiry-inquired-by').val(inquiry.inquiredBy);
+            $('#detail-inquiry-date').val(new Date(inquiry.date).toLocaleString());
+            $('#detail-inquiry-description').val(inquiry.description || 'No description provided.');
+
+            $('#inquiry-detail-placeholder').hide();
+            $('#inquiry-detail-content').show();
+
+        } catch (error) {
+            console.error('Error loading inquiry details:', error);
+            showNotification('Failed to load inquiry details. Please try again.', 'error');
+        }
+    }
+
+    async function updateTicketStatus() {
+        if (!currentTicketData) {
+            console.error('No current ticket data for status update');
+            showNotification('No ticket selected for status update.', 'error');
+            return;
+        }
+
+        const newStatus = $('#detail-ticket-status').val();
+        const isCompleted = newStatus === 'Resolved';
+
+        console.log(`Updating ticket ${currentTicketData.id} to status: ${newStatus}`);
+
+        try {
+
+            const updateBtn = $('#btn-update-ticket');
+            updateBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Updating...');
+
+            const response = await fetch(`/v1/api/instructions/tickets/${currentTicketData.id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isCompleted: isCompleted })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+                throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            console.log('Update response:', result);
+
+            if (result.success) {
+                currentTicketData.status = newStatus;
+                if (isCompleted) {
+                    currentTicketData.resolvedDate = new Date().toISOString();
+                    currentTicketData.resolvedBy = currentUser.name || 'Admin';
+                } else {
+                    currentTicketData.resolvedDate = null;
+                    currentTicketData.resolvedBy = null;
+                }
+
+                if (currentTicketData.resolvedDate) {
+                    $('#detail-ticket-resolved-date').val(new Date(currentTicketData.resolvedDate).toLocaleString());
+                    $('#detail-ticket-resolved-by').val(currentTicketData.resolvedBy);
+                } else {
+                    $('#detail-ticket-resolved-date').val('');
+                    $('#detail-ticket-resolved-by').val('');
+                }
+
+                if (ticketsTable) {
+                    ticketsTable.ajax.reload(null, false);
+                }
+
+                showNotification(`Ticket status updated to ${newStatus} successfully!`, 'success');
+            } else {
+                throw new Error(result.message || 'Update failed');
+            }
+
+        } catch (error) {
+            console.error('Error updating ticket status:', error);
+            showNotification(`Failed to update ticket status: ${error.message}`, 'error');
+        } finally {
+            const updateBtn = $('#btn-update-ticket');
+            updateBtn.prop('disabled', false);
+            updateBtn.html('<i class="fas fa-save"></i> Update Status');
+        }
+    }
+
+    async function updateInquiryStatus() {
+        if (!currentInquiryData) return;
+
+        const newOutcome = $('#detail-inquiry-outcome').val();
+        const isCompleted = newOutcome === 'Completed';
+
+        try {
+            const response = await fetch(`/v1/api/instructions/inquiries/${currentInquiryData.id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isCompleted: isCompleted })
+            });
+
+            if (!response.ok) throw new Error('Failed to update inquiry status');
+
+            const result = await response.json();
+
+            if (result.success) {
+                currentInquiryData.outcome = newOutcome;
+
+                if (inquiriesTable) {
+                    inquiriesTable.ajax.reload();
+                }
+
+                showNotification('Inquiry status updated successfully!', 'success');
+            } else {
+                throw new Error(result.message || 'Update failed');
+            }
+
+        } catch (error) {
+            console.error('Error updating inquiry status:', error);
+            showNotification(`Failed to update inquiry status: ${error.message}`, 'error');
+        }
+    }
+
+    function closeTicketDetail() {
+        currentTicketData = null;
+        $('#ticket-detail-content').hide();
+        $('#ticket-detail-placeholder').show();
+    }
+
+    function closeInquiryDetail() {
+        currentInquiryData = null;
+        $('#inquiry-detail-content').hide();
+        $('#inquiry-detail-placeholder').show();
+    }
+
+    function navigateToTicketManagement(statusFilter = null) {
+        $('.admin-sidebar .nav-link.active').removeClass('active');
+        $('.admin-sidebar .nav-link[data-page="ticket-management"]').addClass('active');
+        $('.admin-page.active').removeClass('active');
+        $('#ticket-management-page').addClass('active');
+
+        pageInitializers['ticket-management']();
+
+        if (statusFilter && ticketsTable) {
+            setTimeout(() => {
+                ticketsTable.column(4).search(statusFilter).draw();
+            }, 100);
+        }
+    }
+
+    function navigateToInquiryManagement(statusFilter = null) {
+        $('.admin-sidebar .nav-link.active').removeClass('active');
+        $('.admin-sidebar .nav-link[data-page="inquiry-management"]').addClass('active');
+        $('.admin-page.active').removeClass('active');
+        $('#inquiry-management-page').addClass('active');
+
+        pageInitializers['inquiry-management']();
+
+        if (statusFilter && inquiriesTable) {
+            setTimeout(() => {
+                inquiriesTable.column(3).search(statusFilter).draw();
+            }, 100);
+        }
     }
 
     async function createGroupChatConversation(clientId) {
@@ -105,7 +519,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderAdminSidebar(sidebarData) {
-
         $('#group-chats, #private-chats, #internal-chats, #ticket-chats, #inquiry-chats').empty();
 
         if (sidebarData.groupChats && sidebarData.groupChats.length > 0) {
@@ -263,40 +676,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error loading messages:', error);
             chatBody.html(`<div class="text-center text-danger p-4">Error loading messages: ${error.message}</div>`);
         }
-    }
-
-    function openFloatingChatBox(item, type) {
-        const id = item.id;
-        const clientName = item.clientName;
-        const chatBoxId = `chatbox-${type}-${id}`;
-        if (document.getElementById(chatBoxId)) {
-            document.getElementById(chatBoxId).classList.remove('collapsed');
-            return;
-        }
-
-        const title = `#${id} - ${escapeHtml(item.subject || item.topic)} (${escapeHtml(clientName)})`;
-
-        const chatBox = document.createElement('div');
-        chatBox.className = 'floating-chat-box';
-        chatBox.id = chatBoxId;
-        chatBox.dataset.id = id;
-
-        chatBox.innerHTML = `
-           <div class="chat-box-header">
-               <span class="chat-box-title">${title}</span>
-               <div class="chat-box-actions">
-                   <button class="action-minimize" title="Minimize"><i class="fas fa-minus"></i></button>
-                   <button class="action-close" title="Close"><i class="fas fa-times"></i></button>
-               </div>
-           </div>
-        <div class="chat-box-body"></div>
-        <div class="chat-box-footer">
-            <textarea class="form-control" rows="1" placeholder="Type your reply..."></textarea>
-            <button class="btn btn-primary action-send" title="Send"><i class="fas fa-paper-plane"></i></button>
-        </div>`;
-
-        floatingChatContainer.appendChild(chatBox);
-        loadAndRenderFloatingChatMessages(id, chatBox.querySelector('.chat-box-body'));
     }
 
     function openEnhancedFloatingChatBox(item, type) {
@@ -481,8 +860,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    const initializedPages = {};
-
     const pageInitializers = {
         dashboard: async function () {
             if (!currentClientId) {
@@ -495,6 +872,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     $('#stat-open-tickets').text(stats.openTickets);
                     $('#stat-resolved-tickets').text(stats.resolvedTickets);
                     $('#stat-total-inquiries').text(stats.totalInquiries);
+
+                    const inquiriesRes = await fetch('/v1/api/instructions/inquiries/all');
+                    if (inquiriesRes.ok) {
+                        const allInquiries = await inquiriesRes.json();
+                        const inquiryData = allInquiries.data || [];
+
+                        const solvedInquiries = inquiryData.filter(i => i.outcome === 'Completed').length;
+                        const unsolvedInquiries = inquiryData.filter(i => i.outcome === 'Pending').length;
+
+                        $('#stat-solved-inquiries').text(solvedInquiries);
+                        $('#stat-unsolved-inquiries').text(unsolvedInquiries);
+                    }
 
                     const ticketsRes = await fetch('/v1/api/instructions/tickets/all');
                     if (!ticketsRes.ok) throw new Error("Failed to fetch all recent tickets");
@@ -725,49 +1114,11 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         'ticket-management': function () {
-            const url = `/v1/api/instructions/tickets/all`;
-            if ($.fn.DataTable.isDataTable('#ticketsTable')) {
-                $('#ticketsTable').DataTable().ajax.url(url).load();
-            } else {
-                ticketsTable = $('#ticketsTable').DataTable({
-                    ajax: { url: url, dataSrc: 'data' },
-                    columns: [
-                        { data: 'id', title: 'ID' },
-                        { data: 'clientName', title: 'Client' },
-                        { data: 'date', title: 'Date', render: d => new Date(d).toLocaleDateString() },
-                        { data: 'subject', title: 'Subject' },
-                        { data: 'createdBy', title: 'Created By' },
-                        { data: 'status', title: 'Status', render: (d) => generateStatusBadge(d) },
-                        { data: 'priority', title: 'Priority', render: (d) => generatePriorityBadge(d) },
-                        { data: null, title: 'Actions', orderable: false, className: "text-center", render: (data, type, row) => `<div class="action-buttons"><button class="btn-icon-action start-chat-btn" data-type="tkt" title="Open Chat"><i class="fas fa-comments"></i></button></div>` }
-                    ],
-                    order: [[0, 'desc']],
-                });
-            }
+            initializeTicketManagement();
         },
 
         'inquiry-management': function () {
-            const url = `/v1/api/instructions/inquiries/all`;
-
-            if ($.fn.DataTable.isDataTable('#inquiriesDataTable')) {
-                $('#inquiriesDataTable').DataTable().ajax.url(url).load();
-            } else {
-                inquiriesTable = $('#inquiriesDataTable').DataTable({
-                    ajax: { url: url, dataSrc: 'data' },
-                    columns: [
-                        { data: 'id', title: 'ID' },
-                        { data: 'clientName', title: 'Client' },
-                        { data: 'topic', title: 'Topic' },
-                        { data: 'inquiredBy', title: 'Inquired By' },
-                        { data: 'date', title: 'Date', render: d => new Date(d).toLocaleDateString() },
-                        { data: 'outcome', title: 'Outcome' }
-                    ],
-                    order: [[0, 'desc']],
-                    language: {
-                        emptyTable: "No inquiries found."
-                    }
-                });
-            }
+            initializeInquiryManagement();
         }
     };
 
@@ -881,54 +1232,6 @@ document.addEventListener('DOMContentLoaded', () => {
             await loadAdminChatMessages(mainChatContext.id);
         });
 
-        $(conversationListContainer).on('click', '.conversation-item', async function (e) {
-            e.preventDefault();
-            mainChatContext = {
-                id: $(this).data('id'),
-                name: $(this).data('name'),
-                route: $(this).data('route')
-            };
-
-            $('.conversation-item.active').removeClass('active');
-            $(this).addClass('active');
-
-            if (mainChatHeader) {
-                mainChatHeader.innerHTML = `<span>${escapeHtml(mainChatContext.name)}</span>`;
-            }
-
-            if (mainMessageInput) mainMessageInput.disabled = false;
-            if (mainSendButton) mainSendButton.disabled = false;
-
-            try {
-                await connection.invoke("JoinPrivateChat", mainChatContext.id.toString());
-                console.log(`ADMIN: Successfully joined SignalR group for conversation ${mainChatContext.id}`);
-            } catch (error) {
-                console.error(`ADMIN: Failed to join SignalR group for conversation ${mainChatContext.id}:`, error);
-            }
-
-            mainChatPanelBody.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm"></div></div>';
-            try {
-                const res = await fetch(`/v1/api/instructions/messages/${mainChatContext.id}`);
-                const messages = await res.json();
-                mainChatPanelBody.innerHTML = '';
-                lastMainChatMessageDate = null;
-                messages.forEach(msg => displayMainChatMessage(msg, true));
-                scrollToBottom(mainChatPanelBody);
-            } catch (err) {
-                mainChatPanelBody.innerHTML = '<p class="text-danger p-3">Could not load messages.</p>';
-            }
-        });
-
-        $('#ticketsTable tbody').on('click', '.start-chat-btn', function () {
-            const data = ticketsTable.row($(this).parents('tr')).data();
-            if (data) openEnhancedFloatingChatBox(data, 'tkt');
-        });
-
-        $('#inquiriesDataTable tbody').on('click', '.start-chat-btn', function () {
-            const data = inquiriesTable.row($(this).parents('tr')).data();
-            if (data) openEnhancedFloatingChatBox(data, 'inq');
-        });
-
         $(floatingChatContainer).on('click', e => {
             const chatBox = e.target.closest('.floating-chat-box');
             if (!chatBox) return;
@@ -993,6 +1296,79 @@ document.addEventListener('DOMContentLoaded', () => {
         $('#logout-button').on('click', function (e) {
             e.preventDefault();
             window.location.href = '/Login/Logout';
+        });
+
+        $('#view-all-tickets-link').on('click', function (e) {
+            e.preventDefault();
+            navigateToTicketManagement();
+        });
+
+        $(document).on('click', '.clickable-card', function () {
+            const action = $(this).data('action');
+
+            switch (action) {
+                case 'view-all-tickets':
+                    navigateToTicketManagement();
+                    break;
+                case 'view-all-inquiries':
+                    navigateToInquiryManagement();
+                    break;
+                case 'view-solved-tickets':
+                    navigateToTicketManagement('Resolved');
+                    break;
+                case 'view-solved-inquiries':
+                    navigateToInquiryManagement('Completed');
+                    break;
+                case 'view-unsolved-tickets':
+                    navigateToTicketManagement('Open');
+                    break;
+                case 'view-unsolved-inquiries':
+                    navigateToInquiryManagement('Pending');
+                    break;
+            }
+        });
+
+        $(document).on('click', '#btn-update-ticket', function (e) {
+            e.preventDefault();
+            console.log('Update ticket button clicked');
+            console.log('Current ticket data:', currentTicketData);
+
+            if (currentTicketData) {
+                updateTicketStatus();
+            } else {
+                console.error('No current ticket data available');
+                showNotification('No ticket data available. Please select a ticket first.', 'error');
+            }
+        });
+
+        $(document).on('click', '#btn-update-inquiry', function () {
+            if (currentInquiryData) {
+                updateInquiryStatus();
+            }
+        });
+
+        $(document).on('click', '#btn-close-ticket-detail', function () {
+            closeTicketDetail();
+        });
+
+        $(document).on('click', '#btn-close-inquiry-detail', function () {
+            closeInquiryDetail();
+        });
+
+        $(document).on('click', '#btn-start-ticket-chat', function () {
+            if (currentTicketData) {
+                openEnhancedFloatingChatBox(currentTicketData, 'tkt');
+            }
+        });
+
+        $(document).on('click', '#btn-start-inquiry-chat', function () {
+            if (currentInquiryData) {
+                const route = `inquiry/${currentInquiryData.topic.toLowerCase().replace(/\s+/g, '-')}`;
+                $('[data-page="chats"]').click();
+                setTimeout(() => {
+                    $(`.admin-conversation-item[data-id="${currentInquiryData.id}"]`).click();
+                }, 500);
+            }
         });
 
         console.log("ADMIN: All event handlers wired successfully");
@@ -1121,7 +1497,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (pageInitializers.dashboard) {
                     await pageInitializers.dashboard();
-                    initializedPages.dashboard = true;
                 }
             }
 

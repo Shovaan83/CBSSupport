@@ -5,7 +5,7 @@ using Dapper;
 using Npgsql;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Linq; 
+using System.Linq;
 
 namespace CBSSupport.Shared.Services
 {
@@ -185,7 +185,7 @@ namespace CBSSupport.Shared.Services
 
                 if (savedMessage != null)
                 {
-                    savedMessage.InstructionId = newId; 
+                    savedMessage.InstructionId = newId;
                 }
 
                 return savedMessage;
@@ -220,7 +220,7 @@ namespace CBSSupport.Shared.Services
                     InstCategoryId = 100,
                     Instruction = "Group chat conversation started",
                     Status = true,
-                    InsertUser = loggedInUserId, 
+                    InsertUser = loggedInUserId,
                     ClientId = clientId,
                     ServiceId = 3,
                     InstChannel = "chat",
@@ -235,7 +235,7 @@ namespace CBSSupport.Shared.Services
         private async Task<long> GetClientIdForUserAsync(long userId)
         {
             if (userId <= 0)
-                return 1; 
+                return 1;
 
             var sql = @"
             SELECT client_id 
@@ -538,7 +538,10 @@ namespace CBSSupport.Shared.Services
             t.inst_type_name AS Topic,
             u.full_name AS InquiredBy,
             i.datetime AS Date,
-            'Pending' AS Outcome -- Placeholder for outcome
+            CASE 
+                WHEN i.completed = true THEN 'Completed'
+                ELSE 'Pending'
+            END AS Outcome
         FROM digital.instructions i
         LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
         JOIN digital.inst_types t ON i.inst_type_id = t.id
@@ -565,15 +568,14 @@ namespace CBSSupport.Shared.Services
             {
                 return await connection.QueryAsync<ClientUser>(sql);
             }
-        }
+        }   
 
         public async Task<IEnumerable<TicketViewModel>> GetAllTicketsAsync()
         {
-            var ticketTypeIds = Enumerable.Range(110, 8).ToArray();
             var sql = @"
         SELECT 
             i.id AS Id,
-            i.instruction AS Subject,
+            COALESCE(public.try_get_json_value(i.remarks, 'subject'), 'General Support') AS Subject,
             i.datetime AS Date,
             u.full_name AS CreatedBy,
             res.full_name AS ResolvedBy,
@@ -583,30 +585,33 @@ namespace CBSSupport.Shared.Services
         FROM digital.instructions i
         LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
         LEFT JOIN admin.users res ON i.completed_by = res.id
-        WHERE i.inst_type_id = ANY(@TicketTypeIds)
+        WHERE i.inst_category_id = 101
         ORDER BY i.datetime DESC;";
 
             using (var connection = new NpgsqlConnection(_connectionString))
             {
-                return await connection.QueryAsync<TicketViewModel>(sql, new { TicketTypeIds = ticketTypeIds });
-            }   
+                return await connection.QueryAsync<TicketViewModel>(sql, new { });
+            }
         }
         public async Task<IEnumerable<InquiryViewModel>> GetAllInquiriesAsync()
         {
             var inquiryTypeIds = new[] { 121, 122 };
-            
+
             var countSql = @"
         SELECT COUNT(*) 
         FROM digital.instructions i 
         WHERE i.inst_type_id = ANY(@InquiryTypeIds);";
-    
+
             var sql = @"
         SELECT
             i.id AS Id,
             COALESCE(t.inst_type_name, 'Unknown Topic') AS Topic,
             COALESCE(au.full_name, u.full_name, 'Unknown') AS InquiredBy,
             i.datetime AS Date,
-            'Pending' AS Outcome,
+            CASE 
+                WHEN i.completed = true THEN 'Completed'
+                ELSE 'Pending'
+            END AS Outcome,
             (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName
         FROM digital.instructions i
         LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
@@ -615,32 +620,32 @@ namespace CBSSupport.Shared.Services
         WHERE i.inst_type_id = ANY(@InquiryTypeIds)
         ORDER BY i.datetime DESC;";
 
-    using (var connection = new NpgsqlConnection(_connectionString))
-    {
-        try 
-        {
-            var count = await connection.ExecuteScalarAsync<int>(countSql, new { InquiryTypeIds = inquiryTypeIds });
-            Console.WriteLine($"DEBUG: Found {count} records with inquiry type IDs 121 or 122");
-            
-            if (count == 0) 
+            using (var connection = new NpgsqlConnection(_connectionString))
             {
-                var existingTypesSql = "SELECT DISTINCT inst_type_id FROM digital.instructions ORDER BY inst_type_id;";
-                var existingTypes = await connection.QueryAsync<int>(existingTypesSql);
-                Console.WriteLine($"DEBUG: Existing inst_type_id values: {string.Join(", ", existingTypes)}");
+                try
+                {
+                    var count = await connection.ExecuteScalarAsync<int>(countSql, new { InquiryTypeIds = inquiryTypeIds });
+                    Console.WriteLine($"DEBUG: Found {count} records with inquiry type IDs 121 or 122");
+
+                    if (count == 0)
+                    {
+                        var existingTypesSql = "SELECT DISTINCT inst_type_id FROM digital.instructions ORDER BY inst_type_id;";
+                        var existingTypes = await connection.QueryAsync<int>(existingTypesSql);
+                        Console.WriteLine($"DEBUG: Existing inst_type_id values: {string.Join(", ", existingTypes)}");
+                    }
+
+                    var result = await connection.QueryAsync<InquiryViewModel>(sql, new { InquiryTypeIds = inquiryTypeIds });
+                    Console.WriteLine($"DEBUG: GetAllInquiriesAsync returned {result.Count()} records");
+                    return result;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"ERROR in GetAllInquiriesAsync: {ex.Message}");
+                    Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                    throw;
+                }
             }
-            
-            var result = await connection.QueryAsync<InquiryViewModel>(sql, new { InquiryTypeIds = inquiryTypeIds });
-            Console.WriteLine($"DEBUG: GetAllInquiriesAsync returned {result.Count()} records");
-            return result;
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"ERROR in GetAllInquiriesAsync: {ex.Message}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            throw;
-        }
-    }
-}
 
         public async Task<DashboardStatsViewModel> GetDashboardStatsAsync()
         {
@@ -714,6 +719,228 @@ namespace CBSSupport.Shared.Services
                     Console.WriteLine($"Stack trace: {ex.StackTrace}");
                     throw;
                 }
+            }
+        }
+
+        public async Task<IEnumerable<TicketViewModel>> GetSolvedTicketsAsync()
+        {
+            var ticketTypeIds = Enumerable.Range(110, 8).ToArray();
+            var sql = @"
+        SELECT 
+            i.id AS Id,
+            i.instruction AS Subject,
+            i.datetime AS Date,
+            u.full_name AS CreatedBy,
+            res.full_name AS ResolvedBy,
+            CASE WHEN i.completed = true THEN 'Resolved' ELSE 'Open' END AS Status,
+            COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
+            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName
+        FROM digital.instructions i
+        LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
+        LEFT JOIN admin.users res ON i.completed_by = res.id
+        WHERE i.inst_type_id = ANY(@TicketTypeIds) AND i.completed = true
+        ORDER BY i.datetime DESC;";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                return await connection.QueryAsync<TicketViewModel>(sql, new { TicketTypeIds = ticketTypeIds });
+            }
+        }
+
+        public async Task<IEnumerable<InquiryViewModel>> GetSolvedInquiriesAsync()
+        {
+            var inquiryTypeIds = new[] { 121, 122 };
+            var sql = @"
+        SELECT
+            i.id AS Id,
+            t.inst_type_name AS Topic,
+            COALESCE(au.full_name, u.full_name, 'Unknown') AS InquiredBy,
+            i.datetime AS Date,
+            CASE 
+                WHEN i.completed = true THEN 'Completed'
+                ELSE 'Pending'
+            END AS Outcome,
+            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName,
+            i.client_id AS ClientId,
+            i.instruction AS Description,
+            COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
+            i.completed_on AS ResolvedDate
+        FROM digital.instructions i
+        LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
+        LEFT JOIN admin.users au ON i.insert_user = au.id
+        LEFT JOIN digital.inst_types t ON i.inst_type_id = t.id
+        WHERE i.inst_type_id = ANY(@InquiryTypeIds) AND i.completed = true
+        ORDER BY i.datetime DESC;";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                return await connection.QueryAsync<InquiryViewModel>(sql, new { InquiryTypeIds = inquiryTypeIds });
+            }
+        }
+
+        public async Task<IEnumerable<TicketViewModel>> GetUnsolvedTicketsAsync()
+        {
+            var ticketTypeIds = Enumerable.Range(110, 8).ToArray();
+            var sql = @"
+        SELECT 
+            i.id AS Id,
+            i.instruction AS Subject,
+            i.datetime AS Date,
+            u.full_name AS CreatedBy,
+            res.full_name AS ResolvedBy,
+            CASE WHEN i.completed = true THEN 'Resolved' ELSE 'Open' END AS Status,
+            COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
+            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName
+        FROM digital.instructions i
+        LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
+        LEFT JOIN admin.users res ON i.completed_by = res.id
+        WHERE i.inst_type_id = ANY(@TicketTypeIds) AND (i.completed = false OR i.completed IS NULL)
+        ORDER BY i.datetime DESC;";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                return await connection.QueryAsync<TicketViewModel>(sql, new { TicketTypeIds = ticketTypeIds });
+            }
+        }
+
+        public async Task<IEnumerable<InquiryViewModel>> GetUnsolvedInquiriesAsync()
+        {
+            var inquiryTypeIds = new[] { 121, 122 };
+            var sql = @"
+        SELECT
+            i.id AS Id,
+            t.inst_type_name AS Topic,
+            COALESCE(au.full_name, u.full_name, 'Unknown') AS InquiredBy,
+            i.datetime AS Date,
+            CASE 
+                WHEN i.completed = true THEN 'Completed'
+                ELSE 'Pending'
+            END AS Outcome,
+            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName,
+            i.client_id AS ClientId,
+            i.instruction AS Description,
+            COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
+            i.completed_on AS ResolvedDate
+        FROM digital.instructions i
+        LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
+        LEFT JOIN admin.users au ON i.insert_user = au.id
+        LEFT JOIN digital.inst_types t ON i.inst_type_id = t.id
+        WHERE i.inst_type_id = ANY(@InquiryTypeIds) AND (i.completed = false OR i.completed IS NULL)
+        ORDER BY i.datetime DESC;";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                return await connection.QueryAsync<InquiryViewModel>(sql, new { InquiryTypeIds = inquiryTypeIds });
+            }
+        }
+
+        public async Task<bool> UpdateInquiryStatusAsync(long inquiryId, bool isCompleted, long? completedByUserId = null)
+        {
+            var sql = @"
+        UPDATE digital.instructions 
+        SET completed = @IsCompleted,
+            completed_by = @CompletedByUserId,
+            completed_on = CASE WHEN @IsCompleted = true THEN @CompletedOn ELSE NULL END,
+            edit_date = @EditDate,
+            edit_user = @EditUser
+        WHERE id = @InquiryId AND inst_category_id = 102";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                var rowsAffected = await connection.ExecuteAsync(sql, new
+                {
+                    InquiryId = inquiryId,
+                    IsCompleted = isCompleted,
+                    CompletedByUserId = completedByUserId,
+                    CompletedOn = isCompleted ? DateTime.UtcNow : (DateTime?)null,
+                    EditDate = DateTime.UtcNow,
+                    EditUser = completedByUserId
+                });
+
+                return rowsAffected > 0;
+            }
+        }
+
+        public async Task<bool> UpdateTicketStatusAsync(long ticketId, bool isCompleted, long? completedByUserId = null)
+        {
+            var sql = @"
+        UPDATE digital.instructions 
+        SET completed = @IsCompleted,
+            completed_by = @CompletedByUserId,
+            completed_on = CASE WHEN @IsCompleted = true THEN @CompletedOn ELSE NULL END,
+            edit_date = @EditDate,
+            edit_user = @EditUser
+        WHERE id = @TicketId AND inst_category_id = 101";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                var rowsAffected = await connection.ExecuteAsync(sql, new
+                {
+                    TicketId = ticketId,
+                    IsCompleted = isCompleted,
+                    CompletedByUserId = completedByUserId,
+                    CompletedOn = isCompleted ? DateTime.UtcNow : (DateTime?)null,
+                    EditDate = DateTime.UtcNow,
+                    EditUser = completedByUserId
+                });
+
+                return rowsAffected > 0;
+            }
+        }
+
+        public async Task<TicketViewModel> GetTicketDetailsByIdAsync(long ticketId)
+        {
+            var sql = @"
+        SELECT 
+            i.id AS Id,
+            COALESCE(public.try_get_json_value(i.remarks, 'subject'), 'General Support') AS Subject,
+            i.datetime AS Date,
+            u.full_name AS CreatedBy,
+            res.full_name AS ResolvedBy,
+            CASE WHEN i.completed = true THEN 'Resolved' ELSE 'Open' END AS Status,
+            COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
+            i.instruction AS Description,
+            i.remarks AS Remarks,
+            i.expiry_date AS ExpiryDate,
+            i.completed_on AS ResolvedDate,
+            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName
+        FROM digital.instructions i
+        LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
+        LEFT JOIN admin.users res ON i.completed_by = res.id
+        WHERE i.id = @TicketId AND i.inst_category_id = 101";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                return await connection.QueryFirstOrDefaultAsync<TicketViewModel>(sql, new { TicketId = ticketId });
+            }
+        }
+
+        public async Task<InquiryViewModel> GetInquiryDetailsByIdAsync(long inquiryId)
+        {
+            var sql = @"
+        SELECT
+            i.id AS Id,
+            COALESCE(t.inst_type_name, 'Unknown Topic') AS Topic,
+            COALESCE(au.full_name, u.full_name, 'Unknown') AS InquiredBy,
+            i.datetime AS Date,
+            CASE 
+                WHEN i.completed = true THEN 'Completed'
+                ELSE 'Pending'
+            END AS Outcome,
+            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName,
+            i.client_id AS ClientId,
+            i.instruction AS Description,
+            COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
+            i.completed_on AS ResolvedDate
+        FROM digital.instructions i
+        LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
+        LEFT JOIN admin.users au ON i.insert_user = au.id
+        LEFT JOIN digital.inst_types t ON i.inst_type_id = t.id
+        WHERE i.id = @InquiryId AND i.inst_category_id = 102";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                return await connection.QueryFirstOrDefaultAsync<InquiryViewModel>(sql, new { InquiryId = inquiryId });
             }
         }
 
