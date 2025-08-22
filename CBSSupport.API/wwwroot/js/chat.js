@@ -1,7 +1,6 @@
 ﻿"use strict";
 
 document.addEventListener("DOMContentLoaded", () => {
-    // --- Globals & State ---
     let currentUser = {
         name: serverData.currentUserName,
         id: serverData.currentUserId,
@@ -14,11 +13,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let currentChatContext = {};
     let lastMessageDate = null;
-    let notifications = []; // Store notifications
-    let notificationSound = null; // Audio notification
-    let unreadCount = 0; // Track unread messages
+    let notifications = [];
+    let notificationSound = null;
+    let unreadCount = 0;
 
-    // --- DOM References ---
     const fullscreenBtn = document.getElementById("fullscreen-btn");
     const messageInput = document.getElementById("message-input");
     const sendButton = document.getElementById("send-button");
@@ -31,19 +29,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const supportTicketsTable = $('#supportTicketsDataTable');
     const inquiriesTable = $('#inquiriesDataTable');
 
-    // --- SignalR Connection ---
     const connection = new signalR.HubConnectionBuilder()
         .withUrl("/chathub")
         .withAutomaticReconnect()
         .build();
 
-    // --- Notification Functions ---
     const initializeNotifications = () => {
-        // Initialize notification sound
         notificationSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmgfCDGH0fPTgjMGHm7A7+OZRA0PVqzn77BdGAg+ltryxnkpBSl+zPLaizsIGGS57OihUg4LTKXh8bllHgg2jdXzzn0vBSF1xe/glEILElyx6OyrWBUIQ5zd8sFuIAUuhM/z1YU2Bhxqvu7mnEoODlOq5O+zYBoGPJPY88p9KwUme8rx3I4+CRZiturqpVQOC0ml4PK8aB4GM4nU8tGAMgYfcsLu45ZFDBFYrebe9cJ+Jg==');
         notificationSound.volume = 0.3;
 
-        // Request notification permission
         if ('Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission();
         }
@@ -64,7 +58,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 notification.close();
             };
 
-            // Auto close after 5 seconds
             setTimeout(() => notification.close(), 5000);
         }
     };
@@ -101,7 +94,6 @@ document.addEventListener("DOMContentLoaded", () => {
             read: false
         });
 
-        // Keep only last 50 notifications
         if (notifications.length > 50) {
             notifications = notifications.slice(0, 50);
         }
@@ -142,13 +134,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             item.addEventListener('click', () => {
                 if (notification.conversationId) {
-                    // Switch to the conversation
                     const convItem = document.querySelector(`.conversation-item[data-id="${notification.conversationId}"]`);
                     if (convItem) {
                         convItem.click();
                     }
                 }
-                // Mark as read
                 notification.read = true;
                 updateNotificationsList();
                 updateUnreadCount();
@@ -176,7 +166,6 @@ document.addEventListener("DOMContentLoaded", () => {
         updateNotificationBadge();
     };
 
-    // --- File Upload Functions ---
     const formatFileSize = (bytes) => {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
@@ -186,7 +175,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const validateFile = (file) => {
-        const maxSize = 10 * 1024 * 1024; // 10MB
+        const maxSize = 10 * 1024 * 1024;
         const allowedTypes = [
             'image/jpeg', 'image/png', 'image/gif', 'image/webp',
             'application/pdf', 'application/msword',
@@ -259,7 +248,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    // Make clearFileSelection global
     window.clearFileSelection = () => {
         if (fileInput) {
             fileInput.value = '';
@@ -315,7 +303,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return 'fa-file';
     };
 
-    // --- Core Helper Functions ---
     const formatTimestamp = (d) => new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     const updateSendButtonState = () => {
@@ -331,8 +318,6 @@ document.addEventListener("DOMContentLoaded", () => {
         sendButton.disabled = !shouldEnable;
         sendButton.classList.toggle('btn-primary', shouldEnable);
         sendButton.classList.toggle('btn-secondary', !shouldEnable);
-
-        // Update file preview
         updateFileInputDisplay();
 
         console.log('Send button state updated:', {
@@ -386,7 +371,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- Event Listeners Setup ---
     if (attachmentButton) {
         attachmentButton.addEventListener('click', () => {
             fileInput.click();
@@ -430,7 +414,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- Enhanced Message Display with Attachments ---
     function displayMessage(msg, isHistory = false) {
         if (!chatPanelBody) {
             console.error("CRITICAL: displayMessage was called but 'chatPanelBody' is null!");
@@ -445,12 +428,12 @@ document.addEventListener("DOMContentLoaded", () => {
         addDateSeparatorIfNeeded(msg.dateTime);
 
         const isSent = msg.clientAuthUserId != null && msg.clientAuthUserId === currentUser.id;
-        const senderName = msg.senderName || "Support";
+        // ✅ CONSISTENT: Use consistent sender names - fixed logic
+        const senderName = msg.senderName || (isSent ? currentUser.name : "Administrator");
 
         const row = document.createElement('div');
         row.className = `message-row ${isSent ? 'sent' : 'received'} mb-3`;
 
-        // Parse attachment info if available
         let attachmentHtml = '';
         if (msg.attachmentId) {
             try {
@@ -476,7 +459,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!isHistory) {
             scrollToBottom();
 
-            // Show notification if message is not from current user and not in focus
             if (!isSent && (!document.hasFocus() || currentChatContext.id != msg.instructionId)) {
                 showDesktopNotification(
                     `New message from ${senderName}`,
@@ -561,7 +543,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         console.log("CLIENT: Switched chat context to:", currentChatContext);
 
-        // Clear unread indicator for this conversation
         const activeItem = document.querySelector(`.conversation-item[data-id="${currentChatContext.id}"]`);
         if (activeItem) {
             activeItem.classList.add("active");
@@ -571,18 +552,19 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-        // Remove active class from other items
         document.querySelectorAll(".conversation-item.active").forEach(el => {
             if (el !== activeItem) el.classList.remove("active");
         });
 
-        chatHeader.innerHTML = `
-            <div class="d-flex align-items-center">
-                <div class="fw-bold">${escapeHtml(currentChatContext.name)}</div>
-                <div class="ms-auto">
-                    <span class="badge bg-success" id="connection-status">Connected</span>
-                </div>
-            </div>`;
+        if (chatHeader) {
+            chatHeader.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="fw-bold">${escapeHtml(currentChatContext.name)}</div>
+                    <div class="ms-auto">
+                        <span class="badge bg-success" id="connection-status">Connected</span>
+                    </div>
+                </div>`;
+        }
 
         updateSendButtonState();
 
@@ -611,7 +593,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- Enhanced Send Message with File Support ---
     async function sendMessage() {
         console.log('Send message called');
 
@@ -640,7 +621,6 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             let attachmentInfo = null;
 
-            // Upload file if present
             if (hasFile) {
                 const file = fileInput.files[0];
                 console.log('Uploading file:', file.name);
@@ -695,13 +675,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             await connection.invoke("SendClientMessage", savedMessage, false);
 
-            // Clear inputs
             messageInput.value = '';
             if (fileInput) {
                 fileInput.value = '';
             }
 
-            // Remove file preview
             const existingPreview = document.querySelector('.file-preview');
             if (existingPreview) {
                 existingPreview.remove();
@@ -719,7 +697,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- Ticket & Inquiry System (Enhanced) ---
     function initializeTicketSystem() {
         const newTicketBtn = document.getElementById("newSupportTicketBtn");
         const newInquiryBtn = document.getElementById("newInquiryBtn");
@@ -765,7 +742,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const submitBtn = document.querySelector('button[form="supportTicketForm"][type="submit"]');
+                if (!submitBtn) {
+                    console.error("Could not find submit button for support ticket form");
+                    alert("An error occurred. Could not find the submit button.");
+                    return;
+                }
+
                 const originalText = submitBtn.innerHTML;
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
@@ -797,7 +780,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     await loadSidebarForClient(currentClient.id);
 
-                    // Show success notification
                     addNotification({
                         title: 'Ticket Created',
                         message: 'Your support ticket has been created successfully',
@@ -850,7 +832,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const submitBtn = document.querySelector('button[form="inquiryForm"][type="submit"]');
+                if (!submitBtn) {
+                    console.error("Could not find submit button for inquiry form");
+                    alert("An error occurred. Could not find the submit button.");
+                    return;
+                }
+
                 const originalText = submitBtn.innerHTML;
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
@@ -879,7 +867,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     await loadSidebarForClient(currentClient.id);
 
-                    // Show success notification
                     addNotification({
                         title: 'Inquiry Sent',
                         message: 'Your inquiry has been sent successfully',
@@ -901,7 +888,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- Enhanced SignalR Event Handlers ---
     connection.on("ReceivePrivateMessage", (message) => {
         console.log("CLIENT SIDE: 'ReceivePrivateMessage' event fired. Message received:", message);
 
@@ -920,7 +906,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     subtitle.textContent = message.instruction || '📎 Attachment';
                 }
 
-                // Show unread indicator
                 const unreadIndicator = convItem.querySelector('.unread-indicator');
                 if (unreadIndicator) {
                     unreadIndicator.classList.remove('d-none');
@@ -929,7 +914,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // --- Connection State Handlers ---
     connection.onreconnecting((error) => {
         console.log('SignalR reconnecting:', error);
         updateSendButtonState();
@@ -960,13 +944,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // --- Initialization ---
     async function init() {
         try {
-            // Initialize notifications
             initializeNotifications();
 
-            // Start SignalR connection
             await connection.start();
             console.log("SignalR Connected.");
             updateSendButtonState();
@@ -982,7 +963,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // Initialize DataTables for tickets
         if (supportTicketsTable.length) {
             const dt = supportTicketsTable.DataTable({
                 "ajax": { "url": `/v1/api/instructions/tickets/${currentClient.id}`, "dataSrc": "data" },
@@ -1031,7 +1011,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        // Initialize DataTables for inquiries
         if (inquiriesTable.length) {
             inquiriesTable.DataTable({
                 "ajax": {
@@ -1052,7 +1031,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         initializeTicketSystem();
 
-        // Event delegation for conversation items
         const conversationListPanel = document.getElementById("conversation-list-panel");
         if (conversationListPanel) {
             conversationListPanel.addEventListener('click', (e) => {
@@ -1063,7 +1041,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        // Client switcher
         const clientSwitcher = document.getElementById("client-switcher");
         if (clientSwitcher) {
             clientSwitcher.addEventListener('change', (e) => {
@@ -1080,7 +1057,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        // Send button event listener
         if (sendButton) {
             sendButton.addEventListener("click", (e) => {
                 e.preventDefault();
@@ -1089,7 +1065,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        // Message input event listeners
         if (messageInput) {
             messageInput.addEventListener("input", () => {
                 updateSendButtonState();
@@ -1103,9 +1078,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
 
-            // Focus management
             messageInput.addEventListener("focus", () => {
-                // Mark messages as read when user focuses on input
                 if (currentChatContext.id) {
                     notifications.forEach(n => {
                         if (n.conversationId == currentChatContext.id) {
@@ -1117,13 +1090,10 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        // Initial button state update
         updateSendButtonState();
 
-        // Page visibility change handler
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden && currentChatContext.id) {
-                // Mark current conversation messages as read when page becomes visible
                 notifications.forEach(n => {
                     if (n.conversationId == currentChatContext.id) {
                         n.read = true;
@@ -1136,6 +1106,5 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log("Chat system initialized successfully");
     }
 
-    // Start initialization
     init();
 });

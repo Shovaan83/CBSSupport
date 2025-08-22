@@ -798,3 +798,134 @@ body {
 .dropdown-menu.show {
     display: block;
 }
+
+/* Add these styles to your existing admin.css file */
+
+/* Notification Enhancements */
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+    .notification-header h5 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+.notification-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+    .notification-actions a {
+        color: #6c757d;
+        text-decoration: none;
+        padding: 0.25rem;
+        border-radius: 0.25rem;
+        transition: color 0.2s;
+    }
+
+        .notification-actions a:hover {
+            color: #495057;
+            background-color: #f8f9fa;
+        }
+
+.notification-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f1f3f4;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+    .notification-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .notification-item.unread {
+        background-color: #fff3cd;
+        border-left: 3px solid #ffc107;
+    }
+
+    .notification-item.read {
+        background-color: #ffffff;
+        opacity: 0.8;
+    }
+
+.unread-indicator {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background-color: #dc3545;
+    border-radius: 50%;
+    margin-left: 0.5rem;
+}
+
+.unread-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #dc3545;
+    border-radius: 50%;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+}
+
+.notification-tabs .nav-link {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.notification-tabs .badge {
+    font-size: 0.75rem;
+}
+
+.notification-content {
+    margin-bottom: 0.5rem;
+}
+
+.notification-message {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.4;
+}
+
+.notification-actions .btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.mark-read-btn {
+    font-size: 0.75rem !important;
+}
+
+.mark-all-read-btn {
+    font-size: 0.875rem;
+}
+
+/* Hide notification count when 0 */
+.notification-count-badge[style*="display: none"] {
+    display: none !important;
+}
+
+/* Notification dropdown styling */
+.notification-dropdown {
+    width: 380px;
+    max-height: 500px;
+    overflow-y: auto;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.notification-list {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .notification-dropdown {
+        width: 320px;
+    }
+}

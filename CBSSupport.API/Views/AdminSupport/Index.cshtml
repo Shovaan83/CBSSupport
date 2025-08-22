@@ -38,7 +38,6 @@
 
         <main class="admin-content">
 
-            <!-- PAGE 1: DASHBOARD -->
             <div id="dashboard-page" class="admin-page active">
                 <div class="page-header">
                     <h1>Support Overview</h1>
@@ -89,7 +88,6 @@
                 </div>
             </div>
 
-            <!-- PAGE 2: CHATS -->
             <div id="chats-page" class="admin-page">
                 <div class="page-header">
                     <h1>Live Conversations</h1>
@@ -126,14 +124,21 @@
                             </div>
                         </div>
                         <div class="chat-footer">
+                            <input type="file" id="admin-file-input" style="display: none;"
+                                   accept="image/*,.pdf,.doc,.docx,.txt,.zip" />
+                            <button class="btn btn-outline-secondary" type="button" id="admin-attachment-button"
+                                    title="Attach File" disabled>
+                                <i class="fas fa-paperclip"></i>
+                            </button>
                             <input type="text" class="form-control" placeholder="Type a message..." id="message-input" disabled />
-                            <button class="btn btn-primary" type="button" id="send-button" disabled><i class="fas fa-paper-plane"></i></button>
+                            <button class="btn btn-primary" type="button" id="send-button" disabled>
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- PAGE 3: TICKET MANAGEMENT -->
             <div id="ticket-management-page" class="admin-page">
                 <div class="page-header">
                     <h1>All Support Tickets</h1>
@@ -179,7 +184,6 @@
                 </div>
             </div>
 
-            <!-- PAGE 4: INQUIRY MANAGEMENT -->
             <div id="inquiry-management-page" class="admin-page">
                 <div class="page-header">
                     <h1>Inquiry Management</h1>

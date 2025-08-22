@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CBSSupport.API.Hubs
 {
-    [Authorize] // Added from your friend's file for security
+    [Authorize] 
     public class ChatHub : Hub
     {
         private readonly IChatService _chatService;
@@ -32,7 +32,6 @@ namespace CBSSupport.API.Hubs
             await Clients.All.SendAsync("MessageSeen", messageId, userName, DateTime.UtcNow);
         }
 
-        // Merged robust JoinPrivateChat method from your friend's file
         public async Task JoinPrivateChat(string groupName)
         {
             try
@@ -67,7 +66,6 @@ namespace CBSSupport.API.Hubs
             }
         }
 
-        // Methods for admin group management from your file
         public async Task JoinAdminNotifications()
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, "AdminNotifications");
@@ -161,8 +159,6 @@ namespace CBSSupport.API.Hubs
             }
         }
 
-        // Advanced SendClientMessage method from your file
-        // This method in your hub is correct - no changes needed
         public async Task SendClientMessage(ChatMessage message, bool isNewConversation = false)
         {
             try
@@ -205,7 +201,6 @@ namespace CBSSupport.API.Hubs
             }
         }
 
-        // Connection lifecycle logging from your file
         public override async Task OnConnectedAsync()
         {
             _logger.LogInformation("Client connected: {ConnectionId}", Context.ConnectionId);
