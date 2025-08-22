@@ -568,7 +568,7 @@ namespace CBSSupport.Shared.Services
             {
                 return await connection.QueryAsync<ClientUser>(sql);
             }
-        }   
+        }
 
         public async Task<IEnumerable<TicketViewModel>> GetAllTicketsAsync()
         {
@@ -944,5 +944,108 @@ namespace CBSSupport.Shared.Services
             }
         }
 
+        public async Task<IEnumerable<object>> GetUnreadNotificationsForAdminAsync()
+        {
+            var sql = @"
+        SELECT i.id, i.instruction, i.inst_category_id, i.insert_date, i.datetime,
+               i.notification_seen_by_admin, i.client_id, i.client_auth_user_id,
+               CASE 
+                   WHEN i.client_auth_user_id IS NOT NULL THEN COALESCE(cu.full_name, cu.user_name, 'Unknown Client User')
+                   ELSE COALESCE(au.full_name, au.user_name, 'Unknown Admin User')
+               END as senderName
+        FROM digital.instructions i
+        LEFT JOIN internal.support_users cu ON i.client_auth_user_id = cu.id
+        LEFT JOIN admin.users au ON i.insert_user = au.id
+        WHERE i.notification_seen_by_admin = 0 
+        AND i.inst_category_id IN (100, 101, 102)
+        ORDER BY i.insert_date DESC
+        LIMIT 50";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                var notifications = await connection.QueryAsync(sql);
+                return notifications;
+            }
+        }
+
+        public async Task<bool> MarkNotificationSeenByAdminAsync(long instructionId)
+        {
+            var sql = @"
+            UPDATE digital.instructions 
+            SET notification_seen_by_admin = 1 
+            WHERE id = @InstructionId";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                var rowsAffected = await connection.ExecuteAsync(sql, new { InstructionId = instructionId });
+                return rowsAffected > 0;
+            }
+        }
+
+        public async Task<int> MarkAllNotificationsSeenByAdminAsync()
+        {
+            var sql = @"
+            UPDATE digital.instructions 
+            SET notification_seen_by_admin = 1 
+            WHERE notification_seen_by_admin = 0 
+            AND inst_category_id IN (100, 101, 102)";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                var rowsAffected = await connection.ExecuteAsync(sql);
+                return rowsAffected;
+            }
+        }
+
+        public async Task<bool> MarkNotificationSeenByClientAsync(long instructionId)
+        {
+            var sql = @"
+            UPDATE digital.instructions 
+            SET notification_seen_by_client = 1 
+            WHERE id = @InstructionId";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                var rowsAffected = await connection.ExecuteAsync(sql, new { InstructionId = instructionId });
+                return rowsAffected > 0;
+            }
+        }
+
+        public async Task<IEnumerable<object>> GetUnreadNotificationsForClientAsync(long clientId)
+        {
+            var sql = @"
+            SELECT i.id, i.instruction, i.inst_category_id, i.insert_date, i.datetime,
+                   i.notification_seen_by_client, i.client_id, i.client_auth_user_id,
+                   au.full_name as senderName
+            FROM digital.instructions i
+            LEFT JOIN admin.users au ON i.insert_user = au.id
+            WHERE i.notification_seen_by_client = 0 
+            AND i.client_id = @ClientId
+            AND i.inst_category_id IN (100, 101, 102)
+            ORDER BY i.insert_date DESC
+            LIMIT 50";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                var notifications = await connection.QueryAsync(sql, new { ClientId = clientId });
+                return notifications;
+            }
+        }
+
+        public async Task<int> MarkAllNotificationsSeenByClientAsync(long clientId)
+        {
+            var sql = @"
+            UPDATE digital.instructions 
+            SET notification_seen_by_client = 1 
+            WHERE notification_seen_by_client = 0 
+            AND client_id = @ClientId
+            AND inst_category_id IN (100, 101, 102)";
+
+            using (var connection = new NpgsqlConnection(_connectionString))
+            {
+                var rowsAffected = await connection.ExecuteAsync(sql, new { ClientId = clientId });
+                return rowsAffected;
+            }
+        }
     }
 }

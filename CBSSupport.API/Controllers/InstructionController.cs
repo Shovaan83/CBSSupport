@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Maui.Controls;
+using Npgsql;
 using System.Security.Claims;
 
 [ApiController]
@@ -399,7 +401,84 @@ public class InstructionsController : ControllerBase
         }
     }
 
-    // Add this class to support the status update request
+    [HttpGet("notifications/unread")]
+    public async Task<IActionResult> GetUnreadNotifications()
+    {
+        try
+        {
+            var notifications = await _service.GetUnreadNotificationsForAdminAsync();
+            return Ok(notifications);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching unread notifications");
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpPut("{instructionId}/mark-seen-admin")]
+    public async Task<IActionResult> MarkNotificationSeenByAdmin(long instructionId)
+    {
+        try
+        {
+            var result = await _service.MarkNotificationSeenByAdminAsync(instructionId);
+
+            if (result)
+            {
+                return Ok(new { success = true, message = "Notification marked as seen." });
+            }
+
+            return NotFound(new { success = false, message = "Instruction not found." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error marking notification as seen for instruction {InstructionId}", instructionId);
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpPut("mark-all-seen-admin")]
+    public async Task<IActionResult> MarkAllNotificationsSeenByAdmin()
+    {
+        try
+        {
+            var count = await _service.MarkAllNotificationsSeenByAdminAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "All notifications marked as seen.",
+                count = count
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error marking all notifications as seen");
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpPut("{instructionId}/mark-seen-client")]
+    public async Task<IActionResult> MarkNotificationSeenByClient(long instructionId)
+    {
+        try
+        {
+            var result = await _service.MarkNotificationSeenByClientAsync(instructionId);
+
+            if (result)
+            {
+                return Ok(new { success = true, message = "Notification marked as seen by client." });
+            }
+
+            return NotFound(new { success = false, message = "Instruction not found." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error marking notification as seen by client for instruction {InstructionId}", instructionId);
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
     public class UpdateStatusRequest
     {
         public bool IsCompleted { get; set; }
