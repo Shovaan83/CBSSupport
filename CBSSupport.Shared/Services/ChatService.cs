@@ -504,34 +504,32 @@ namespace CBSSupport.Shared.Services
 
         public async Task<IEnumerable<TicketViewModel>> GetTicketsByClientIdAsync(long clientId)
         {
-            var ticketTypeIds = Enumerable.Range(110, 8).ToArray();
             var sql = @"
-            SELECT 
-                i.id AS Id,
-                COALESCE(public.try_get_json_value(i.remarks, 'subject'), 'General Support') AS Subject,  -- ✅ GET SUBJECT FROM JSON
-                i.datetime AS Date,
-                u.full_name AS CreatedBy,
-                res.full_name AS ResolvedBy,
-                CASE WHEN i.completed = true THEN 'Resolved' ELSE 'Open' END AS Status,
-                COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
-                i.instruction AS Description,  
-                i.remarks AS Remarks,  
-                i.expiry_date AS ExpiryDate  
-            FROM digital.instructions i
-            LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
-            LEFT JOIN admin.users res ON i.completed_by = res.id
-            WHERE i.client_id = @ClientId AND i.inst_type_id = ANY(@TicketTypeIds)
-            ORDER BY i.datetime DESC;";
+        SELECT 
+            i.id AS Id,
+            COALESCE(public.try_get_json_value(i.remarks, 'subject'), 'General Support') AS Subject,
+            i.datetime AS Date,
+            u.full_name AS CreatedBy,
+            res.full_name AS ResolvedBy,
+            CASE WHEN i.completed = true THEN 'Resolved' ELSE 'Open' END AS Status,
+            COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
+            i.instruction AS Description,  
+            i.remarks AS Remarks,  
+            i.expiry_date AS ExpiryDate  
+        FROM digital.instructions i
+        LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
+        LEFT JOIN admin.users res ON i.completed_by = res.id
+        WHERE i.client_id = @ClientId AND i.inst_category_id = 101
+        ORDER BY i.datetime DESC;";
 
             using (var connection = new NpgsqlConnection(_connectionString))
             {
-                return await connection.QueryAsync<TicketViewModel>(sql, new { ClientId = clientId, TicketTypeIds = ticketTypeIds });
+                return await connection.QueryAsync<TicketViewModel>(sql, new { ClientId = clientId });
             }
         }
 
         public async Task<IEnumerable<InquiryViewModel>> GetInquiriesByClientIdAsync(long clientId)
         {
-            var inquiryTypeIds = new[] { 121, 122 };
             var sql = @"
         SELECT
             i.id AS Id,
@@ -544,13 +542,13 @@ namespace CBSSupport.Shared.Services
             END AS Outcome
         FROM digital.instructions i
         LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
-        JOIN digital.inst_types t ON i.inst_type_id = t.id
-        WHERE i.client_id = @ClientId AND i.inst_type_id = ANY(@InquiryTypeIds)
+        LEFT JOIN digital.inst_types t ON i.inst_type_id = t.id
+        WHERE i.client_id = @ClientId AND i.inst_category_id = 102
         ORDER BY i.datetime DESC;";
 
             using (var connection = new NpgsqlConnection(_connectionString))
             {
-                return await connection.QueryAsync<InquiryViewModel>(sql, new { ClientId = clientId, InquiryTypeIds = inquiryTypeIds });
+                return await connection.QueryAsync<InquiryViewModel>(sql, new { ClientId = clientId });
             }
         }
 
@@ -999,53 +997,69 @@ namespace CBSSupport.Shared.Services
 
         public async Task<bool> MarkNotificationSeenByClientAsync(long instructionId)
         {
-            var sql = @"
-            UPDATE digital.instructions 
-            SET notification_seen_by_client = 1 
-            WHERE id = @InstructionId";
+            const string query = @"
+        UPDATE digital.instructions 
+        SET notification_seen_by_client = 1,
+            edit_date = @EditDate
+        WHERE id = @InstructionId";
 
-            using (var connection = new NpgsqlConnection(_connectionString))
+            await using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var rowsAffected = await connection.ExecuteAsync(query, new
             {
-                var rowsAffected = await connection.ExecuteAsync(sql, new { InstructionId = instructionId });
-                return rowsAffected > 0;
-            }
+                InstructionId = instructionId,
+                EditDate = DateTime.UtcNow
+            });
+
+            return rowsAffected > 0;
         }
 
-        public async Task<IEnumerable<object>> GetUnreadNotificationsForClientAsync(long clientId)
+        public async Task<IEnumerable<object>> GetUnreadNotificationsForClientAsync(long? clientId)
         {
-            var sql = @"
-            SELECT i.id, i.instruction, i.inst_category_id, i.insert_date, i.datetime,
-                   i.notification_seen_by_client, i.client_id, i.client_auth_user_id,
-                   au.full_name as senderName
-            FROM digital.instructions i
-            LEFT JOIN admin.users au ON i.insert_user = au.id
-            WHERE i.notification_seen_by_client = 0 
-            AND i.client_id = @ClientId
-            AND i.inst_category_id IN (100, 101, 102)
-            ORDER BY i.insert_date DESC
-            LIMIT 50";
+            const string query = @"
+        SELECT 
+            i.id,
+            i.instruction,
+            i.datetime,
+            i.insert_date,
+            i.inst_category_id,
+            i.notification_seen_by_client,
+            COALESCE(ca.full_name, ca.user_name, 'Support') as sendername,
+            i.instruction_id
+        FROM digital.instructions i
+        LEFT JOIN internal.support_users ca ON i.insert_user = ca.id
+        WHERE i.client_id = @ClientId 
+        AND (i.notification_seen_by_client IS NULL OR i.notification_seen_by_client = 0)
+        ORDER BY i.insert_date DESC
+        LIMIT 50";
 
-            using (var connection = new NpgsqlConnection(_connectionString))
-            {
-                var notifications = await connection.QueryAsync(sql, new { ClientId = clientId });
-                return notifications;
-            }
+            await using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var result = await connection.QueryAsync(query, new { ClientId = clientId });
+            return result.Cast<object>();
         }
 
-        public async Task<int> MarkAllNotificationsSeenByClientAsync(long clientId)
+        public async Task<int> MarkAllNotificationsSeenByClientAsync(long? clientId)
         {
-            var sql = @"
-            UPDATE digital.instructions 
-            SET notification_seen_by_client = 1 
-            WHERE notification_seen_by_client = 0 
-            AND client_id = @ClientId
-            AND inst_category_id IN (100, 101, 102)";
+            const string query = @"
+        UPDATE digital.instructions 
+        SET notification_seen_by_client = 1,
+            edit_date = @EditDate
+        WHERE client_id = @ClientId 
+        AND (notification_seen_by_client IS NULL OR notification_seen_by_client = 0)";
 
-            using (var connection = new NpgsqlConnection(_connectionString))
+            await using var connection = new NpgsqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var rowsAffected = await connection.ExecuteAsync(query, new
             {
-                var rowsAffected = await connection.ExecuteAsync(sql, new { ClientId = clientId });
-                return rowsAffected;
-            }
+                ClientId = clientId,
+                EditDate = DateTime.UtcNow
+            });
+
+            return rowsAffected;
         }
     }
 }

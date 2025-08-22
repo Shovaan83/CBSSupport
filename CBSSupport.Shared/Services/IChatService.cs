@@ -62,8 +62,8 @@ namespace CBSSupport.Shared.Services
 
         Task<bool> MarkNotificationSeenByClientAsync(long instructionId);
 
-        Task<IEnumerable<object>> GetUnreadNotificationsForClientAsync(long clientId);
+        Task<IEnumerable<object>> GetUnreadNotificationsForClientAsync(long? clientId);
 
-        Task<int> MarkAllNotificationsSeenByClientAsync(long clientId);
+        Task<int> MarkAllNotificationsSeenByClientAsync(long? clientId);
     }
 }

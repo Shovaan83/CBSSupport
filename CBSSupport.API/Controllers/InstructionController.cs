@@ -115,7 +115,7 @@ public class InstructionsController : ControllerBase
                 "support-private" => 101,
                 "internal-team-chat" => 105,
                 "ticket/training" => 110,
-                "ticket/migration" => 111,  
+                "ticket/migration" => 111,
                 "ticket/setup" => 112,
                 "ticket/correction" => 113,
                 "ticket/bug-fix" => 114,
@@ -167,7 +167,7 @@ public class InstructionsController : ControllerBase
     {
         try
         {
-            var sidebarData = await _service.GetSidebarForUserAsync(0, clientId); 
+            var sidebarData = await _service.GetSidebarForUserAsync(0, clientId);
             return Ok(sidebarData);
         }
         catch (Exception ex)
@@ -309,8 +309,6 @@ public class InstructionsController : ControllerBase
         }
     }
 
-    // Add these missing endpoints to your InstructionsController class:
-
     [HttpGet("tickets/{ticketId}/details")]
     [Authorize(AuthenticationSchemes = $"{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
     public async Task<IActionResult> GetTicketDetails(long ticketId)
@@ -401,12 +399,23 @@ public class InstructionsController : ControllerBase
         }
     }
 
+    // 🔧 KEEP ONLY THIS VERSION - HANDLES BOTH ADMIN AND CLIENT
     [HttpGet("notifications/unread")]
-    public async Task<IActionResult> GetUnreadNotifications()
+    public async Task<IActionResult> GetUnreadNotifications([FromQuery] long? clientId = null)
     {
         try
         {
-            var notifications = await _service.GetUnreadNotificationsForAdminAsync();
+            IEnumerable<object> notifications;
+
+            if (clientId.HasValue)
+            {
+                notifications = await _service.GetUnreadNotificationsForClientAsync(clientId.Value);
+            }
+            else
+            {
+                notifications = await _service.GetUnreadNotificationsForAdminAsync();
+            }
+
             return Ok(notifications);
         }
         catch (Exception ex)
@@ -433,6 +442,30 @@ public class InstructionsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error marking notification as seen for instruction {InstructionId}", instructionId);
+            return StatusCode(500, new { message = "An internal server error occurred." });
+        }
+    }
+
+    [HttpPut("mark-all-seen-client")]
+    public async Task<IActionResult> MarkAllNotificationsSeenByClient()
+    {
+        try
+        {
+            var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var currentUserId = long.TryParse(currentUserIdClaim, out var userId) ? userId : (long?)null;
+
+            var count = await _service.MarkAllNotificationsSeenByClientAsync(currentUserId);
+
+            return Ok(new
+            {
+                success = true,
+                message = "All notifications marked as seen by client.",
+                count = count
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error marking all notifications as seen by client");
             return StatusCode(500, new { message = "An internal server error occurred." });
         }
     }

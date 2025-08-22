@@ -720,10 +720,22 @@ body {
     box-shadow: var(--shadow-sm);
 }
 
-.badge-status-resolved {
+.badge-status-completed {
     background: linear-gradient(135deg, #d1fae5, #a7f3d0);
     color: #065f46;
     border: 1px solid #86efac;
+}
+
+.badge-outcome-completed {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #065f46;
+    border: 1px solid #86efac;
+}
+
+.badge-outcome-pending {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e;
+    border: 1px solid #fcd34d;
 }
 
 .badge-status-pending,
@@ -1163,4 +1175,237 @@ textarea:focus-visible,
 a:focus-visible {
     outline: 2px solid var(--primary-color);
     outline-offset: 2px;
+}
+
+/* 🔔 CLIENT NOTIFICATION STYLES - ADD TO YOUR chat.css */
+
+/* CLIENT NOTIFICATION CONTAINER */
+.client-notification-container {
+    position: relative;
+    display: inline-block;
+}
+
+.client-notification-btn {
+    position: relative;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-base);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(10px);
+}
+
+.client-notification-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.client-notification-btn:focus {
+    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+    outline: none;
+}
+
+/* Badge styles for client notifications */
+.client-notification-btn .badge {
+    font-size: 0.7rem;
+    min-width: 18px;
+    height: 18px;
+    line-height: 18px;
+    padding: 0 4px;
+}
+
+/* Client notification dropdown positioning */
+.client-notification-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 380px;
+    max-height: 500px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    z-index: 1050;
+    display: none;
+    overflow: hidden;
+    pointer-events: auto;
+}
+
+.client-notification-dropdown-menu.show {
+    display: block !important;
+}
+
+/* Arrow pointer for client notifications */
+.client-notification-dropdown-menu::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    right: 20px;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-bottom: none;
+    border-right: none;
+    transform: rotate(45deg);
+    z-index: 1051;
+}
+
+/* Notification content styles */
+.notification-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-header h6 {
+    margin: 0;
+    font-weight: 600;
+    color: #374151;
+}
+
+.notification-list {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    position: relative;
+}
+
+.notification-item:hover {
+    background-color: #f8fafc;
+}
+
+.notification-item.unread {
+    background-color: #eff6ff;
+    border-left: 3px solid #3b82f6;
+}
+
+.notification-item.unread::before {
+    content: '';
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    background: #3b82f6;
+    border-radius: 50%;
+}
+
+.notification-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.notification-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.notification-icon.ticket {
+    background: #f97316;
+}
+
+.notification-icon.inquiry {
+    background: #06b6d4;
+}
+
+.notification-icon.message {
+    background: #8b5cf6;
+}
+
+.notification-icon.status_change {
+    background: #10b981;
+}
+
+.notification-text {
+    flex: 1;
+}
+
+.notification-title {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.notification-message {
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.4;
+    margin-bottom: 6px;
+}
+
+.notification-time {
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+.notification-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.notification-loading, .notification-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: #6b7280;
+}
+
+.notification-loading .spinner-border {
+    margin-bottom: 10px;
+}
+
+/* Badge animations for client notifications */
+.client-notification-btn .badge {
+    animation: pulse 2s infinite;
+}
+
+/* Notification bell shake animation for client */
+.client-notification-shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+/* Responsive adjustments for client notifications */
+@media (max-width: 768px) {
+    .client-notification-dropdown-menu {
+        width: 320px;
+        right: -20px;
+    }
+    
+    .client-notification-dropdown-menu::before {
+        right: 40px;
+    }
 }

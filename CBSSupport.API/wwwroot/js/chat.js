@@ -2,7 +2,6 @@
 
 document.addEventListener("DOMContentLoaded", () => {
     // --- Globals & State ---
-
     let currentUser = {
         name: serverData.currentUserName,
         id: serverData.currentUserId,
@@ -19,6 +18,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let ticketsDataTable = null;
     let inquiriesDataTable = null;
+
+    // 🔔 NOTIFICATION VARIABLES
+    let clientUnreadNotificationCount = 0;
+    let clientNotificationPollingInterval = null;
 
     // --- DOM References ---
     const fullscreenBtn = document.getElementById("fullscreen-btn");
@@ -93,6 +96,33 @@ document.addEventListener("DOMContentLoaded", () => {
             chatPanelBody.appendChild(ds);
         }
     }
+
+    // 🔔 NOTIFICATION HELPER FUNCTIONS
+    function getTimeAgo(dateString) {
+        const now = new Date();
+        const date = new Date(dateString);
+        const diffInMs = now - date;
+        const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+        const diffInHours = Math.floor(diffInMinutes / 60);
+        const diffInDays = Math.floor(diffInHours / 24);
+
+        if (diffInMinutes < 1) return 'Just now';
+        if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+        if (diffInHours < 24) return `${diffInHours}h ago`;
+        if (diffInDays < 7) return `${diffInDays}d ago`;
+        return date.toLocaleDateString();
+    }
+
+    function getNotificationIcon(type) {
+        const icons = {
+            'ticket': 'fas fa-ticket-alt',
+            'inquiry': 'fas fa-question-circle',
+            'message': 'fas fa-comment',
+            'status_change': 'fas fa-exchange-alt'
+        };
+        return icons[type] || 'fas fa-bell';
+    }
+
     function populateTicketDetailsModal(ticketData) {
         console.log('Populating modal with:', ticketData);
 
@@ -107,7 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         $('#details-createdBy').text(ticketData.createdBy || 'N/A');
-
         $('#details-resolvedBy').text(ticketData.resolvedBy || 'N/A');
 
         const status = ticketData.status || 'Pending';
@@ -115,7 +144,6 @@ document.addEventListener("DOMContentLoaded", () => {
         $('#details-status').html(`<span class="badge ${statusClass}">${escapeHtml(status)}</span>`);
 
         $('#details-priority').html(generatePriorityBadge(ticketData.priority));
-
         $('#details-description').text(ticketData.instruction || ticketData.description || 'No description provided.');
 
         let remarksText = 'N/A';
@@ -146,15 +174,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         setTimeout(() => {
-
             const backdrops = document.querySelectorAll('.modal-backdrop');
             backdrops.forEach(backdrop => backdrop.remove());
-
             document.body.classList.remove('modal-open');
-
             document.body.style.overflow = '';
             document.body.style.paddingRight = '';
-        }, 150); 
+        }, 150);
     }
 
     // --- Fullscreen Toggle ---
@@ -383,9 +408,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const savedMessage = await response.json();
             console.log("CLIENT SIDE: Invoking 'SendClientMessage' with message object:", savedMessage);
 
-
             displayMessage(savedMessage, false);
-
             await connection.invoke("SendClientMessage", savedMessage);
 
             messageInput.value = '';
@@ -394,6 +417,292 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Error sending message:", error);
             alert(`Error: ${error.message}`);
         }
+    }
+
+    async function loadClientNotifications() {
+        try {
+            const response = await fetch(`/v1/api/instructions/notifications/unread?clientId=${currentClient.id}`);
+            if (!response.ok) throw new Error('Failed to load notifications');
+
+            const unreadInstructions = await response.json();
+            const cachedReadNotifications = JSON.parse(localStorage.getItem('client_read_notifications') || '[]');
+            const allNotifications = processClientNotifications(unreadInstructions, cachedReadNotifications);
+
+            updateClientNotificationBadge(allNotifications.filter(n => !n.isRead).length);
+            renderClientNotifications(allNotifications);
+
+            return allNotifications;
+        } catch (error) {
+            console.error('Error loading client notifications:', error);
+            return [];
+        }
+    }
+
+    function processClientNotifications(unreadInstructions, cachedReadNotifications = []) {
+        const notifications = [];
+
+        unreadInstructions.forEach(instruction => {
+            let notification = {
+                id: instruction.id,
+                title: '',
+                message: '',
+                type: '',
+                entityId: instruction.id,
+                entityType: '',
+                createdAt: instruction.insert_date || instruction.datetime,
+                isRead: instruction.notification_seen_by_client === 1,
+                triggerUserName: instruction.sendername || 'Support'
+            };
+
+            if (instruction.inst_category_id === 101) {
+                notification.type = 'ticket';
+                notification.entityType = 'ticket';
+                notification.title = 'Ticket Update';
+                notification.message = `Your ticket #${instruction.id} has been updated: ${instruction.instruction?.substring(0, 50) || 'Status changed'}...`;
+            } else if (instruction.inst_category_id === 102) {
+                notification.type = 'inquiry';
+                notification.entityType = 'inquiry';
+                notification.title = 'Inquiry Response';
+                notification.message = `Response to inquiry #${instruction.id}: ${instruction.instruction?.substring(0, 50) || 'New response'}...`;
+            } else if (instruction.inst_category_id === 100) {
+                notification.type = 'message';
+                notification.entityType = 'message';
+                notification.title = 'New Message';
+                notification.message = `${instruction.sendername || 'Support'}: ${instruction.instruction?.substring(0, 50) || 'New message'}...`;
+                notification.entityId = instruction.instruction_id || instruction.id;
+            }
+
+            notification.timeAgo = getTimeAgo(notification.createdAt);
+            notification.icon = getNotificationIcon(notification.type);
+            notifications.push(notification);
+        });
+
+        cachedReadNotifications.forEach(cachedNotification => {
+            if (!notifications.find(n => n.id === cachedNotification.id)) {
+                cachedNotification.isRead = true;
+                cachedNotification.timeAgo = getTimeAgo(cachedNotification.createdAt);
+                notifications.push(cachedNotification);
+            }
+        });
+
+        notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        return notifications.slice(0, 20);
+    }
+
+    function updateClientNotificationBadge(count) {
+        const badge = document.getElementById('client-notification-count');
+
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count.toString();
+                badge.style.display = 'block';
+
+                if (count > clientUnreadNotificationCount) {
+                    const btn = badge.closest('.client-notification-btn');
+                    if (btn) {
+                        btn.classList.add('client-notification-shake');
+                        setTimeout(() => btn.classList.remove('client-notification-shake'), 500);
+                    }
+                }
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        clientUnreadNotificationCount = count;
+    }
+
+    function renderClientNotifications(notifications) {
+        const container = document.getElementById('client-notification-list');
+
+        if (!container) return;
+
+        if (!notifications || notifications.length === 0) {
+            container.innerHTML = `
+                <div class="notification-empty">
+                    <i class="fas fa-bell-slash fa-2x mb-2"></i>
+                    <p>No notifications yet</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = notifications.map(notification => `
+            <div class="notification-item ${!notification.isRead ? 'unread' : ''}" 
+                 data-id="${notification.id}" 
+                 data-entity-id="${notification.entityId}" 
+                 data-entity-type="${notification.entityType}">
+                <div class="notification-content">
+                    <div class="notification-icon ${notification.type}">
+                        <i class="${notification.icon}"></i>
+                    </div>
+                    <div class="notification-text">
+                        <div class="notification-title">${escapeHtml(notification.title)}</div>
+                        <div class="notification-message">${escapeHtml(notification.message)}</div>
+                        <div class="notification-time">${notification.timeAgo}</div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function markClientNotificationAsRead(instructionId) {
+        try {
+            const response = await fetch(`/v1/api/instructions/${instructionId}/mark-seen-client`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                const notificationElement = document.querySelector(`[data-id="${instructionId}"]`);
+                if (notificationElement && notificationElement.classList.contains('unread')) {
+                    notificationElement.classList.remove('unread');
+
+                    const notificationData = {
+                        id: parseInt(instructionId),
+                        entityId: notificationElement.dataset.entityId,
+                        entityType: notificationElement.dataset.entityType,
+                        title: notificationElement.querySelector('.notification-title').textContent,
+                        message: notificationElement.querySelector('.notification-message').textContent,
+                        timeAgo: notificationElement.querySelector('.notification-time').textContent,
+                        type: notificationElement.querySelector('.notification-icon').className.split(' ').find(c => ['ticket', 'inquiry', 'message', 'status_change'].includes(c)) || 'message',
+                        icon: notificationElement.querySelector('.notification-icon i').className,
+                        createdAt: new Date().toISOString(),
+                        isRead: true
+                    };
+
+                    const existingReadNotifications = JSON.parse(localStorage.getItem('client_read_notifications') || '[]');
+                    const updatedReadNotifications = [notificationData, ...existingReadNotifications].slice(0, 20);
+                    localStorage.setItem('client_read_notifications', JSON.stringify(updatedReadNotifications));
+                }
+
+                if (clientUnreadNotificationCount > 0) {
+                    updateClientNotificationBadge(clientUnreadNotificationCount - 1);
+                }
+            }
+        } catch (error) {
+            console.error('Error marking notification as read:', error);
+        }
+    }
+
+    async function markAllClientNotificationsAsRead() {
+        try {
+            const response = await fetch('/v1/api/instructions/mark-all-seen-client', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                const currentNotifications = Array.from(document.querySelectorAll('.notification-item')).map(item => {
+                    return {
+                        id: parseInt(item.dataset.id),
+                        entityId: item.dataset.entityId,
+                        entityType: item.dataset.entityType,
+                        title: item.querySelector('.notification-title').textContent,
+                        message: item.querySelector('.notification-message').textContent,
+                        timeAgo: item.querySelector('.notification-time').textContent,
+                        type: item.querySelector('.notification-icon').className.split(' ').find(c => ['ticket', 'inquiry', 'message', 'status_change'].includes(c)) || 'message',
+                        icon: item.querySelector('.notification-icon i').className,
+                        createdAt: new Date().toISOString(),
+                        isRead: true
+                    };
+                });
+
+                const existingReadNotifications = JSON.parse(localStorage.getItem('client_read_notifications') || '[]');
+                const updatedReadNotifications = [...currentNotifications, ...existingReadNotifications].slice(0, 20);
+
+                localStorage.setItem('client_read_notifications', JSON.stringify(updatedReadNotifications));
+
+                document.querySelectorAll('.notification-item.unread').forEach(item => {
+                    item.classList.remove('unread');
+                });
+
+                updateClientNotificationBadge(0);
+                alert('All notifications marked as read');
+            }
+        } catch (error) {
+            console.error('Error marking all notifications as read:', error);
+            alert('Failed to mark notifications as read');
+        }
+    }
+
+    function initializeClientNotifications() {
+        console.log('🔔 Initializing client notifications...');
+
+        const notificationBtn = document.getElementById('client-notification-btn');
+        const notificationMenu = document.getElementById('client-notification-menu');
+
+        if (notificationBtn && notificationMenu) {
+            notificationBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+
+                const isVisible = notificationMenu.classList.contains('show');
+
+                if (isVisible) {
+                    notificationMenu.classList.remove('show');
+                    return;
+                }
+
+                try {
+                    await loadClientNotifications();
+                    notificationMenu.classList.add('show');
+                } catch (error) {
+                    console.error('❌ Error loading notifications:', error);
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.client-notification-container')) {
+                    notificationMenu.classList.remove('show');
+                }
+            });
+
+            notificationMenu.addEventListener('click', async (e) => {
+                const notificationItem = e.target.closest('.notification-item');
+                if (notificationItem) {
+                    const notificationId = notificationItem.dataset.id;
+                    const entityId = notificationItem.dataset.entityId;
+                    const entityType = notificationItem.dataset.entityType;
+
+                    if (notificationItem.classList.contains('unread')) {
+                        await markClientNotificationAsRead(notificationId);
+                    }
+
+                    if (entityType === 'message') {
+                        await switchChatContext({
+                            id: entityId,
+                            name: 'Support Chat',
+                            type: 'support',
+                            route: 'support-group'
+                        });
+                    } else if (entityType === 'ticket' && entityId) {
+                        if (ticketsDataTable) {
+                            ticketsDataTable.ajax.reload();
+                        }
+                    } else if (entityType === 'inquiry' && entityId) {
+                        if (inquiriesDataTable) {
+                            inquiriesDataTable.ajax.reload();
+                        }
+                    }
+
+                    notificationMenu.classList.remove('show');
+                }
+            });
+
+            const markAllReadBtn = document.getElementById('client-mark-all-read-btn');
+            if (markAllReadBtn) {
+                markAllReadBtn.addEventListener('click', markAllClientNotificationsAsRead);
+            }
+
+            console.log('✅ Client notifications initialized');
+        }
+
+        loadClientNotifications();
+
+        if (clientNotificationPollingInterval) {
+            clearInterval(clientNotificationPollingInterval);
+        }
+        clientNotificationPollingInterval = setInterval(loadClientNotifications, 30000);
     }
 
     // --- Ticket & Inquiry System ---
@@ -441,19 +750,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     alert("Please fill all the required fields for the ticket.");
                     return;
                 }
-
-                const routeToSubject = {
-                    'ticket/training': 'Training',
-                    'ticket/migration': 'Migration',
-                    'ticket/setup': 'Setup',
-                    'ticket/correction': 'Correction',
-                    'ticket/bug-fix': 'Bug Fix',
-                    'ticket/new-feature': 'New Feature Request',
-                    'ticket/feature-enhancement': 'Feature Enhancement',
-                    'ticket/backend-workaround': 'Backend Workaround'
-                };
-
-                const properSubject = routeToSubject[ticketTypeRoute] || 'General Support'; 
 
                 const chatMessage = {
                     Instruction: description,
@@ -591,6 +887,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
         }
+
+        // 🔔 REFRESH NOTIFICATIONS WHEN NEW MESSAGE RECEIVED
+        loadClientNotifications();
     });
 
     async function init() {
@@ -600,12 +899,16 @@ document.addEventListener("DOMContentLoaded", () => {
             updateSendButtonState();
             await loadSidebarForClient(currentClient.id);
 
+            // 🔔 INITIALIZE CLIENT NOTIFICATIONS (ONLY ONCE)
+            initializeClientNotifications();
+
         } catch (err) {
             console.error("Initialization Error: ", err);
             if (chatHeader) chatHeader.innerHTML = `<div class="text-danger">Connection Failed</div>`;
             return;
         }
 
+        // DataTable initialization
         if (supportTicketsTableE1.length) {
             ticketsDataTable = supportTicketsTableE1.DataTable({
                 "ajax": {
