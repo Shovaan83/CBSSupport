@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using CBSSupport.API.Hubs; 
 using Microsoft.Maui.Controls;
 using Npgsql;
 using System.Security.Claims;
@@ -15,11 +17,13 @@ public class InstructionsController : ControllerBase
 {
     private readonly IChatService _service;
     private readonly ILogger<InstructionsController> _logger;
+    private readonly IHubContext<ChatHub> _hubContext;
 
-    public InstructionsController(IChatService service, ILogger<InstructionsController> logger)
+    public InstructionsController(IChatService service, ILogger<InstructionsController> logger, IHubContext<ChatHub> hubContext)
     {
         _service = service;
         _logger = logger;
+        _hubContext = hubContext; 
     }
 
     private async Task<IActionResult> SaveInstruction(ChatMessage instruction, short instTypeId)
@@ -256,7 +260,6 @@ public class InstructionsController : ControllerBase
                 return BadRequest(ModelState);
             }
 
-            // Get existing ticket to check its current state
             var existingTicket = await _service.GetInstructionByIdAsync(ticketId);
             if (existingTicket == null)
             {
@@ -272,11 +275,9 @@ public class InstructionsController : ControllerBase
                 return BadRequest(new { message = "Cannot edit resolved tickets." });
             }
 
-            // Set the required properties
             updatedTicket.Id = ticketId;
             updatedTicket.EditDate = DateTime.UtcNow;
 
-            // Format remarks as JSON if needed
             if (!string.IsNullOrEmpty(updatedTicket.Priority) || !string.IsNullOrEmpty(updatedTicket.Remarks))
             {
                 var remarksJson = new
@@ -362,6 +363,21 @@ public class InstructionsController : ControllerBase
 
             if (result)
             {
+                var ticketDetails = await _service.GetTicketDetailsByIdAsync(ticketId);
+                if (ticketDetails != null)
+                {
+                    var newStatus = request.IsCompleted ? "Resolved" : "Open";
+                    await _hubContext.Clients.User(ticketDetails.ClientId.ToString()).SendAsync("TicketStatusUpdated", new
+                    {
+                        TicketId = ticketId,
+                        NewStatus = newStatus,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+
+                    _logger.LogInformation("Broadcast ticket status update: TicketId={TicketId}, Status={Status}, ClientId={ClientId}",
+                                         ticketId, newStatus, ticketDetails.ClientId);
+                }
+
                 return Ok(new { success = true, message = "Ticket status updated successfully." });
             }
 
@@ -387,6 +403,21 @@ public class InstructionsController : ControllerBase
 
             if (result)
             {
+                var inquiryDetails = await _service.GetInquiryDetailsByIdAsync(inquiryId);
+                if (inquiryDetails != null)
+                {
+                    var newStatus = request.IsCompleted ? "Completed" : "Pending";
+                    await _hubContext.Clients.User(inquiryDetails.ClientId.ToString()).SendAsync("InquiryStatusUpdated", new
+                    {
+                        InquiryId = inquiryId,
+                        NewStatus = newStatus,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+
+                    _logger.LogInformation("Broadcast inquiry status update: InquiryId={InquiryId}, Status={Status}, ClientId={ClientId}",
+                                         inquiryId, newStatus, inquiryDetails.ClientId);
+                }
+
                 return Ok(new { success = true, message = "Inquiry status updated successfully." });
             }
 
@@ -399,7 +430,6 @@ public class InstructionsController : ControllerBase
         }
     }
 
-    // 🔧 KEEP ONLY THIS VERSION - HANDLES BOTH ADMIN AND CLIENT
     [HttpGet("notifications/unread")]
     public async Task<IActionResult> GetUnreadNotifications([FromQuery] long? clientId = null)
     {

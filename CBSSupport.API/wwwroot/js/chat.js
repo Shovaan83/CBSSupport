@@ -1,7 +1,6 @@
 ﻿"use strict";
 
 document.addEventListener("DOMContentLoaded", () => {
-    // --- Globals & State ---
     let currentUser = {
         name: serverData.currentUserName,
         id: serverData.currentUserId,
@@ -19,11 +18,9 @@ document.addEventListener("DOMContentLoaded", () => {
     let ticketsDataTable = null;
     let inquiriesDataTable = null;
 
-    // 🔔 NOTIFICATION VARIABLES
     let clientUnreadNotificationCount = 0;
     let clientNotificationPollingInterval = null;
 
-    // --- DOM References ---
     const fullscreenBtn = document.getElementById("fullscreen-btn");
     const messageInput = document.getElementById("message-input");
     const sendButton = document.getElementById("send-button");
@@ -34,7 +31,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const supportTicketsTableE1 = $('#supportTicketsDataTable');
     const inquiriesTableE1 = $('#inquiriesDataTable');
 
-    // --- SignalR Connection ---
     const connection = new signalR.HubConnectionBuilder()
         .withUrl("/chathub", {
             accessTokenFactory: () => {
@@ -44,7 +40,6 @@ document.addEventListener("DOMContentLoaded", () => {
         .withAutomaticReconnect()
         .build();
 
-    // --- Helper Functions ---
     const formatTimestamp = (d) => new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
     const updateSendButtonState = () => {
@@ -96,8 +91,6 @@ document.addEventListener("DOMContentLoaded", () => {
             chatPanelBody.appendChild(ds);
         }
     }
-
-    // 🔔 NOTIFICATION HELPER FUNCTIONS
     function getTimeAgo(dateString) {
         const now = new Date();
         const date = new Date(dateString);
@@ -121,6 +114,48 @@ document.addEventListener("DOMContentLoaded", () => {
             'status_change': 'fas fa-exchange-alt'
         };
         return icons[type] || 'fas fa-bell';
+    }
+
+    function showNotificationToast(message, type = 'info') {
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.className = 'position-fixed top-0 end-0 p-3';
+            toastContainer.style.zIndex = '1055';
+            document.body.appendChild(toastContainer);
+        }
+
+        const toastId = `toast-${Date.now()}`;
+        const iconClass = type === 'success' ? 'fa-check-circle text-success' :
+            type === 'error' ? 'fa-exclamation-triangle text-danger' :
+                'fa-info-circle text-info';
+
+        const toastHtml = `
+        <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i class="fas ${iconClass} me-2"></i>
+                <strong class="me-auto">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                ${escapeHtml(message)}
+            </div>
+        </div>`;
+
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+
+        const toastElement = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastElement, {
+            autohide: true,
+            delay: 5000
+        });
+
+        toast.show();
+
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
+        });
     }
 
     function populateTicketDetailsModal(ticketData) {
@@ -165,6 +200,29 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    function populateInquiryDetailsModal(inquiryData) {
+        console.log('Populating inquiry modal with:', inquiryData);
+
+        $('#inquiry-details-id').text(`#INQ-${inquiryData.id || 'N/A'}`);
+        $('#inquiry-details-topic').text(inquiryData.topic || 'N/A');
+
+        if (inquiryData.date) {
+            const date = new Date(inquiryData.date);
+            $('#inquiry-details-date').text(date.toLocaleString());
+        } else {
+            $('#inquiry-details-date').text('N/A');
+        }
+
+        $('#inquiry-details-inquiredBy').text(inquiryData.inquiredBy || 'N/A');
+
+        const outcome = inquiryData.outcome || 'Pending';
+        const mappedOutcome = outcome === 'Completed' ? 'Resolved' : outcome;
+        const outcomeClass = `badge-status-${mappedOutcome.toLowerCase()}`;
+        $('#inquiry-details-outcome').html(`<span class="badge ${outcomeClass}">${escapeHtml(outcome)}</span>`);
+
+        $('#inquiry-details-description').text(inquiryData.description || inquiryData.instruction || 'No description provided.');
+    }
+
     function closeTicketModal() {
         const modalElement = document.getElementById('viewTicketDetailsModal');
         const modalInstance = bootstrap.Modal.getInstance(modalElement);
@@ -182,7 +240,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 150);
     }
 
-    // --- Fullscreen Toggle ---
     if (fullscreenBtn) {
         const fullscreenIcon = fullscreenBtn.querySelector("i");
         fullscreenBtn.addEventListener("click", () => {
@@ -203,7 +260,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // --- UI Rendering ---
     function displayMessage(msg, isHistory = false) {
         if (!chatPanelBody) {
             console.error("CRITICAL: displayMessage was called but 'chatPanelBody' is null!");
@@ -269,7 +325,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return item;
     }
 
-    // --- Core Chat Logic ---
     async function loadSidebarForClient(clientId) {
         try {
             const response = await fetch(`/v1/api/instructions/sidebar/${clientId}`);
@@ -327,7 +382,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // --- Core Chat Logic (Sending Messages) ---
     async function sendMessage() {
         if (!messageInput || !currentChatContext.route) return;
         const messageText = messageInput.value.trim();
@@ -705,7 +759,6 @@ document.addEventListener("DOMContentLoaded", () => {
         clientNotificationPollingInterval = setInterval(loadClientNotifications, 30000);
     }
 
-    // --- Ticket & Inquiry System ---
     function initializeTicketSystem() {
         const newTicketBtn = document.getElementById("newSupportTicketBtn");
         const newInquiryBtn = document.getElementById("newInquiryBtn");
@@ -776,18 +829,32 @@ document.addEventListener("DOMContentLoaded", () => {
                         throw new Error(errorData.message || "Failed to create ticket.");
                     }
 
+                    const createdTicket = await response.json();
+
                     if (ticketsDataTable) {
-                        ticketsDataTable.ajax.reload();
+                        await new Promise(resolve => {
+                            ticketsDataTable.ajax.reload(() => resolve(), false);
+                        });
                     }
 
                     await loadSidebarForClient(currentClient.id);
 
-                    alert("Ticket created successfully!");
+                    showNotificationToast(`Ticket #${createdTicket.id} created successfully!`, 'success');
+
                     if (createTicketModal) createTicketModal.hide();
                     createTicketForm.reset();
+
+                    if (connection.state === signalR.HubConnectionState.Connected) {
+                        await connection.invoke("NotifyTicketCreated", {
+                            ticketId: createdTicket.id,
+                            clientId: currentClient.id,
+                            subject: chatMessage.Instruction.substring(0, 50) + '...'
+                        });
+                    }
+
                 } catch (error) {
                     console.error("Error creating ticket:", error);
-                    alert(error.message);
+                    showNotificationToast(`Error: ${error.message}`, 'error');
                 }
             });
         }
@@ -847,21 +914,37 @@ document.addEventListener("DOMContentLoaded", () => {
                         throw new Error(errorData.message || `Failed to create inquiry: ${response.statusText}`);
                     }
 
+                    const createdInquiry = await response.json();
+
+                    if (inquiriesDataTable) {
+                        await new Promise(resolve => {
+                            inquiriesDataTable.ajax.reload(() => resolve(), false);
+                        });
+                    }
+
                     await loadSidebarForClient(currentClient.id);
-                    alert("Inquiry sent successfully!");
+
+                    showNotificationToast(`Inquiry #${createdInquiry.id} created successfully!`, 'success');
 
                     if (createInquiryModal) createInquiryModal.hide();
                     createInquiryForm.reset();
-                }
-                catch (error) {
+
+                    if (connection.state === signalR.HubConnectionState.Connected) {
+                        await connection.invoke("NotifyInquiryCreated", {
+                            inquiryId: createdInquiry.id,
+                            clientId: currentClient.id,
+                            topic: inquiryType
+                        });
+                    }
+
+                } catch (error) {
                     console.error("Error creating inquiry:", error);
-                    alert(`Error: ${error.message}`);
+                    showNotificationToast(`Error: ${error.message}`, 'error');
                 }
             });
         }
     }
 
-    // --- SignalR Event Handlers ---
     connection.on("ReceivePrivateMessage", (message) => {
         console.log("CLIENT SIDE: 'ReceivePrivateMessage' event fired. Message received:", message);
 
@@ -888,8 +971,51 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-        // 🔔 REFRESH NOTIFICATIONS WHEN NEW MESSAGE RECEIVED
         loadClientNotifications();
+    });
+
+    connection.on("TicketStatusUpdated", (data) => {
+        console.log("CLIENT: Ticket status updated:", data);
+
+        if (ticketsDataTable) {
+            ticketsDataTable.ajax.reload(null, false);
+        }
+
+        showNotificationToast(`Ticket #${data.ticketId} status updated to: ${data.newStatus}`, 'info');
+
+        loadClientNotifications();
+    });
+
+    connection.on("InquiryStatusUpdated", (data) => {
+        console.log("CLIENT: Inquiry status updated:", data);
+
+        if (inquiriesDataTable) {
+            inquiriesDataTable.ajax.reload(null, false); 
+        }
+
+        showNotificationToast(`Inquiry #${data.inquiryId} status updated to: ${data.newStatus}`, 'info');
+
+        loadClientNotifications();
+    });
+
+    connection.on("NewTicketCreated", (data) => {
+        console.log("CLIENT: New ticket created:", data);
+
+        if (ticketsDataTable) {
+            ticketsDataTable.ajax.reload(null, false);
+        }
+
+        loadSidebarForClient(currentClient.id);
+    });
+
+    connection.on("NewInquiryCreated", (data) => {
+        console.log("CLIENT: New inquiry created:", data);
+
+        if (inquiriesDataTable) {
+            inquiriesDataTable.ajax.reload(null, false);
+        }
+
+        loadSidebarForClient(currentClient.id);
     });
 
     async function init() {
@@ -899,7 +1025,6 @@ document.addEventListener("DOMContentLoaded", () => {
             updateSendButtonState();
             await loadSidebarForClient(currentClient.id);
 
-            // 🔔 INITIALIZE CLIENT NOTIFICATIONS (ONLY ONCE)
             initializeClientNotifications();
 
         } catch (err) {
@@ -908,7 +1033,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // DataTable initialization
         if (supportTicketsTableE1.length) {
             ticketsDataTable = supportTicketsTableE1.DataTable({
                 "ajax": {
@@ -1036,69 +1160,104 @@ document.addEventListener("DOMContentLoaded", () => {
             inquiriesDataTable = inquiriesTableE1.DataTable({
                 "ajax": {
                     "url": `/v1/api/instructions/inquiries/${currentClient.id}`,
-                    "dataSrc": "data"
+                    "dataSrc": function (json) {
+                        console.log("DEBUG: Inquiry data structure:", json.data[0]);
+                        console.log("DEBUG: All inquiry fields:", json.data.length > 0 ? Object.keys(json.data[0]) : "No data");
+                        return json.data;
+                    }
                 },
                 "columns": [
                     {
                         "data": "id",
                         "title": '<i class="fas fa-hashtag me-1"></i>ID',
-                        "width": "10%",
+                        "width": "8%",
                         "className": "text-center fw-bold",
                         "render": function (data) {
-                            return `<span class="badge bg-light text-dark border">#${data}</span>`;
+                            return `<span class="badge bg-light text-dark border">#INQ-${data}</span>`;
                         }
                     },
                     {
                         "data": "topic",
                         "title": '<i class="fas fa-question-circle me-1"></i>Topic',
-                        "width": "35%",
+                        "width": "25%",
                         "className": "fw-semibold text-primary"
                     },
                     {
                         "data": "inquiredBy",
                         "title": '<i class="fas fa-user me-1"></i>Inquired By',
-                        "width": "25%"
+                        "width": "20%"
                     },
                     {
                         "data": "date",
                         "title": '<i class="fas fa-calendar me-1"></i>Date',
-                        "width": "20%",
+                        "width": "15%",
                         "className": "text-center",
                         "render": function (data) {
                             const date = new Date(data);
-                            return date.toLocaleDateString('en-US', {
+                            const formatted = date.toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric',
                                 year: 'numeric'
                             });
+                            const time = date.toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                            return `<div class="text-muted small">${formatted}</div><div class="text-secondary" style="font-size: 0.75rem">${time}</div>`;
+                        }
+                    },
+                    {
+                        "data": "outcome",
+                        "title": '<i class="fas fa-info-circle me-1"></i>Outcome',
+                        "width": "12%",
+                        "className": "text-center",
+                        "render": function (data, type, row) {
+                            const outcome = data || row.outcome || 'Pending';
+                            const mappedOutcome = outcome === 'Completed' ? 'Resolved' : outcome;
+                            const outcomeClass = `badge-status-${mappedOutcome.toLowerCase()}`;
+                            return `<span class="badge ${outcomeClass}"><i class="fas fa-circle me-1" style="font-size: 0.5rem"></i>${escapeHtml(outcome)}</span>`;
                         }
                     },
                     {
                         "data": null,
                         "title": '<i class="fas fa-cogs me-1"></i>Actions',
                         "orderable": false,
-                        "width": "10%",
+                        "width": "20%",
                         "className": "text-center",
-                        "render": function () {
+                        "render": function (data, type, row) {
                             return `
-                        <div class="action-buttons">
-                            <button class="btn-icon-action start-chat-btn" title="Open Chat" data-bs-toggle="tooltip">
-                                <i class="fas fa-comments"></i>
-                            </button>
-                        </div>`;
+                    <div class="action-buttons">
+                        <button class="btn-icon-action view-details-btn" title="View Details" data-bs-toggle="tooltip">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn-icon-action start-chat-btn" title="Open Chat" data-bs-toggle="tooltip">
+                            <i class="fas fa-comments"></i>
+                        </button>
+                    </div>`;
                         }
                     }
                 ],
                 "order": [[0, 'desc']],
                 "pageLength": 10,
+                "lengthMenu": [[5, 10, 25, 50], [5, 10, 25, 50]],
                 "language": {
                     "emptyTable": '<div class="text-center p-4"><i class="fas fa-question-circle fa-3x text-muted mb-3"></i><br><span class="text-muted">No inquiries found.</span><br><small class="text-secondary">Click "New Inquiry" to submit your first inquiry!</small></div>',
                     "search": '<i class="fas fa-search me-2"></i>',
                     "lengthMenu": 'Show _MENU_ inquiries',
-                    "info": 'Showing _START_ to _END_ of _TOTAL_ inquiries'
+                    "info": 'Showing _START_ to _END_ of _TOTAL_ inquiries',
+                    "infoEmpty": 'No inquiries available',
+                    "paginate": {
+                        "first": '<i class="fas fa-angle-double-left"></i>',
+                        "last": '<i class="fas fa-angle-double-right"></i>',
+                        "next": '<i class="fas fa-angle-right"></i>',
+                        "previous": '<i class="fas fa-angle-left"></i>'
+                    }
                 },
                 "dom": '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
                 "responsive": true,
+                "processing": false,
+                "deferRender": true,
+                "stateSave": true,
                 "drawCallback": function () {
                     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
                     tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -1109,6 +1268,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                 }
             });
+
+            const inquirySearchBox = inquiriesTableE1.closest('.dataTables_wrapper').find('.dataTables_filter input');
+            inquirySearchBox.attr('placeholder', 'Search inquiries...').addClass('form-control-sm');
         }
 
         initializeTicketSystem();
@@ -1191,6 +1353,21 @@ document.addEventListener("DOMContentLoaded", () => {
                     name: `#${rowData.id} - ${rowData.topic}`,
                     route: route
                 });
+            });
+
+            inquiriesTableE1.on('click', '.view-details-btn', function () {
+                const rowData = inquiriesDataTable.row($(this).parents('tr')).data();
+                if (!rowData) {
+                    console.error('No row data found for inquiry view details button');
+                    return;
+                }
+
+                console.log('Inquiry row data for modal:', rowData);
+
+                populateInquiryDetailsModal(rowData);
+
+                const modal = new bootstrap.Modal(document.getElementById('viewInquiryDetailsModal'));
+                modal.show();
             });
         }
     }

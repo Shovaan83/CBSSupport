@@ -726,6 +726,12 @@ body {
     border: 1px solid #86efac;
 }
 
+.badge-status-resolved {
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    color: #065f46;
+    border: 1px solid #86efac;
+}
+
 .badge-outcome-completed {
     background: linear-gradient(135deg, #d1fae5, #a7f3d0);
     color: #065f46;

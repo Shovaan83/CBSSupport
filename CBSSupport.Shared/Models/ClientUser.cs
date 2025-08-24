@@ -3,7 +3,7 @@
     public class ClientUser
     {
         public long Id { get; set; }
-        public long ClientId { get; set; } //For Client Code
+        public long ClientId { get; set; } 
         public string Username { get; set; }
         public string FullName { get; set; }
         public string Role { get; set; } 

@@ -579,7 +579,7 @@ namespace CBSSupport.Shared.Services
             res.full_name AS ResolvedBy,
             CASE WHEN i.completed = true THEN 'Resolved' ELSE 'Open' END AS Status,
             COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
-            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName
+            COALESCE(u.full_name, 'Unknown Client') AS ClientName
         FROM digital.instructions i
         LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
         LEFT JOIN admin.users res ON i.completed_by = res.id
@@ -610,7 +610,7 @@ namespace CBSSupport.Shared.Services
                 WHEN i.completed = true THEN 'Completed'
                 ELSE 'Pending'
             END AS Outcome,
-            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName
+            COALESCE(u.full_name, au.full_name, 'Unknown Client') AS ClientName
         FROM digital.instructions i
         LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
         LEFT JOIN admin.users au ON i.insert_user = au.id
@@ -732,7 +732,7 @@ namespace CBSSupport.Shared.Services
             res.full_name AS ResolvedBy,
             CASE WHEN i.completed = true THEN 'Resolved' ELSE 'Open' END AS Status,
             COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
-            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName
+            COALESCE(u.full_name, 'Unknown Client') AS ClientName
         FROM digital.instructions i
         LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
         LEFT JOIN admin.users res ON i.completed_by = res.id
@@ -758,7 +758,7 @@ namespace CBSSupport.Shared.Services
                 WHEN i.completed = true THEN 'Completed'
                 ELSE 'Pending'
             END AS Outcome,
-            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName,
+            COALESCE(u.full_name, au.full_name, 'Unknown Client') AS ClientName,
             i.client_id AS ClientId,
             i.instruction AS Description,
             COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
@@ -788,7 +788,7 @@ namespace CBSSupport.Shared.Services
             res.full_name AS ResolvedBy,
             CASE WHEN i.completed = true THEN 'Resolved' ELSE 'Open' END AS Status,
             COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
-            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName
+            COALESCE(u.full_name, 'Unknown Client') AS ClientName
         FROM digital.instructions i
         LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
         LEFT JOIN admin.users res ON i.completed_by = res.id
@@ -814,7 +814,7 @@ namespace CBSSupport.Shared.Services
                 WHEN i.completed = true THEN 'Completed'
                 ELSE 'Pending'
             END AS Outcome,
-            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName,
+            COALESCE(u.full_name, au.full_name, 'Unknown Client') AS ClientName,
             i.client_id AS ClientId,
             i.instruction AS Description,
             COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,
@@ -901,7 +901,7 @@ namespace CBSSupport.Shared.Services
             i.remarks AS Remarks,
             i.expiry_date AS ExpiryDate,
             i.completed_on AS ResolvedDate,
-            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName
+            COALESCE(u.full_name, 'Unknown Client') AS ClientName
         FROM digital.instructions i
         LEFT JOIN internal.support_users u ON i.client_auth_user_id = u.id
         LEFT JOIN admin.users res ON i.completed_by = res.id
@@ -925,7 +925,7 @@ namespace CBSSupport.Shared.Services
                 WHEN i.completed = true THEN 'Completed'
                 ELSE 'Pending'
             END AS Outcome,
-            (SELECT DISTINCT c.full_name FROM internal.support_users c WHERE c.client_id = i.client_id LIMIT 1) AS ClientName,
+            COALESCE(u.full_name, au.full_name, 'Unknown Client') AS ClientName,
             i.client_id AS ClientId,
             i.instruction AS Description,
             COALESCE(public.try_get_json_value(i.remarks, 'priority'), 'Normal') AS Priority,

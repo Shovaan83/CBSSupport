@@ -80,59 +80,123 @@
                 </div>
 
                 <div class="page-content">
-                    <!-- Dashboard content remains the same -->
+
                     <div class="row g-4 mb-4">
                         <div class="col-lg-2 col-md-4 col-sm-6">
-                            <div class="dashboard-card stat-card clickable-card" data-action="view-all-tickets">
-                                <h6>All Tickets</h6>
-                                <div class="stat-main">
-                                    <h2 id="stat-total-tickets">0</h2>
+                            <div class="dashboard-card stat-card clickable-card shadow-hover" data-action="view-all-tickets">
+                                <div class="stat-icon bg-primary">
                                     <i class="fas fa-ticket-alt"></i>
                                 </div>
+                                <div class="stat-content">
+                                    <h3 id="stat-total-tickets" class="stat-number">0</h3>
+                                    <p class="stat-label">Total Tickets</p>
+                                </div>
                             </div>
                         </div>
                         <div class="col-lg-2 col-md-4 col-sm-6">
-                            <div class="dashboard-card stat-card clickable-card" data-action="view-all-inquiries">
-                                <h6>All Inquiries</h6>
-                                <div class="stat-main">
-                                    <h2 id="stat-total-inquiries">0</h2>
+                            <div class="dashboard-card stat-card clickable-card shadow-hover" data-action="view-all-inquiries">
+                                <div class="stat-icon bg-info">
                                     <i class="fas fa-question-circle"></i>
                                 </div>
+                                <div class="stat-content">
+                                    <h3 id="stat-total-inquiries" class="stat-number">0</h3>
+                                    <p class="stat-label">Total Inquiries</p>
+                                </div>
                             </div>
                         </div>
                         <div class="col-lg-2 col-md-4 col-sm-6">
-                            <div class="dashboard-card stat-card clickable-card" data-action="view-solved-tickets">
-                                <h6>Solved Tickets</h6>
-                                <div class="stat-main">
-                                    <h2 id="stat-resolved-tickets">0</h2>
+                            <div class="dashboard-card stat-card clickable-card shadow-hover" data-action="view-solved-tickets">
+                                <div class="stat-icon bg-success">
                                     <i class="fas fa-check-circle"></i>
                                 </div>
+                                <div class="stat-content">
+                                    <h3 id="stat-resolved-tickets" class="stat-number">0</h3>
+                                    <p class="stat-label">Solved Tickets</p>
+                                </div>
                             </div>
                         </div>
                         <div class="col-lg-2 col-md-4 col-sm-6">
-                            <div class="dashboard-card stat-card clickable-card" data-action="view-solved-inquiries">
-                                <h6>Solved Inquiries</h6>
-                                <div class="stat-main">
-                                    <h2 id="stat-solved-inquiries">0</h2>
+                            <div class="dashboard-card stat-card clickable-card shadow-hover" data-action="view-solved-inquiries">
+                                <div class="stat-icon bg-success">
                                     <i class="fas fa-check-square"></i>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <div class="dashboard-card stat-card clickable-card" data-action="view-unsolved-tickets">
-                                <h6>Unsolved Tickets</h6>
-                                <div class="stat-main">
-                                    <h2 id="stat-open-tickets">0</h2>
-                                    <i class="far fa-comment-dots"></i>
+                                <div class="stat-content">
+                                    <h3 id="stat-solved-inquiries" class="stat-number">0</h3>
+                                    <p class="stat-label">Solved Inquiries</p>
                                 </div>
                             </div>
                         </div>
                         <div class="col-lg-2 col-md-4 col-sm-6">
-                            <div class="dashboard-card stat-card clickable-card" data-action="view-unsolved-inquiries">
-                                <h6>Unsolved Inquiries</h6>
-                                <div class="stat-main">
-                                    <h2 id="stat-unsolved-inquiries">0</h2>
-                                    <i class="far fa-question-circle"></i>
+                            <div class="dashboard-card stat-card urgent-card clickable-card shadow-hover" data-action="view-unsolved-tickets">
+                                <div class="stat-icon bg-danger">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="stat-open-tickets" class="stat-number text-danger">0</h3>
+                                    <p class="stat-label">Unsolved Tickets</p>
+                                    <span class="badge bg-danger urgent-badge" id="urgent-tickets-badge">URGENT</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <div class="dashboard-card stat-card urgent-card clickable-card shadow-hover" data-action="view-unsolved-inquiries">
+                                <div class="stat-icon bg-warning">
+                                    <i class="fas fa-question-circle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="stat-unsolved-inquiries" class="stat-number text-warning">0</h3>
+                                    <p class="stat-label">Unsolved Inquiries</p>
+                                    <span class="badge bg-warning urgent-badge" id="urgent-inquiries-badge">PENDING</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-4 mb-4">
+                        <div class="col-lg-6">
+                            <div class="dashboard-card">
+                                <div class="card-header bg-danger text-white">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0"><i class="fas fa-fire me-2"></i>Critical Unsolved Tickets</h6>
+                                        <span class="badge bg-light text-danger" id="critical-tickets-badge">0 Critical</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div id="unsolved-tickets-list" class="critical-items-list">
+                                        <div class="loading-state p-4 text-center">
+                                            <div class="spinner-border spinner-border-sm me-2"></div>
+                                            Loading critical tickets...
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-light">
+                                    <a href="#" id="view-all-unsolved-tickets-link" class="btn btn-outline-danger btn-sm w-100">
+                                        <i class="fas fa-external-link-alt me-1"></i>View All Critical Tickets
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="dashboard-card">
+                                <div class="card-header bg-warning text-dark">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0"><i class="fas fa-clock me-2"></i>Pending Inquiries</h6>
+                                        <span class="badge bg-light text-warning" id="pending-inquiries-badge">0 Pending</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div id="unsolved-inquiries-list" class="critical-items-list">
+                                        <div class="loading-state p-4 text-center">
+                                            <div class="spinner-border spinner-border-sm me-2"></div>
+                                            Loading pending inquiries...
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-light">
+                                    <a href="#" id="view-all-unsolved-inquiries-link" class="btn btn-outline-warning btn-sm w-100">
+                                        <i class="fas fa-external-link-alt me-1"></i>View All Pending Inquiries
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -140,19 +204,56 @@
 
                     <div class="row g-4">
                         <div class="col-lg-8">
-                            <div class="dashboard-card list-card">
-                                <div class="list-card-header">
-                                    <h6>Recent tickets</h6>
-                                    <a href="#" id="view-all-tickets-link">View all <i class="fas fa-arrow-right"></i></a>
+                            <div class="dashboard-card">
+                                <div class="card-header bg-light">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0"><i class="fas fa-history me-2"></i>Recent Activity</h6>
+                                        <a href="#" id="view-all-tickets-link" class="btn btn-outline-primary btn-sm">
+                                            View All <i class="fas fa-arrow-right ms-1"></i>
+                                        </a>
+                                    </div>
                                 </div>
-                                <div id="recent-tickets-list" class="list-card-body"></div>
+                                <div class="card-body">
+                                    <div id="recent-tickets-list"></div>
+                                </div>
                             </div>
                         </div>
+
                         <div class="col-lg-4">
-                            <div class="dashboard-card chart-card">
-                                <h6>Ticket priority</h6>
-                                <div class="chart-container">
-                                    <canvas id="ticketPriorityChart"></canvas>
+                            <div class="dashboard-card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-chart-doughnut me-2"></i>Priority Distribution</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container" style="height: 300px;">
+                                        <canvas id="ticketPriorityChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="dashboard-card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+                                        <div class="quick-actions">
+                                            <button class="btn btn-primary btn-sm me-2" onclick="$('[data-page=ticket-management]').click()">
+                                                <i class="fas fa-ticket-alt me-1"></i>Manage Tickets
+                                            </button>
+                                            <button class="btn btn-info btn-sm me-2" onclick="$('[data-page=inquiry-management]').click()">
+                                                <i class="fas fa-question-circle me-1"></i>Manage Inquiries
+                                            </button>
+                                            <button class="btn btn-success btn-sm me-2" onclick="$('[data-page=chats]').click()">
+                                                <i class="fas fa-comments me-1"></i>Open Chats
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-sm" id="refresh-dashboard-btn">
+                                                <i class="fas fa-sync-alt me-1"></i>Refresh
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -160,7 +261,6 @@
                 </div>
             </div>
 
-            <!-- 🔔 CHATS PAGE -->
             <div id="chats-page" class="admin-page">
                 <div class="page-header">
                     <h1>Live Conversations</h1>
@@ -170,7 +270,6 @@
                             <select id="client-switcher-chats" class="form-select client-switcher" style="width: 250px;"></select>
                         </div>
 
-                        <!-- 🔧 FIXED: Added proper header-notification-container class -->
                         <div class="header-notification-container">
                             <button class="btn btn-outline-secondary header-notification-btn" id="admin-notification-btn-chats" title="Notifications">
                                 <i class="fas fa-bell"></i>
@@ -181,9 +280,7 @@
                     </div>
                 </div>
 
-                <!-- Rest of chats page content remains the same -->
                 <div class="chat-dashboard-container">
-                    <!-- ... existing chat content ... -->
                     <div id="admin-conversation-list-panel" class="admin-chat-sidebar">
                         <div class="admin-chat-sidebar-header">
                             <h5 class="mb-0"><i class="fas fa-comments me-2"></i>Conversations</h5>
@@ -193,7 +290,6 @@
                         </div>
 
                         <div class="admin-chat-panel-body" id="admin-conversation-list-container">
-                            <!-- Chat sections content... -->
                             <div class="admin-chat-section">
                                 <div class="admin-chat-section-header">
                                     <i class="fas fa-users me-2"></i>
@@ -336,20 +432,17 @@
                 </div>
             </div>
 
-            <!-- 🔔 TICKET MANAGEMENT PAGE -->
             <div id="ticket-management-page" class="admin-page">
                 <div class="page-header">
                     <h1>All Support Tickets</h1>
                     <div class="d-flex align-items-center gap-3">
                         <div class="d-flex align-items-center">
-                            <!-- 🔧 FIXED: Changed ID to proper name -->
                             <label for="client-switcher-tickets" class="form-label me-2 mb-0">Client:</label>
                             <select id="client-switcher-tickets" class="form-select client-switcher" style="width: 200px;">
                                 <option value="">All Clients</option>
                             </select>
                         </div>
 
-                        <!-- 🔧 FIXED: Added proper notification button -->
                         <div class="header-notification-container">
                             <button class="btn btn-outline-secondary header-notification-btn" id="admin-notification-btn-tickets" title="Notifications">
                                 <i class="fas fa-bell"></i>
@@ -447,7 +540,6 @@
                 </div>
             </div>
 
-            <!-- 🔔 INQUIRY MANAGEMENT PAGE -->
             <div id="inquiry-management-page" class="admin-page">
                 <div class="page-header">
                     <h1>Inquiry Management</h1>
@@ -466,12 +558,10 @@
                                 <option value="Completed">Completed</option>
                             </select>
                         </div>
-
-                        <!-- 🔧 FIXED: Changed from notification-container to header-notification-container -->
+=
                         <div class="header-notification-container">
                             <button class="btn btn-outline-secondary header-notification-btn" id="admin-notification-btn-inquiries" title="Notifications">
                                 <i class="fas fa-bell"></i>
-                                <!-- 🔧 FIXED: Changed from notification-badge to proper badge class -->
                                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
                                       id="admin-notification-count-inquiries" style="display: none;">0</span>
                             </button>
@@ -564,6 +654,17 @@
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="~/js/admin.js" asp-append-version="true"></script>
+    <script src="~/js/admin/admin-utils.js" asp-append-version="true"></script>
+    <script src="~/js/admin/admin-notifications.js" asp-append-version="true"></script>
+    <script src="~/js/admin/admin-dashboard.js" asp-append-version="true"></script>
+    <script src="~/js/admin/admin-navigation.js" asp-append-version="true"></script>
+    <script src="~/js/admin/admin-chat.js" asp-append-version="true"></script>
+    <script src="~/js/admin/admin-tickets.js" asp-append-version="true"></script>
+    <script src="~/js/admin/admin-inquiries.js" asp-append-version="true"></script>
+    <script src="~/js/admin/admin-signalr.js" asp-append-version="true"></script>
+
+    <script src="~/js/admin/admin-core.js" asp-append-version="true"></script>
+
+
 </body>
 </html>

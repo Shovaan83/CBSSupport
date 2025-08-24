@@ -618,19 +618,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 "language": {
                     "emptyTable": "No tickets found.",
                     "search": '<i class="fas fa-search me-2"></i>',
+                },
+
+                "createdRow": function (row, data, dataIndex) {
+                    $(row).addClass('clickable-ticket-row');
+                    $(row).attr('data-ticket-id', data.id);
+                    $(row).attr('title', 'Click to open dedicated chat');
                 }
             });
 
-            ticketTable.on('click', '.view-ticket-details-btn', function () {
+            ticketTable.on('click', '.view-ticket-details-btn', function (e) {
+                e.stopPropagation();
                 const rowData = ticketsTable.row($(this).parents('tr')).data();
                 if (rowData) {
                     loadTicketDetails(rowData.id);
                 }
             });
 
-            ticketTable.on('click', '.start-chat-btn', function () {
+            ticketTable.on('click', '.start-chat-btn', function (e) {
+                e.stopPropagation();
                 const data = ticketsTable.row($(this).parents('tr')).data();
                 if (data) openEnhancedFloatingChatBox(data, 'tkt');
+            });
+
+            ticketTable.on('click', 'tbody tr', function (e) {
+                if ($(e.target).closest('.action-buttons').length === 0) {
+                    const rowData = ticketsTable.row(this).data();
+                    if (rowData) {
+                        navigateToTicketChat(rowData);
+                    }
+                }
             });
         }
     }
@@ -700,19 +717,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 "language": {
                     "emptyTable": "No inquiries found.",
                     "search": '<i class="fas fa-search me-2"></i>',
+                },
+                "createdRow": function (row, data, dataIndex) {
+                    $(row).addClass('clickable-inquiry-row');
+                    $(row).attr('data-inquiry-id', data.id);
+                    $(row).attr('title', 'Click to open dedicated chat');
                 }
             });
 
-            inquiryTable.on('click', '.view-inquiry-details-btn', function () {
+            inquiryTable.on('click', '.view-inquiry-details-btn', function (e) {
+                e.stopPropagation();
                 const rowData = inquiriesTable.row($(this).parents('tr')).data();
                 if (rowData) {
                     loadInquiryDetails(rowData.id);
                 }
             });
 
-            inquiryTable.on('click', '.start-inquiry-chat-btn', function () {
+            inquiryTable.on('click', '.start-inquiry-chat-btn', function (e) {
+                e.stopPropagation();
                 const data = inquiriesTable.row($(this).parents('tr')).data();
                 if (data) openEnhancedFloatingChatBox(data, 'inq');
+            });
+
+            inquiryTable.on('click', 'tbody tr', function (e) {
+                if ($(e.target).closest('.action-buttons').length === 0) {
+                    const rowData = inquiriesTable.row(this).data();
+                    if (rowData) {
+                        navigateToInquiryChat(rowData);
+                    }
+                }
             });
         }
     }
@@ -910,6 +943,97 @@ document.addEventListener('DOMContentLoaded', () => {
                 ticketsTable.column(4).search(statusFilter).draw();
             }, 100);
         }
+    }
+
+    async function navigateToTicketChat(ticketData) {
+        console.log('Navigating to ticket chat for:', ticketData);
+
+        if (ticketData.clientName) {
+
+            const clientOption = $('.client-switcher option').filter(function () {
+                return $(this).text() === ticketData.clientName;
+            });
+
+            if (clientOption.length > 0) {
+                const clientId = clientOption.val();
+                currentClientId = clientId;
+                $('.client-switcher').val(clientId);
+            }
+        }
+
+        navigateToChatsPage();
+
+        setTimeout(async () => {
+            try {
+                let conversationItem = $(`.admin-conversation-item[data-id="${ticketData.id}"]`);
+
+                if (conversationItem.length === 0) {
+                    await refreshAdminConversations();
+
+                    setTimeout(() => {
+                        conversationItem = $(`.admin-conversation-item[data-id="${ticketData.id}"]`);
+
+                        if (conversationItem.length > 0) {
+                            conversationItem.click();
+                            showNotification(`Opened chat for Ticket #${ticketData.id}`, 'success');
+                        } else {
+                            showNotification(`Chat conversation for Ticket #${ticketData.id} not found. Please use the floating chat instead.`, 'warning');
+                        }
+                    }, 1000);
+                } else {
+                    conversationItem.click();
+                    showNotification(`Opened chat for Ticket #${ticketData.id}`, 'success');
+                }
+            } catch (error) {
+                console.error('Error navigating to ticket chat:', error);
+                showNotification('Failed to open ticket chat. Please try the floating chat instead.', 'error');
+            }
+        }, 500);
+    }
+
+    async function navigateToInquiryChat(inquiryData) {
+        console.log('Navigating to inquiry chat for:', inquiryData);
+
+        if (inquiryData.clientName) {
+            const clientOption = $('.client-switcher option').filter(function () {
+                return $(this).text() === inquiryData.clientName;
+            });
+
+            if (clientOption.length > 0) {
+                const clientId = clientOption.val();
+                currentClientId = clientId;
+                $('.client-switcher').val(clientId);
+            }
+        }
+
+        navigateToChatsPage();
+
+        setTimeout(async () => {
+            try {
+                let conversationItem = $(`.admin-conversation-item[data-id="${inquiryData.id}"]`);
+
+                if (conversationItem.length === 0) {
+                    await refreshAdminConversations();
+
+                    setTimeout(() => {
+                        conversationItem = $(`.admin-conversation-item[data-id="${inquiryData.id}"]`);
+
+                        if (conversationItem.length > 0) {
+                            conversationItem.click();
+                            showNotification(`Opened chat for Inquiry #${inquiryData.id}`, 'success');
+                        } else {
+                            showNotification(`Chat conversation for Inquiry #${inquiryData.id} not found. Please use the floating chat instead.`, 'warning');
+                        }
+                    }, 1000);
+                } else {
+                    conversationItem.click();
+                    showNotification(`Opened chat for Inquiry #${inquiryData.id}`, 'success');
+                }
+            } catch (error) {
+                console.error('Error navigating to inquiry chat:', error);
+                showNotification('Failed to open inquiry chat. Please try the floating chat instead.', 'error');
+            }
+        }, 500);
     }
 
     function navigateToInquiryManagement(statusFilter = null) {
@@ -1338,225 +1462,280 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    const pageInitializers = {
-        dashboard: async function () {
+    // 🔥 ADD: New functions for enhanced dashboard
+
+    // Enhanced dashboard initialization
+    async function loadEnhancedDashboardData() {
+        try {
             if (!currentClientId) {
-                try {
-                    const statsRes = await fetch('/v1/api/dashboard/stats/all');
-                    if (!statsRes.ok) throw new Error("Failed to fetch aggregate stats");
-                    const stats = await statsRes.json();
+                // Load aggregate data for all clients
+                const [statsRes, ticketsRes, inquiriesRes] = await Promise.all([
+                    fetch('/v1/api/dashboard/stats/all'),
+                    fetch('/v1/api/instructions/tickets/all'),
+                    fetch('/v1/api/instructions/inquiries/all')
+                ]);
 
-                    $('#stat-total-tickets').text(stats.totalTickets);
-                    $('#stat-open-tickets').text(stats.openTickets);
-                    $('#stat-resolved-tickets').text(stats.resolvedTickets);
-                    $('#stat-total-inquiries').text(stats.totalInquiries);
+                if (!statsRes.ok || !ticketsRes.ok || !inquiriesRes.ok) {
+                    throw new Error("Failed to fetch dashboard data");
+                }
 
-                    const inquiriesRes = await fetch('/v1/api/instructions/inquiries/all');
-                    if (inquiriesRes.ok) {
-                        const allInquiries = await inquiriesRes.json();
-                        const inquiryData = allInquiries.data || [];
+                const stats = await statsRes.json();
+                const allTickets = await ticketsRes.json();
+                const allInquiries = await inquiriesRes.json();
 
-                        const solvedInquiries = inquiryData.filter(i => i.outcome === 'Completed').length;
-                        const unsolvedInquiries = inquiryData.filter(i => i.outcome === 'Pending').length;
+                const ticketData = allTickets.data || [];
+                const inquiryData = allInquiries.data || [];
 
-                        $('#stat-solved-inquiries').text(solvedInquiries);
-                        $('#stat-unsolved-inquiries').text(unsolvedInquiries);
-                    }
+                // Update basic stats
+                updateBasicStats(stats, ticketData, inquiryData);
+                
+                // Update urgent sections
+                updateUrgentSections(ticketData, inquiryData);
+                
+                // Load detailed unsolved items
+                await loadUnsolvedItems(ticketData, inquiryData);
+                
+                // Update charts
+                updatePriorityChart(ticketData);
+                
+                // Load recent activity
+                loadRecentActivity(ticketData);
 
-                    const ticketsRes = await fetch('/v1/api/instructions/tickets/all');
-                    if (!ticketsRes.ok) throw new Error("Failed to fetch all recent tickets");
-                    const allTickets = await ticketsRes.json();
-                    const ticketData = allTickets.data || [];
+            } else {
+                // Load data for specific client
+                await loadClientSpecificDashboard();
+            }
+        } catch (error) {
+            console.error('Error loading enhanced dashboard data:', error);
+            showNotification('Failed to load dashboard data', 'error');
+        }
+    }
 
-                    const recentTicketsList = $('#recent-tickets-list');
-                    recentTicketsList.empty();
-                    if (ticketData.length > 0) {
-                        ticketData.slice(0, 5).forEach(ticket => {
-                            const lastUpdate = new Date(ticket.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
-                            const itemHtml = `
-                    <div class="recent-ticket-item">
+    function updateBasicStats(stats, ticketData, inquiryData) {
+        $('#stat-total-tickets').text(stats.totalTickets || ticketData.length);
+        $('#stat-open-tickets').text(stats.openTickets || ticketData.filter(t => t.status !== 'Resolved').length);
+        $('#stat-resolved-tickets').text(stats.resolvedTickets || ticketData.filter(t => t.status === 'Resolved').length);
+        $('#stat-total-inquiries').text(stats.totalInquiries || inquiryData.length);
+        
+        const solvedInquiries = inquiryData.filter(i => i.outcome === 'Completed').length;
+        const unsolvedInquiries = inquiryData.filter(i => i.outcome === 'Pending').length;
+        
+        $('#stat-solved-inquiries').text(solvedInquiries);
+        $('#stat-unsolved-inquiries').text(unsolvedInquiries);
+    }
+
+    function updateUrgentSections(ticketData, inquiryData) {
+        const unsolvedTickets = ticketData.filter(t => t.status !== 'Resolved').length;
+        const unsolvedInquiries = inquiryData.filter(i => i.outcome === 'Pending').length;
+        const totalUnsolved = unsolvedTickets + unsolvedInquiries;
+
+        // Update urgent alert
+        $('#total-unsolved-count').text(totalUnsolved);
+        $('#urgent-tickets-count').text(unsolvedTickets);
+        $('#urgent-inquiries-count').text(unsolvedInquiries);
+
+        // Update badges
+        $('#critical-tickets-badge').text(`${unsolvedTickets} Critical`);
+        $('#pending-inquiries-badge').text(`${unsolvedInquiries} Pending`);
+        $('#urgent-tickets-badge').text(unsolvedTickets > 0 ? 'URGENT' : 'CLEAR');
+        $('#urgent-inquiries-badge').text(unsolvedInquiries > 0 ? 'PENDING' : 'CLEAR');
+
+        // Show/hide urgent alert based on count
+        const alertElement = $('.alert-warning').parent();
+        if (totalUnsolved > 0) {
+            alertElement.show();
+            
+            // Add pulsing effect for high counts
+            if (totalUnsolved > 10) {
+                alertElement.addClass('urgent-pulse');
+            }
+        } else {
+            alertElement.hide();
+        }
+    }
+
+    async function loadUnsolvedItems(ticketData, inquiryData) {
+        const unsolvedTickets = ticketData.filter(t => t.status !== 'Resolved')
+                                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                                    .slice(0, 5);
+    
+        const unsolvedInquiries = inquiryData.filter(i => i.outcome === 'Pending')
+                                        .sort((a, b) => new Date(b.date) - new Date(a.date))
+                                        .slice(0, 5);
+
+        renderUnsolvedTickets(unsolvedTickets);
+        renderUnsolvedInquiries(unsolvedInquiries);
+    }
+
+    function renderUnsolvedTickets(tickets) {
+        const container = $('#unsolved-tickets-list');
+        
+        if (tickets.length === 0) {
+            container.html(`
+                <div class="text-center text-success p-4">
+                    <i class="fas fa-check-circle fa-3x mb-3"></i>
+                    <h6>🎉 No Critical Tickets!</h6>
+                    <p class="text-muted mb-0">All tickets have been resolved.</p>
+                </div>
+            `);
+            return;
+        }
+
+        const ticketsHtml = tickets.map(ticket => {
+            const timeAgo = getTimeAgo(ticket.date);
+            const priorityClass = ticket.priority ? ticket.priority.toLowerCase() : 'normal';
+            
+            return `
+                <div class="unsolved-ticket-item" onclick="navigateToTicketDetails(${ticket.id})">
+                    <div class="unsolved-item-header">
+                        <div>
+                            <div class="unsolved-item-title">#${ticket.id} - ${escapeHtml(ticket.subject || 'General Support')}</div>
+                            <div class="unsolved-item-meta">
+                                <strong>${escapeHtml(ticket.clientName || 'Unknown Client')}</strong> • 
+                                Created by ${escapeHtml(ticket.createdBy || 'Unknown')}
+                            </div>
+                        </div>
+                        <div class="unsolved-item-priority">
+                            ${generatePriorityBadge(ticket.priority)}
+                        </div>
+                    </div>
+                    <div class="unsolved-item-time">
+                        <i class="fas fa-clock me-1"></i>${timeAgo}
+                        ${ticket.priority === 'Urgent' ? '<span class="badge bg-danger ms-2">🔥 CRITICAL</span>' : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.html(ticketsHtml);
+    }
+
+    function renderUnsolvedInquiries(inquiries) {
+        const container = $('#unsolved-inquiries-list');
+        
+        if (inquiries.length === 0) {
+            container.html(`
+                <div class="text-center text-success p-4">
+                    <i class="fas fa-check-circle fa-3x mb-3"></i>
+                    <h6>✅ No Pending Inquiries!</h6>
+                    <p class="text-muted mb-0">All inquiries have been addressed.</p>
+                </div>
+            `);
+            return;
+        }
+
+        const inquiriesHtml = inquiries.map(inquiry => {
+            const timeAgo = getTimeAgo(inquiry.date);
+            
+            return `
+                <div class="unsolved-inquiry-item" onclick="navigateToInquiryDetails(${inquiry.id})">
+                    <div class="unsolved-item-header">
+                        <div>
+                            <div class="unsolved-item-title">#INQ-${inquiry.id} - ${escapeHtml(inquiry.topic || 'General Inquiry')}</div>
+                            <div class="unsolved-item-meta">
+                                <strong>${escapeHtml(inquiry.clientName || 'Unknown Client')}</strong> • 
+                                By ${escapeHtml(inquiry.inquiredBy || 'Unknown')}
+                            </div>
+                        </div>
+                        <div class="unsolved-item-priority">
+                            <span class="badge bg-warning">PENDING</span>
+                        </div>
+                    </div>
+                    <div class="unsolved-item-time">
+                        <i class="fas fa-clock me-1"></i>${timeAgo}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.html(inquiriesHtml);
+    }
+
+    // Navigation functions for unsolved items
+    function navigateToTicketDetails(ticketId) {
+        navigateToTicketManagement();
+        setTimeout(() => {
+            loadTicketDetails(ticketId);
+        }, 500);
+    }
+
+    function navigateToInquiryDetails(inquiryId) {
+        navigateToInquiryManagement();
+        setTimeout(() => {
+            loadInquiryDetails(inquiryId);
+        }, 500);
+    }
+
+    function loadRecentActivity(ticketData) {
+        const recentTicketsList = $('#recent-tickets-list');
+        recentTicketsList.empty();
+        
+        if (ticketData.length > 0) {
+            const recentTickets = ticketData.slice(0, 5);
+            recentTickets.forEach(ticket => {
+                const lastUpdate = new Date(ticket.date).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const statusIcon = ticket.status === 'Resolved' ? 'fa-check-circle text-success' : 'fa-clock text-warning';
+                
+                const itemHtml = `
+                    <div class="recent-ticket-item" onclick="navigateToTicketDetails(${ticket.id})" style="cursor: pointer;">
                         <div class="recent-ticket-info">
-                            <strong>#${ticket.id} - ${escapeHtml(ticket.clientName)}</strong>
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="fas ${statusIcon} me-2"></i>
+                                <strong>#${ticket.id} - ${escapeHtml(ticket.clientName)}</strong>
+                            </div>
                             <small>Subject: ${escapeHtml(ticket.subject)} | Last Update: ${lastUpdate}</small>
                         </div>
                         ${generatePriorityBadge(ticket.priority)}
                     </div>`;
-                            recentTicketsList.append(itemHtml);
-                        });
-                    } else {
-                        recentTicketsList.html('<p class="text-muted p-3">There are no recent tickets.</p>');
-                    }
+                recentTicketsList.append(itemHtml);
+            });
+        } else {
+            recentTicketsList.html('<p class="text-muted p-3">No recent tickets found.</p>');
+        }
+    }
 
-                    const priorityCounts = { Low: 0, Normal: 0, High: 0, Urgent: 0 };
-                    let activeTickets = 0;
-                    ticketData.forEach(ticket => {
-                        if (ticket.status !== 'Resolved') {
-                            activeTickets++;
-                            const priority = ticket.priority || 'Normal';
-                            if (priorityCounts.hasOwnProperty(priority)) {
-                                priorityCounts[priority]++;
-                            }
-                        }
-                    });
-
-                    const chartCanvas = document.getElementById('ticketPriorityChart');
-                    if (chartCanvas) {
-                        $('#ticketPriorityChart').show();
-                        if (ticketPriorityChart) ticketPriorityChart.destroy();
-
-                        const centerTextPlugin = {
-                            id: 'centerText',
-                            beforeDraw: (chart) => {
-                                const { ctx, width, height } = chart;
-                                ctx.restore();
-                                const text = "Total active tickets";
-                                const total = chart.options.plugins.centerText.total;
-                                ctx.font = "bold 20px sans-serif";
-                                ctx.textBaseline = 'middle';
-                                ctx.textAlign = 'center';
-                                const textX = Math.round(width / 2);
-                                const textY = Math.round(height / 2);
-                                ctx.fillText(total, textX, textY + 10);
-                                ctx.font = "12px sans-serif";
-                                ctx.fillStyle = '#6c757d';
-                                ctx.fillText(text, textX, textY - 10);
-                                ctx.save();
-                            }
-                        };
-
-                        ticketPriorityChart = new Chart(chartCanvas.getContext('2d'), {
-                            type: 'doughnut',
-                            data: {
-                                labels: ['Low', 'Normal', 'High', 'Urgent'],
-                                datasets: [{
-                                    data: [priorityCounts.Low, priorityCounts.Normal, priorityCounts.High, priorityCounts.Urgent],
-                                    backgroundColor: ['#3b82f6', '#22c55e', '#f97316', '#ef4444'],
-                                    borderWidth: 0,
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                cutout: '70%',
-                                plugins: {
-                                    legend: {
-                                        position: 'bottom',
-                                        labels: { usePointStyle: true, boxWidth: 8, padding: 20 }
-                                    },
-                                    centerText: { total: activeTickets }
-                                }
-                            },
-                            plugins: [centerTextPlugin]
-                        });
-                    }
-
-                } catch (err) {
-                    console.error("Dashboard 'All Clients' init error:", err);
-                }
-                return;
-            }
-
+    // 🔧 REPLACE: Clean up the pageInitializers object (find and replace the existing one)
+    // 🔧 REPLACE: Clean up the pageInitializers object (find and replace the existing one)
+    // 🔧 REPLACE: Clean up the pageInitializers object (find and replace the existing one)
+    // 🔧 REPLACE: Clean up the pageInitializers object (find and replace the existing one)
+    const pageInitializers = {
+        dashboard: async function () {
+            console.log("🎯 Loading Enhanced Dashboard...");
             try {
-                $('#ticketPriorityChart').show();
-
-                const ticketsRes = await fetch(`/v1/api/instructions/tickets/${currentClientId}`);
-                const inquiriesRes = await fetch(`/v1/api/instructions/inquiries/${currentClientId}`);
-                if (!ticketsRes.ok || !inquiriesRes.ok) throw new Error("Failed to fetch dashboard data for the selected client");
-
-                const tickets = await ticketsRes.json();
-                const inquiries = await inquiriesRes.json();
-                const ticketData = tickets.data || [];
-                const inquiryData = inquiries.data || [];
-
-                $('#stat-total-tickets').text(ticketData.length);
-                $('#stat-open-tickets').text(ticketData.filter(t => t.status !== 'Resolved').length);
-                $('#stat-resolved-tickets').text(ticketData.filter(t => t.status === 'Resolved').length);
-                $('#stat-total-inquiries').text(inquiryData.length);
-
-                const recentTicketsList = $('#recent-tickets-list');
-                recentTicketsList.empty();
-                if (ticketData.length > 0) {
-                    ticketData.slice(0, 5).forEach(ticket => {
-                        const lastUpdate = new Date(ticket.date).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-                        const itemHtml = `
-                <div class="recent-ticket-item">
-                    <div class="recent-ticket-info">
-                        <strong>#${ticket.id} - ${escapeHtml(ticket.subject)}</strong>
-                        <small>Created by: ${escapeHtml(ticket.createdBy)} | Last Update: ${lastUpdate}</small>
-                    </div>
-                    ${generatePriorityBadge(ticket.priority)}
-                </div>`;
-                        recentTicketsList.append(itemHtml);
-                    });
-                } else {
-                    recentTicketsList.html('<p class="text-muted p-3">This client has no recent tickets.</p>');
-                }
-
-                const priorityCounts = { Low: 0, Normal: 0, High: 0, Urgent: 0 };
-                let activeTickets = 0;
-                ticketData.forEach(ticket => {
-                    if (ticket.status !== 'Resolved') {
-                        activeTickets++;
-                        const priority = ticket.priority || 'Normal';
-                        if (priorityCounts.hasOwnProperty(priority)) {
-                            priorityCounts[priority]++;
-                        }
-                    }
-                });
-
-                const chartCanvas = document.getElementById('ticketPriorityChart');
-                if (chartCanvas) {
-                    if (ticketPriorityChart) ticketPriorityChart.destroy();
-
-                    const centerTextPlugin = {
-                        id: 'centerText',
-                        beforeDraw: (chart) => {
-                            const { ctx, width, height } = chart;
-                            ctx.restore();
-                            const text = "Active tickets";
-                            const total = chart.options.plugins.centerText.total;
-                            ctx.font = "bold 20px sans-serif";
-                            ctx.textBaseline = 'middle';
-                            ctx.textAlign = 'center';
-                            const textX = Math.round(width / 2);
-                            const textY = Math.round(height / 2);
-                            ctx.fillText(total, textX, textY + 10);
-                            ctx.font = "12px sans-serif";
-                            ctx.fillStyle = '#6c757d';
-                            ctx.fillText(text, textX, textY - 10);
-                            ctx.save();
-                        }
-                    };
-
-                    ticketPriorityChart = new Chart(chartCanvas.getContext('2d'), {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['Low', 'Normal', 'High', 'Urgent'],
-                            datasets: [{
-                                data: [priorityCounts.Low, priorityCounts.Normal, priorityCounts.High, priorityCounts.Urgent],
-                                backgroundColor: ['#3b82f6', '#22c55e', '#f97316', '#ef4444'],
-                                borderWidth: 0,
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            cutout: '70%',
-                            plugins: {
-                                legend: {
-                                    position: 'bottom',
-                                    labels: { usePointStyle: true, boxWidth: 8, padding: 20 }
-                                },
-                                centerText: { total: activeTickets }
-                            }
-                        },
-                        plugins: [centerTextPlugin]
-                    });
-                }
-            } catch (err) {
-                console.error("Dashboard 'Specific Client' init error:", err);
+                await loadEnhancedDashboardData();
+            } catch (error) {
+                console.error("Dashboard initialization error:", error);
+                showNotification('Failed to initialize dashboard', 'error');
+            }
+            try {
+                await loadEnhancedDashboardData();
+            } catch (error) {
+                console.error("Dashboard initialization error:", error);
+                showNotification('Failed to initialize dashboard', 'error');
+            }
+            try {
+                await loadEnhancedDashboardData();
+            } catch (error) {
+                console.error("Dashboard initialization error:", error);
+                showNotification('Failed to initialize dashboard', 'error');
+            }
+            try {
+                await loadEnhancedDashboardData();
+            } catch (error) {
+                console.error("Dashboard initialization error:", error);
+                showNotification('Failed to initialize dashboard', 'error');
+            }
+            try {
+                await loadEnhancedDashboardData();
+            } catch (error) {
+                console.error("Dashboard initialization error:", error);
+                showNotification('Failed to initialize dashboard', 'error');
             }
         },
+
+
+
+
 
         chats: async function () {
             console.log("ADMIN: Initializing chats page for client:", currentClientId);
@@ -1572,7 +1751,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            $('#group-chats, #private-chats, #internal-chats, #ticket-chats, #inquiry-chats').html('<div class="admin-chat-loading"><div class="spinner-border spinner-border-sm me-2"></div>Loading...</div>');
+            $('#group-chats, #private-charts, #internal-charts, #ticket-charts, #inquiry-charts').html('<div class="admin-chat-loading"><div class="spinner-border spinner-border-sm me-2"></div>Loading...</div>');
+            $('#group-charts, #private-charts, #internal-charts, #ticket-charts, #inquiry-charts').html('<div class="admin-chat-loading"><div class="spinner-border spinner-border-sm me-2"></div>Loading...</div>');
+            $('#group-charts, #private-charts, #internal-charts, #ticket-charts, #inquiry-charts').html('<div class="admin-chat-loading"><div class="spinner-border spinner-border-sm me-2"></div>Loading...</div>');
+            $('#group-charts, #private-charts, #internal-charts, #ticket-charts, #inquiry-charts').html('<div class="admin-chat-loading"><div class="spinner-border spinner-border-sm me-2"></div>Loading...</div>');
+            $('#group-charts, #private-charts, #internal-charts, #ticket-charts, #inquiry-charts').html('<div class="admin-chat-loading"><div class="spinner-border spinner-border-sm me-2"></div>Loading...</div>');
+            $('#group-charts, #private-charts, #internal-charts, #ticket-charts, #inquiry-charts').html('<div class="admin-chat-loading"><div class="spinner-border spinner-border-sm me-2"></div>Loading...</div>');
 
             try {
                 console.log("ADMIN: Loading conversations for client:", currentClientId);
@@ -1587,7 +1771,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderAdminSidebar(sidebarData);
             } catch (error) {
                 console.error('Error loading conversations:', error);
-                $('#group-chats, #private-chats, #internal-chats, #ticket-chats, #inquiry-chats').html('<div class="admin-chat-loading text-danger">Error loading chats</div>');
+                $('#group-charts, #private-charts, #internal-charts, #ticket-charts, #inquiry-charts').html('<div class="admin-chat-loading text-danger">Error loading chats</div>');
             }
         },
 
@@ -1847,6 +2031,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     $(`.admin-conversation-item[data-id="${currentInquiryData.id}"]`).click();
                 }, 500);
             }
+        });
+
+        // 🔧 ADD: Enhanced event handlers
+        $(document).on('click', '#refresh-dashboard-btn', function() {
+            $(this).html('<i class="fas fa-spinner fa-spin me-1"></i>Refreshing...');
+            loadEnhancedDashboardData().finally(() => {
+                $(this).html('<i class="fas fa-sync-alt me-1"></i>Refresh');
+            });
+        });
+
+        $(document).on('click', '#view-urgent-tickets-btn', function() {
+            navigateToTicketManagement('Open');
+        });
+
+        $(document).on('click', '#view-urgent-inquiries-btn', function() {
+            navigateToInquiryManagement('Pending');
+        });
+
+        $(document).on('click', '#view-all-unsolved-tickets-link', function(e) {
+            e.preventDefault();
+            navigateToTicketManagement('Open');
+        });
+
+        $(document).on('click', '#view-all-unsolved-inquiries-link', function(e) {
+            e.preventDefault();
+            navigateToInquiryManagement('Pending');
         });
 
         console.log("ADMIN: All event handlers wired successfully");

@@ -204,5 +204,35 @@ namespace CBSSupport.API.Hubs
                 _logger.LogError(ex, "Error in SendClientMessage for ConversationId {ConversationId}", message?.InstructionId);
             }
         }
+
+        public async Task NotifyTicketStatusUpdate(long ticketId, string newStatus, long clientId)
+        {
+            await Clients.User(clientId.ToString()).SendAsync("TicketStatusUpdated", new
+            {
+                TicketId = ticketId,
+                NewStatus = newStatus,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+
+        public async Task NotifyInquiryStatusUpdate(long inquiryId, string newStatus, long clientId)
+        {
+            await Clients.User(clientId.ToString()).SendAsync("InquiryStatusUpdated", new
+            {
+                InquiryId = inquiryId,
+                NewStatus = newStatus,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+
+        public async Task NotifyTicketCreated(object ticketData)
+        {
+            await Clients.Group("AdminUsers").SendAsync("NewTicketCreated", ticketData);
+        }
+
+        public async Task NotifyInquiryCreated(object inquiryData)
+        {
+            await Clients.Group("AdminUsers").SendAsync("NewInquiryCreated", inquiryData);
+        }
     }
 }
